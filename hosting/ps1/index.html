@@ -27,10 +27,49 @@
     <button type="submit">Play</button>
     <p id="status" role="status"></p>
   </form>
-  <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><div id="game"></div></section>
+  <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><div id="game"></div>
+    <label>Load a .state file<input id="state-file" type="file" accept=".state" disabled></label>
+    <p id="save-status" role="status" aria-live="polite">Start the game before loading a save.</p>
+  </section>
   <p>Saves are kept in this browser. Keep using this same address. Export your saves from the game menu for a backup.</p>
 </main>
 <script>
+const statePicker = document.querySelector('#state-file');
+const saveStatus = document.querySelector('#save-status');
+statePicker.addEventListener('change', async () => {
+  const file = statePicker.files[0];
+  if (!file) return;
+  try {
+    if (!file.name.toLowerCase().endsWith('.state')) {
+      throw new Error('Pick a .state file. For .srm files, use Import Save File.');
+    }
+    saveStatus.textContent = 'Reading ' + file.name + '…';
+    const state = new Uint8Array(await file.arrayBuffer());
+    const header = new TextDecoder().decode(state.subarray(0, 7));
+    if (header !== 'RASTATE') {
+      throw new Error('This is not an EmulatorJS .state file. Pick a save made with Save State.');
+    }
+    const emulator = window.EJS_emulator;
+    emulator.gameManager.loadState(state);
+    emulator.play();
+    saveStatus.textContent = 'Save sent to the game: ' + file.name + '. Tap the game to close its menu.';
+  } catch (error) {
+    saveStatus.textContent = 'Could not load: ' + error.message;
+  } finally {
+    statePicker.value = '';
+  }
+});
+window.EJS_onGameStart = () => {
+  statePicker.disabled = false;
+  saveStatus.textContent = 'Use Load a .state file below the game to restore your save.';
+};
+window.EJS_onLoadState = () => {
+  if (statePicker.disabled) {
+    saveStatus.textContent = 'Wait for the game to start first.';
+    return;
+  }
+  statePicker.click();
+};
 document.querySelector('#setup').addEventListener('submit', (event) => {
   event.preventDefault();
   const game = document.querySelector('#rom').files[0];
