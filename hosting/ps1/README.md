@@ -42,3 +42,11 @@ The image and page include the upstream GPL license.
 Run `node recovery.test.cjs` to check manual/auto overlap, repeated taps, failed-write retry, background saving, resume, audio wake-up, reload restoration, and the frozen-loop fallback. These checks do not replace testing on a real iPhone.
 
 Run `node touch-controls.test.cjs` after `prepare.py` to check stick thresholds, direction changes, release, and the shipped engine hook.
+
+## Fullscreen and touch menu checks
+
+Both fullscreen paths use the viewport height; the native emulator button must bypass the normal 680px/70vh page limit. Fullscreen changes also trigger a resize after layout settles. PS1 video retains its original aspect ratio, so side bars can remain.
+
+On coarse-pointer devices, automatic menu opening from mouse movement/click is disabled, including touch-generated mouse events. The visible 44px menu button remains available at the top right. Desktop mouse behavior is kept.
+
+Run `node display.test.cjs` after `prepare.py` for touch-menu and fullscreen CSS regression checks.

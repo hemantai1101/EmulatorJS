@@ -64,6 +64,25 @@ with tempfile.TemporaryDirectory() as tmp:
                 raise SystemExit(f"Expected touch control code was not found in {filename}")
             source = source.replace(old, new)
         path.write_text(source)
+    # Phones must open the menu with its button, not mouse events made from taps.
+    menu_patches = {
+        "data/emulator.min.js": [
+            ('createBottomMenuBarListeners=()=>{const t=t=>{', 'createBottomMenuBarListeners=()=>{const t=t=>{if(matchMedia("(pointer:coarse)").matches||t.sourceCapabilities?.firesTouchEvents)return;'),
+            ('},i=t=>{if(!this.started||e||document.pointerLockElement===this.canvas)return;', '},i=t=>{if(matchMedia("(pointer:coarse)").matches||t.sourceCapabilities?.firesTouchEvents)return;if(!this.started||e||document.pointerLockElement===this.canvas)return;'),
+        ],
+        "data/src/emulator.js": [
+            ('const clickListener = (e) => {', 'const clickListener = (e) => { if (matchMedia("(pointer:coarse)").matches || e.sourceCapabilities?.firesTouchEvents) return;'),
+            ('const mouseListener = (e) => {', 'const mouseListener = (e) => { if (matchMedia("(pointer:coarse)").matches || e.sourceCapabilities?.firesTouchEvents) return;'),
+        ],
+    }
+    for filename, replacements in menu_patches.items():
+        path = extracted / filename
+        source = path.read_text()
+        for old, new in replacements:
+            if source.count(old) != 1:
+                raise SystemExit(f"Expected menu code was not found in {filename}")
+            source = source.replace(old, new)
+        path.write_text(source)
     public = ROOT / "public"
     public.mkdir(exist_ok=True)
     shutil.copytree(extracted / "data", public / "data", dirs_exist_ok=True)

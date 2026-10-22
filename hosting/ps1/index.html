@@ -34,6 +34,15 @@
   button { background: #9cceff; color: #10141e; border: 0; border-radius: 8px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; }
   #screen { display: none; } #game { width: 100%; height: min(70vh, 680px); }
   @media (max-width: 600px) { main { padding: 8px; } }
+  #game:fullscreen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
+  #game:-webkit-full-screen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
+  @media (pointer: coarse) {
+    #game .ejs_virtualGamepad_open {
+      opacity: 1 !important; pointer-events: auto; width: 44px; height: 44px;
+      top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
+      padding: 10px; border-radius: 8px; background: #192436dd;
+    }
+  }
   #status { color: #ffcc99; }
   #leave-fill { display: none; }
   #resume-panel[hidden], #resume-panel button[hidden] { display: none; }
@@ -112,9 +121,15 @@ setDirectionMode(savedDirectionMode);
 directionChoice.addEventListener('change', () => setDirectionMode(directionChoice.value));
 const fillButton = document.querySelector('#fill-screen');
 const gameScreen = document.querySelector('#screen');
+function resizePlayer() {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    window.dispatchEvent(new Event('resize'));
+    window.EJS_emulator?.handleResize();
+  }));
+}
 function fillScreen(enabled) {
   document.body.classList.toggle('fill-screen', enabled);
-  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  resizePlayer();
 }
 fillButton.addEventListener('click', async () => {
   fillScreen(true);
@@ -128,7 +143,10 @@ document.querySelector('#leave-fill').addEventListener('click', () => {
 });
 document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement) fillScreen(false);
+  resizePlayer();
 });
+document.addEventListener('webkitfullscreenchange', resizePlayer);
+window.visualViewport?.addEventListener('resize', resizePlayer);
 const statePicker = document.querySelector('#state-file');
 const saveStatus = document.querySelector('#save-status');
 statePicker.addEventListener('change', async () => {
