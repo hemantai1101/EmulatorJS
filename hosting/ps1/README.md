@@ -1,5 +1,7 @@
 # PS1 player on Cloud Run
 
+Live player: https://ps1-player-168235937982.asia-east2.run.app/
+
 This hosts the player in `heman-dev`, in Hong Kong (`asia-east2`).
 The page is public. Game and BIOS files are read on the device, not uploaded.
 Saves stay in that browser. To move a save from a Mac to an iPhone, export it on the Mac, copy the file to the iPhone, then load it there.
