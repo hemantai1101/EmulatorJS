@@ -35,10 +35,12 @@
       const reload = document.querySelector('#reload-game');
       const fresh = document.querySelector('#start-fresh');
       const restore = document.querySelector('#restore-local');
+      const saveNow = document.querySelector('#save-now');
       const status = document.querySelector('#recovery-status');
       const id = 'pcsx_rearmed-4.2.3:' + gameName;
       let lastSave, backgrounded = false, schedulerPaused = false;
-      let ready = false, writing = false, active = true, failedRecovery = false;
+      let ready = false, pendingSave = null, manualRequested = false;
+      let active = true, failedRecovery = false;
       let timer, watchdog, restoreOnResume = false;
 
       function releaseButtons() {
@@ -60,22 +62,46 @@
         fresh.hidden = !savedGame;
         reload.hidden = !failed;
         panel.hidden = false;
+        updateSaveButton();
       }
-      async function checkpoint(allowPaused = false) {
-        if (!active || !ready || writing || failedRecovery || (emulator.paused && !allowPaused) || !panel.hidden) return;
-        writing = true;
+      function updateSaveButton() {
+        saveNow.disabled = !!pendingSave || !active || !ready || failedRecovery || !panel.hidden;
+        saveNow.textContent = pendingSave ? 'Saving…' : 'Save now';
+      }
+      function checkpoint(allowPaused = false, manual = false) {
+        if (!active || !ready || failedRecovery || (emulator.paused && !allowPaused) || !panel.hidden) return Promise.resolve(false);
+        if (pendingSave) {
+          manualRequested = manualRequested || manual;
+          return pendingSave;
+        }
+        let save;
+        manualRequested = manual;
+        saveNow.disabled = true;
+        saveNow.textContent = 'Saving…';
         try {
-          const save = { id, state: emulator.gameManager.getState(), savedAt: Date.now() };
+          save = { id, state: emulator.gameManager.getState(), savedAt: Date.now() };
           lastSave = save;
           restore.disabled = false;
-          await writeSave(save);
-          status.textContent = 'Auto-saved at ' + new Date(save.savedAt).toLocaleTimeString() + '.';
         } catch (error) {
-          status.textContent = 'Auto-save could not be kept. Use Save State to keep a backup.';
-        } finally {
-          writing = false;
+          status.textContent = 'Could not save on this device. Use Save State to download a backup.';
+          manualRequested = false;
+          updateSaveButton();
+          return Promise.resolve(false);
         }
+        pendingSave = writeSave(save).then(() => {
+          status.textContent = (manualRequested ? 'Saved now at ' : 'Auto-saved at ') + new Date(save.savedAt).toLocaleTimeString() + '.';
+          return true;
+        }).catch(() => {
+          status.textContent = 'Could not save on this device. Use Save State to download a backup.';
+          return false;
+        }).finally(() => {
+          pendingSave = null;
+          manualRequested = false;
+          updateSaveButton();
+        });
+        return pendingSave;
       }
+      saveNow.addEventListener('click', () => checkpoint(true, true));
       function hideGame() {
         if (!active || !emulator.started) return;
         clearTimeout(watchdog);
@@ -116,6 +142,7 @@
           backgrounded = false;
           ready = true;
           failedRecovery = false;
+          updateSaveButton();
           const frame = emulator.gameManager.functions.getFrameNum();
           clearTimeout(watchdog);
           watchdog = setTimeout(() => {
@@ -173,6 +200,7 @@
         ready = true;
         status.textContent = 'Auto-save storage is unavailable. Use Save State to keep a backup.';
       }
+      updateSaveButton();
       timer = setInterval(() => {
         if (!document.hidden) checkpoint();
       }, 30000);
@@ -182,6 +210,7 @@
         ready = false;
         panel.hidden = true;
         restore.disabled = true;
+        updateSaveButton();
         clearInterval(timer);
         clearTimeout(watchdog);
       });

@@ -4,7 +4,9 @@ Live player: https://ps1-player-168235937982.asia-east2.run.app/
 
 This hosts the player in `heman-dev`, in Hong Kong (`asia-east2`).
 The page is public. Game and BIOS files are read on the device, not uploaded.
-Saves stay in that browser. The player keeps one auto-save per game every 30 seconds and tries to save again when the page goes into the background. On return, tap Resume game. If Safari closed the page, pick the same CHD and choose Restore last save. Clearing site data removes these auto-saves; exported state files remain a useful backup. To move a save from a Mac to an iPhone, export it on the Mac, copy the file to the iPhone, then load it there.
+Saves stay in that browser. Save now updates the latest on-device save immediately. It shares one in-flight save job with auto-save, so repeated or overlapping requests cannot start concurrent writes. Save State still downloads a separate backup file.
+
+The player keeps one auto-save per game every 30 seconds and tries to save again when the page goes into the background. On return, tap Resume game. If Safari closed the page, pick the same CHD and choose Restore last save. Clearing site data removes these auto-saves; exported state files remain a useful backup. To move a save from a Mac to an iPhone, export it on the Mac, copy the file to the iPhone, then load it there.
 
 Open the deployed HTTPS link in Safari. Pick a game from Files and press Play.
 The BIOS file is optional; the built-in substitute can cause game or save bugs.
@@ -36,4 +38,4 @@ The image and page include the upstream GPL license.
 
 ## Recovery checks
 
-Run `node recovery.test.cjs` to check background saving, resume, audio wake-up, reload restoration, and the frozen-loop fallback. These checks do not replace testing on a real iPhone.
+Run `node recovery.test.cjs` to check manual/auto overlap, repeated taps, failed-write retry, background saving, resume, audio wake-up, reload restoration, and the frozen-loop fallback. These checks do not replace testing on a real iPhone.
