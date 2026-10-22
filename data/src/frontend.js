@@ -1005,7 +1005,8 @@ class EJS_Frontend {
                 stateUrl = URL.createObjectURL(blob);
                 const a = this.ejs.createElement("a");
                 a.href = stateUrl;
-                a.download = this.ejs.getBaseFileName() + ".state";
+                const timestamp = new Date().toLocaleString("sv-SE", { hour12: false }).replace(/[ :]/g, "-");
+                a.download = this.ejs.getBaseFileName() + "-" + timestamp + ".state";
                 a.click();
             }
         });
