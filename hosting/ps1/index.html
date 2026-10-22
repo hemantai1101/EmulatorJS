@@ -26,13 +26,17 @@
   #screen { display: none; } #game { width: 100%; height: min(70vh, 680px); }
   #status { color: #ffcc99; }
   #leave-fill { display: none; }
+  #resume-panel[hidden], #resume-panel button[hidden] { display: none; }
+  #resume-panel { position: fixed; inset: 0; z-index: 11000; display: grid; place-items: center; background: #000c; padding: 24px; }
+  #resume-panel > div { width: min(100%, 400px); background: #1c2535; padding: 24px; border-radius: 16px; }
+  #resume-panel button { margin: 4px; }
   body.fill-screen { overflow: hidden; }
   .fill-screen #screen {
     display: block; position: fixed; inset: 0; z-index: 9999;
     width: 100%; height: 100vh; height: 100dvh; background: #000;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  .fill-screen #screen > :not(#game):not(#leave-fill) { display: none; }
+  .fill-screen #screen > :not(#game):not(#leave-fill):not(#resume-panel) { display: none; }
   .fill-screen #game { width: 100%; height: 100%; }
   .fill-screen #leave-fill {
     display: block; position: absolute; z-index: 10000;
@@ -54,6 +58,7 @@
   </form>
   <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><div id="play-tools">
       <button id="fill-screen" type="button" disabled>Fill screen</button>
+      <button id="restore-local" type="button" disabled>Restore last save</button>
       <select id="direction-mode" aria-label="Direction control">
         <option value="dpad">Arrow buttons</option>
         <option value="stick">Joystick</option>
@@ -61,12 +66,24 @@
     </div>
     <button id="leave-fill" type="button">Exit full screen</button>
     <div id="game"></div>
+    <div id="resume-panel" hidden role="dialog" aria-modal="true" aria-labelledby="resume-title">
+      <div>
+        <h2 id="resume-title">Your game</h2>
+        <p id="resume-message"></p>
+        <button id="resume-game" type="button">Resume game</button>
+        <button id="start-fresh" type="button" hidden>Start fresh</button>
+        <button id="reload-game" type="button" hidden>Reload player</button>
+      </div>
+    </div>
+    <p id="recovery-status" role="status">Checking for a saved game…</p>
     <label>Load a .state file<input id="state-file" type="file" accept=".state" disabled></label>
     <p id="save-status" role="status" aria-live="polite">Start the game before loading a save.</p>
   </section>
   <p>Saves are kept in this browser. Keep using this same address. Export your saves from the game menu for a backup.</p>
 </main>
+<script src="recovery.js"></script>
 <script>
+let recovery;
 const directionChoice = document.querySelector('#direction-mode');
 function setDirectionMode(mode) {
   mode = mode === 'stick' ? 'stick' : 'dpad';
@@ -117,6 +134,7 @@ statePicker.addEventListener('change', async () => {
     const emulator = window.EJS_emulator;
     emulator.gameManager.loadState(state);
     emulator.play();
+    setTimeout(() => { if (recovery) recovery.checkpoint(); }, 300);
     saveStatus.textContent = 'Save sent to the game: ' + file.name + '. Tap the game to close its menu.';
   } catch (error) {
     saveStatus.textContent = 'Could not load: ' + error.message;
@@ -127,6 +145,7 @@ statePicker.addEventListener('change', async () => {
 window.EJS_onGameStart = () => {
   fillButton.disabled = false;
   statePicker.disabled = false;
+  PS1Recovery.attach(window.EJS_emulator, window.EJS_gameName).then(controller => { recovery = controller; });
   saveStatus.textContent = 'Use Load a .state file below the game to restore your save.';
 };
 window.EJS_onLoadState = () => {
