@@ -9,6 +9,8 @@ Saves stay in that browser. To move a save from a Mac to an iPhone, export it on
 Open the deployed HTTPS link in Safari. Pick a game from Files and press Play.
 The BIOS file is optional; the built-in substitute can cause game or save bugs.
 Touch controls appear on phones. Turn the phone sideways for more room.
+Use Fill screen above the game to expand it; Exit full screen brings the page back.
+On iPhone, use Safari Share → Add to Home Screen → Open as Web App, then launch the new icon to hide Safari’s bars. Keep an exported state file when switching between Safari and the Home Screen app.
 
 ## Build and deploy
 

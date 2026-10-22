@@ -48,4 +48,5 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copytree(extracted / "data", public / "data", dirs_exist_ok=True)
     shutil.copy2(extracted / "LICENSE", public / "LICENSE")
     shutil.copy2(ROOT / "index.html", public / "index.html")
+    shutil.copy2(ROOT / "manifest.webmanifest", public / "manifest.webmanifest")
 print(f"Prepared EmulatorJS {VERSION} in {public}")

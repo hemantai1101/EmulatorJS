@@ -1,0 +1,10 @@
+{
+  "name": "PS1 Player",
+  "short_name": "PS1",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#10141e",
+  "theme_color": "#10141e"
+}

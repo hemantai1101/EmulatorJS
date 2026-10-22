@@ -1,8 +1,13 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PS1 Local</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PS1 Player">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#10141e">
+<link rel="manifest" href="manifest.webmanifest">
+<title>PS1 Player</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #10141e; color: #edf1ff; font: 17px system-ui; }
@@ -15,10 +20,25 @@
   button { background: #9cceff; color: #10141e; border: 0; border-radius: 8px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; }
   #screen { display: none; } #game { width: 100%; height: min(70vh, 680px); }
   #status { color: #ffcc99; }
+  #leave-fill { display: none; }
+  body.fill-screen { overflow: hidden; }
+  .fill-screen #screen {
+    display: block; position: fixed; inset: 0; z-index: 9999;
+    width: 100%; height: 100vh; height: 100dvh; background: #000;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .fill-screen #screen > :not(#game):not(#leave-fill) { display: none; }
+  .fill-screen #game { width: 100%; height: 100%; }
+  .fill-screen #leave-fill {
+    display: block; position: absolute; z-index: 10000;
+    top: max(6px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+    padding: 6px 12px; font-size: 13px; color: white; background: #192436dd;
+  }
 </style>
 <main>
-  <h1>PS1 Local</h1>
+  <h1>PS1 Player</h1>
   <p>Pick your game. Then press Play. Your files stay on this device.</p>
+  <p>iPhone: use Share → Add to Home Screen → Open as Web App to hide Safari’s bars.</p>
   <form id="setup">
     <label>1. Game file<input id="rom" type="file" accept=".chd,.pbp,.zip,.7z,.bin,.iso,.img" required></label>
     <p>Use a CHD, PBP, or ZIP. If you have CUE and BIN files, put them all in one ZIP first.</p>
@@ -27,13 +47,34 @@
     <button type="submit">Play</button>
     <p id="status" role="status"></p>
   </form>
-  <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><div id="game"></div>
+  <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><p><button id="fill-screen" type="button" disabled>Fill screen</button> Turn your phone sideways for more room.</p>
+    <button id="leave-fill" type="button">Exit full screen</button>
+    <div id="game"></div>
     <label>Load a .state file<input id="state-file" type="file" accept=".state" disabled></label>
     <p id="save-status" role="status" aria-live="polite">Start the game before loading a save.</p>
   </section>
   <p>Saves are kept in this browser. Keep using this same address. Export your saves from the game menu for a backup.</p>
 </main>
 <script>
+const fillButton = document.querySelector('#fill-screen');
+const gameScreen = document.querySelector('#screen');
+function fillScreen(enabled) {
+  document.body.classList.toggle('fill-screen', enabled);
+  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+}
+fillButton.addEventListener('click', async () => {
+  fillScreen(true);
+  if (document.fullscreenEnabled && gameScreen.requestFullscreen) {
+    try { await gameScreen.requestFullscreen(); } catch (error) { /* Keep the browser-sized view. */ }
+  }
+});
+document.querySelector('#leave-fill').addEventListener('click', () => {
+  fillScreen(false);
+  if (document.fullscreenElement) document.exitFullscreen();
+});
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) fillScreen(false);
+});
 const statePicker = document.querySelector('#state-file');
 const saveStatus = document.querySelector('#save-status');
 statePicker.addEventListener('change', async () => {
@@ -60,6 +101,7 @@ statePicker.addEventListener('change', async () => {
   }
 });
 window.EJS_onGameStart = () => {
+  fillButton.disabled = false;
   statePicker.disabled = false;
   saveStatus.textContent = 'Use Load a .state file below the game to restore your save.';
 };
