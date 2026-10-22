@@ -43,6 +43,27 @@ with tempfile.TemporaryDirectory() as tmp:
         if source.count(old) != 1:
             raise SystemExit(f"Expected save download code was not found in {filename}")
         path.write_text(source.replace(old, new))
+    # Keep the release engine intact outside the custom PS1 stick.
+    touch_patches = {
+        "data/src/emulator.js": [
+            ('"zone": elem,', '"zone": elem, "size": zone.size || 100,'),
+            ('zoneObj.on("end", () => {', 'zoneObj.on("end", () => { if (zone.ps1Touch) { window.PS1Touch.handle(this.gameManager, zone); return; }'),
+            ('zoneObj.on("move", (e, info) => {', 'zoneObj.on("move", (e, info) => { if (zone.ps1Touch) { window.PS1Touch.handle(this.gameManager, zone, info); return; }'),
+        ],
+        "data/emulator.min.js": [
+            ('nipplejs.create({zone:i,', 'nipplejs.create({zone:i,size:t.size||100,'),
+            ('n.on("end",(()=>{this.gameManager.simulateInput(0,t.inputValues[0],0)', 'n.on("end",(()=>{if(t.ps1Touch){window.PS1Touch.handle(this.gameManager,t);return;}this.gameManager.simulateInput(0,t.inputValues[0],0)'),
+            ('n.on("move",((e,i)=>{const n=i.angle.degree', 'n.on("move",((e,i)=>{if(t.ps1Touch){window.PS1Touch.handle(this.gameManager,t,i);return;}const n=i.angle.degree'),
+        ],
+    }
+    for filename, replacements in touch_patches.items():
+        path = extracted / filename
+        source = path.read_text()
+        for old, new in replacements:
+            if source.count(old) != 1:
+                raise SystemExit(f"Expected touch control code was not found in {filename}")
+            source = source.replace(old, new)
+        path.write_text(source)
     public = ROOT / "public"
     public.mkdir(exist_ok=True)
     shutil.copytree(extracted / "data", public / "data", dirs_exist_ok=True)
@@ -50,4 +71,5 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy2(ROOT / "index.html", public / "index.html")
     shutil.copy2(ROOT / "manifest.webmanifest", public / "manifest.webmanifest")
     shutil.copy2(ROOT / "recovery.js", public / "recovery.js")
+    shutil.copy2(ROOT / "touch-controls.js", public / "touch-controls.js")
 print(f"Prepared EmulatorJS {VERSION} in {public}")

@@ -21,9 +21,19 @@
   #play-tools select { font: inherit; padding: 10px; color: #edf1ff; background: #1c2535; border: 1px solid #617089; border-radius: 8px; }
   body[data-direction-mode="dpad"] .b_direction_stick,
   body[data-direction-mode="stick"] .b_direction_buttons { visibility: hidden; pointer-events: none; }
-  .b_direction_buttons .ejs_dpad_main { opacity: 0.95; }
+  #game .ejs_virtualGamepad_left { --pad-size: clamp(144px, 44vw, 168px); width: var(--pad-size); height: var(--pad-size); left: 8px; }
+  #game .b_direction_buttons .ejs_dpad_main { opacity: 0.95; }
+  #game .b_direction_buttons .ejs_dpad_horizontal { height: calc(var(--pad-size) / 3); }
+  #game .b_direction_buttons .ejs_dpad_vertical { width: calc(var(--pad-size) / 3); }
+  #game .b_direction_stick { touch-action: none; }
+  #game .b_direction_stick .back { outline: 1px solid #dce8ff; }
+  #game .b_direction_stick .back::after {
+    content: ''; position: absolute; left: 35%; top: 35%; width: 30%; height: 30%;
+    border: 1px dashed #fff9; border-radius: 50%;
+  }
   button { background: #9cceff; color: #10141e; border: 0; border-radius: 8px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; }
   #screen { display: none; } #game { width: 100%; height: min(70vh, 680px); }
+  @media (max-width: 600px) { main { padding: 8px; } }
   #status { color: #ffcc99; }
   #leave-fill { display: none; }
   #resume-panel[hidden], #resume-panel button[hidden] { display: none; }
@@ -83,11 +93,13 @@
   <p>Saves are kept in this browser. Keep using this same address. Export your saves from the game menu for a backup.</p>
 </main>
 <script src="recovery.js"></script>
+<script src="touch-controls.js"></script>
 <script>
 let recovery;
 const directionChoice = document.querySelector('#direction-mode');
 function setDirectionMode(mode) {
   mode = mode === 'stick' ? 'stick' : 'dpad';
+  PS1Touch.reset();
   directionChoice.value = mode;
   document.body.dataset.directionMode = mode;
   const manager = window.EJS_emulator && window.EJS_emulator.gameManager;
@@ -169,7 +181,7 @@ document.querySelector('#setup').addEventListener('submit', (event) => {
   window.EJS_core = 'pcsx_rearmed';
   window.EJS_VirtualGamepadSettings = [
     { type: 'dpad', id: 'direction_buttons', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
-    { type: 'zone', id: 'direction_stick', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
+    { type: 'zone', ps1Touch: true, size: 160, color: '#d3e6ff', id: 'direction_stick', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
     { type: 'button', text: 'Y', id: 'y', location: 'right', left: 40, bold: true, input_value: 9 },
     { type: 'button', text: 'X', id: 'x', location: 'right', top: 40, bold: true, input_value: 1 },
     { type: 'button', text: 'B', id: 'b', location: 'right', left: 81, top: 40, bold: true, input_value: 8 },

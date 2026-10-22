@@ -12,6 +12,7 @@ Open the deployed HTTPS link in Safari. Pick a game from Files and press Play.
 The BIOS file is optional; the built-in substitute can cause game or save bugs.
 Touch controls appear on phones. Turn the phone sideways for more room.
 Arrow buttons are the default. Use the Direction control selector above the game to switch between Arrow buttons and Joystick without restarting. The choice is saved on the device.
+The arrow pad is 144–168 CSS pixels wide, with 48–56 pixel arms. The 160 pixel stick starts after a 24 pixel drag, returns to neutral below 16 pixels, and keeps its direction through small angle changes. It supports eight directions and releases immediately. These are app tuning choices, not a universal sensitivity standard.
 Use Fill screen above the game to expand it; Exit full screen brings the page back.
 On iPhone, use Safari Share → Add to Home Screen → Open as Web App, then launch the new icon to hide Safari’s bars. Keep an exported state file when switching between Safari and the Home Screen app.
 
@@ -39,3 +40,5 @@ The image and page include the upstream GPL license.
 ## Recovery checks
 
 Run `node recovery.test.cjs` to check manual/auto overlap, repeated taps, failed-write retry, background saving, resume, audio wake-up, reload restoration, and the frozen-loop fallback. These checks do not replace testing on a real iPhone.
+
+Run `node touch-controls.test.cjs` after `prepare.py` to check stick thresholds, direction changes, release, and the shipped engine hook.
