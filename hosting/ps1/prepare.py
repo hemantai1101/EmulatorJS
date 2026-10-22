@@ -83,6 +83,22 @@ with tempfile.TemporaryDirectory() as tmp:
                 raise SystemExit(f"Expected menu code was not found in {filename}")
             source = source.replace(old, new)
         path.write_text(source)
+    keyboard_patches = {
+        "data/src/emulator.js": (
+            'keyChange(e) {\n        if (e.repeat) return;',
+            'keyChange(e) {\n        if (e.repeat) {\n            if (this.started && this.settingsMenu.style.display === "none" && !this.isPopupOpen() && this.getSettingValue("keyboardInput") !== "enabled") e.preventDefault();\n            return;\n        }',
+        ),
+        "data/emulator.min.js": (
+            'keyChange(t){if(t.repeat)return;',
+            'keyChange(t){if(t.repeat){if(this.started&&this.settingsMenu.style.display==="none"&&!this.isPopupOpen()&&this.getSettingValue("keyboardInput")!=="enabled")t.preventDefault();return;}',
+        ),
+    }
+    for filename, (old, new) in keyboard_patches.items():
+        path = extracted / filename
+        source = path.read_text()
+        if source.count(old) != 1:
+            raise SystemExit(f"Expected keyboard code was not found in {filename}")
+        path.write_text(source.replace(old, new))
     public = ROOT / "public"
     public.mkdir(exist_ok=True)
     shutil.copytree(extracted / "data", public / "data", dirs_exist_ok=True)

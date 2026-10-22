@@ -50,3 +50,5 @@ Both fullscreen paths use the viewport height; the native emulator button must b
 On coarse-pointer devices, automatic menu opening from mouse movement/click is disabled, including touch-generated mouse events. The visible 44px menu button remains available at the top right. Desktop mouse behavior is kept.
 
 Run `node display.test.cjs` after `prepare.py` for touch-menu and fullscreen CSS regression checks.
+
+Held gameplay keys prevent browser scrolling, including repeated keydown events. Settings and popups keep their normal key behavior. Run `node keyboard.test.cjs` after `prepare.py` to check held arrows and key release in both shipped engine versions.
