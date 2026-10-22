@@ -17,6 +17,11 @@
   label { display: block; margin-bottom: 22px; font-weight: 600; }
   input { display: block; margin-top: 10px; max-width: 100%; font: inherit; }
   button, a { color: #a4d6ff; }
+  #play-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  #play-tools select { font: inherit; padding: 10px; color: #edf1ff; background: #1c2535; border: 1px solid #617089; border-radius: 8px; }
+  body[data-direction-mode="dpad"] .b_direction_stick,
+  body[data-direction-mode="stick"] .b_direction_buttons { visibility: hidden; pointer-events: none; }
+  .b_direction_buttons .ejs_dpad_main { opacity: 0.95; }
   button { background: #9cceff; color: #10141e; border: 0; border-radius: 8px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; }
   #screen { display: none; } #game { width: 100%; height: min(70vh, 680px); }
   #status { color: #ffcc99; }
@@ -47,7 +52,13 @@
     <button type="submit">Play</button>
     <p id="status" role="status"></p>
   </form>
-  <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><p><button id="fill-screen" type="button" disabled>Fill screen</button> Turn your phone sideways for more room.</p>
+  <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><div id="play-tools">
+      <button id="fill-screen" type="button" disabled>Fill screen</button>
+      <select id="direction-mode" aria-label="Direction control">
+        <option value="dpad">Arrow buttons</option>
+        <option value="stick">Joystick</option>
+      </select>
+    </div>
     <button id="leave-fill" type="button">Exit full screen</button>
     <div id="game"></div>
     <label>Load a .state file<input id="state-file" type="file" accept=".state" disabled></label>
@@ -56,6 +67,19 @@
   <p>Saves are kept in this browser. Keep using this same address. Export your saves from the game menu for a backup.</p>
 </main>
 <script>
+const directionChoice = document.querySelector('#direction-mode');
+function setDirectionMode(mode) {
+  mode = mode === 'stick' ? 'stick' : 'dpad';
+  directionChoice.value = mode;
+  document.body.dataset.directionMode = mode;
+  const manager = window.EJS_emulator && window.EJS_emulator.gameManager;
+  if (manager) [4, 5, 6, 7].forEach(input => manager.simulateInput(0, input, 0));
+  try { localStorage.setItem('ps1-direction-mode', mode); } catch (error) { /* Controls still work without storage. */ }
+}
+let savedDirectionMode = 'dpad';
+try { savedDirectionMode = localStorage.getItem('ps1-direction-mode') || 'dpad'; } catch (error) { /* Use arrow buttons. */ }
+setDirectionMode(savedDirectionMode);
+directionChoice.addEventListener('change', () => setDirectionMode(directionChoice.value));
 const fillButton = document.querySelector('#fill-screen');
 const gameScreen = document.querySelector('#screen');
 function fillScreen(enabled) {
@@ -123,6 +147,18 @@ document.querySelector('#setup').addEventListener('submit', (event) => {
   }
   window.EJS_player = '#game';
   window.EJS_core = 'pcsx_rearmed';
+  window.EJS_VirtualGamepadSettings = [
+    { type: 'dpad', id: 'direction_buttons', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
+    { type: 'zone', id: 'direction_stick', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
+    { type: 'button', text: 'Y', id: 'y', location: 'right', left: 40, bold: true, input_value: 9 },
+    { type: 'button', text: 'X', id: 'x', location: 'right', top: 40, bold: true, input_value: 1 },
+    { type: 'button', text: 'B', id: 'b', location: 'right', left: 81, top: 40, bold: true, input_value: 8 },
+    { type: 'button', text: 'A', id: 'a', location: 'right', left: 40, top: 80, bold: true, input_value: 0 },
+    { type: 'button', text: 'Start', id: 'start', location: 'center', left: 60, fontSize: 15, block: true, input_value: 3 },
+    { type: 'button', text: 'Select', id: 'select', location: 'center', left: -5, fontSize: 15, block: true, input_value: 2 },
+    { type: 'button', text: 'Fast', id: 'speed_fast', location: 'center', left: -35, top: 50, fontSize: 15, block: true, input_value: 27 },
+    { type: 'button', text: 'Slow', id: 'speed_slow', location: 'center', left: 95, top: 50, fontSize: 15, block: true, input_value: 29 }
+  ];
   window.EJS_gameName = game.name.replace(/\.[^.]+$/, '');
   window.EJS_gameUrl = game;
   window.EJS_biosUrl = bios || '';
