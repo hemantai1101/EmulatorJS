@@ -60,6 +60,21 @@ GCP project `heman-dev`, region `asia-east2`, Cloud Run service `ps1-player`.
 Runtime service account: `ps1-player-runtime@heman-dev.iam.gserviceaccount.com`.
 The Docker context includes only the prepared public player, not local games or saves.
 
+### GitHub deploy
+
+`.github/workflows/ps1-deploy.yml` deploys changes to `hosting/ps1/`, `Makefile`, or the workflow after they reach `main`. Docs-only changes do not deploy. To deploy the latest `main` by hand:
+
+```sh
+gh workflow run ps1-deploy.yml --repo hemantai1101/EmulatorJS --ref main
+gh run list --repo hemantai1101/EmulatorJS --workflow ps1-deploy.yml --limit 5
+```
+
+The action runs `make check`, builds the allowed Docker context on the GitHub runner, pushes an image tagged with commit/run/attempt, deploys its digest to the existing service, sends traffic to the ready revision, and checks the public page and isolation headers. It keeps the service address, runtime account, and resource settings. One deploy runs at a time. A failed live check marks the run failed; it does not roll back traffic. No game or real-device test runs in CI. `make deploy` remains the local Cloud Build path.
+
+Google login uses Workload Identity Federation (short-lived tokens), not a saved key. Pool `ps1-github`, provider `github`, project number `168235937982`. Trust is limited to repository ID `1429511808`, owner ID `29404659`, this workflow on `main`, and push/manual events. Pull requests and other branches cannot log in. Deploy account `ps1-github-deploy@heman-dev.iam.gserviceaccount.com` has Artifact Registry Writer on repository `ps1-player`, Cloud Run Developer on service `ps1-player`, and Service Account User on the existing runtime account. It has no project-wide Editor grant and no access grant to private game downloads.
+
+Setup follows Google's [GitHub authentication guide](https://github.com/google-github-actions/auth), [deployment trust guide](https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines), and [Cloud Run deploy roles](https://cloud.google.com/run/docs/deploying#required_roles). Keep numeric trust IDs and pinned action hashes current if the repository, owner, or workflow moves. For rollback, list retained revisions with `gcloud run revisions list --service=ps1-player --project=heman-dev --region=asia-east2`, then route traffic to a known good revision with `gcloud run services update-traffic ps1-player --project=heman-dev --region=asia-east2 --to-revisions=REVISION=100`. Replace `REVISION` with the chosen name. Pause new deploys while rolling back; the next deploy sends traffic to latest again.
+
 ## Ad plan
 
 Reviewed 2026-10-23. This is a plan only. No ad code, custom ad slots, account changes, or new route are part of this docs task.
