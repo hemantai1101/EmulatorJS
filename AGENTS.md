@@ -1,8 +1,61 @@
 # AGENTS.md
 
-Instructions for AI coding agents working with EmulatorJS.
+Instructions for agents working on our PS1 Player fork of EmulatorJS.
 
-For this fork's PS1 player, read PROJECT.md and hosting/ps1/AGENTS.md. Browser tests are allowed in Chrome or other browsers; mute game audio before testing. Use make play and make check for our player.
+## Talk to the user
+
+- Use small words, short sentences, and short paragraphs.
+- Return only what is needed: what changed, whether it worked, and what to do next.
+- If a choice is needed, give at most two options and say which one you recommend.
+- Keep paths and commands exact. Do not make the user guess.
+- Do the work the user asked for. Do not stop at a plan or ask again for approval already given.
+
+## Start here
+
+- The working folder is `/Users/heman/projects/ps1-player`.
+- Read `PROJECT.md` for the setup, current behavior, and next work.
+- Read `hosting/ps1/AGENTS.md` before changing the player.
+- Our fork is `https://github.com/hemantai1101/EmulatorJS`.
+- Keep work in this fork. Do not submit changes upstream unless the user asks.
+
+## Commands
+
+Run from the repository root:
+
+```sh
+make play
+make check
+```
+
+- `make play` rebuilds and serves the player at `http://localhost:8765/`.
+- If the port is busy, use `make play PORT=8766`. Browser saves belong to their original address, including the port.
+- `make check` rebuilds and runs the player checks without opening a browser.
+- `make deploy` rebuilds, checks, and deploys to the existing GCP service. Use it when deployment is within the user's request.
+- `npm start` serves the upstream project, not our prepared PS1 player.
+
+## Change the right files
+
+- The player source is in `hosting/ps1/`.
+- `hosting/ps1/public/` is generated. Change the source and run the build instead of editing public files.
+- Keep engine patches in `hosting/ps1/prepare.py`, with exact-match checks.
+- Keep the pinned release and checksum check unless an engine upgrade is part of the task.
+- Run checks that match the change. Fix failures before calling the work done.
+
+## Browser tests and saves
+
+- Chrome and other browsers are allowed. Mute audio before starting a game test.
+- Use a separate test page or tab. Do not reload, replace, or lose the user's live game to run a test.
+- Say which browser/device was actually checked. A desktop check does not prove an iPhone fix.
+- Keep manual and automatic saves in the same single-flight save job so writes cannot overlap.
+- Preserve old saves. Do not silently delete, overwrite, or migrate them as part of unrelated work.
+- Imported raw `.state` files are not matched to the game or disc yet. Do not claim they are verified.
+- Keep game files, BIOS files, save states, credentials, and signed download links out of Git and the public build.
+
+## Project handoff
+
+- Keep `PROJECT.md` current when commands, hosting, or save behavior changes.
+- Record lasting decisions in the repository so a new project chat can continue the work.
+- Follow the upstream contribution rules below, including commit attribution.
 
 ## Before doing anything else
 
