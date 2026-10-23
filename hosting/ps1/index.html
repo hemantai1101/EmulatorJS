@@ -5,20 +5,105 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="PS1 Player">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#10141e">
+<meta name="theme-color" content="#17191b">
 <link rel="manifest" href="manifest.webmanifest">
 <title>PS1 Player</title>
 <style>
+  :root { color-scheme: dark; --bg: #17191b; --panel: #222527; --line: #3a3e40; --text: #f3f2ed; --muted: #b3b7b5; --accent: #c0ee88; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #10141e; color: #edf1ff; font: 17px system-ui; }
-  main { max-width: 960px; margin: 40px auto; padding: 24px; }
-  h1 { margin-top: 0; } p { color: #b8c4db; line-height: 1.5; }
-  form { padding: 24px; background: #1c2535; border-radius: 16px; }
-  label { display: block; margin-bottom: 22px; font-weight: 600; }
-  input { display: block; margin-top: 10px; max-width: 100%; font: inherit; }
-  button, a { color: #a4d6ff; }
-  #play-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-  #play-tools select { font: inherit; padding: 10px; color: #edf1ff; background: #1c2535; border: 1px solid #617089; border-radius: 8px; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, sans-serif; }
+  main { max-width: 1160px; margin: auto; padding: 0 32px; }
+  h1, h2, p { margin: 0; }
+  p { color: var(--muted); }
+  a { color: var(--accent); text-underline-offset: 4px; }
+  button, input, select, summary { font: inherit; }
+  button, summary, select, input[type=file] { min-height: 44px; }
+  button, select { border: 1px solid var(--line); border-radius: 10px; background: #2c3032; color: var(--text); }
+  button { padding: 11px 18px; font-weight: 650; cursor: pointer; }
+  button:hover:not(:disabled) { background: #3a3f41; }
+  button:disabled { opacity: .5; cursor: default; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #1b2414; }
+  button.primary:hover:not(:disabled) { background: #d0f5a5; }
+  .site-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 88px; border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 12px; white-space: nowrap; flex-shrink: 0; font-size: 18px; font-weight: 750; letter-spacing: -.5px; }
+  .brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #626863; border-radius: 50%; color: var(--accent); font-size: 19px; }
+  .header-note { max-width: 190px; text-align: right; }
+  .header-note, .eyebrow { font-size: 12px; font-weight: 650; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .welcome { max-width: 620px; margin: 36px auto 24px; text-align: center; }
+  .eyebrow { color: var(--accent); margin-bottom: 12px; }
+  h1 { font-size: clamp(34px, 5vw, 46px); line-height: 1.1; letter-spacing: -.055em; font-weight: 700; }
+  .welcome p:last-child { margin-top: 18px; font-size: 17px; }
+  form { max-width: 620px; margin: 0 auto 56px; padding: 28px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+  label { display: block; font-weight: 650; }
+  .file-picker { position: relative; display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 22px 20px; border: 1px dashed #757c72; border-radius: 12px; background: #1c201d; cursor: pointer; text-align: center; }
+  .file-picker:focus-within { outline: 3px solid var(--accent); outline-offset: 4px; }
+  .file-picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+  .file-symbol { color: var(--accent); font-size: 28px; line-height: 1; font-weight: 400; }
+  .file-name { max-width: 100%; overflow-wrap: anywhere; font-size: 14px; font-weight: 400; color: var(--muted); }
+  .hint { font-size: 13px; margin-top: 12px; }
+  details { border-top: 1px solid var(--line); margin-top: 22px; }
+  summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; cursor: pointer; font-weight: 600; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; color: var(--muted); font-size: 22px; font-weight: 400; }
+  details[open] > summary::after { content: '−'; }
+  details > .details-body { padding-bottom: 16px; }
+  input[type=file] { display: block; width: 100%; max-width: 100%; margin-top: 10px; color: var(--muted); font-size: 14px; }
+  input::file-selector-button { min-height: 44px; background: #343a36; color: var(--text); border: 1px solid #59605a; border-radius: 8px; padding: 8px 12px; margin-right: 12px; font: inherit; cursor: pointer; }
+  .warning { padding-left: 12px; border-left: 2px solid #d7ba83; color: #ded0b5; font-size: 13px; margin-top: 12px; }
+  #play-game { width: 100%; margin-top: 12px; }
+  .privacy-note { text-align: center; font-size: 12px; margin-top: 12px; }
+  #status:empty { display: none; }
+  #status { padding: 12px 0 0; font-size: 14px; color: #f0cd99; }
+  .play-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin: 28px 0 18px; }
+  .play-title { min-width: 0; flex: 1; }
+  .play-title .eyebrow { margin-bottom: 4px; }
+  #game-title { font-size: 22px; font-weight: 650; letter-spacing: -.5px; overflow-wrap: anywhere; }
+  #play-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #play-tools select { font: inherit; padding: 10px; }
+  #settings-toggle[aria-expanded=true] { border-color: var(--accent); }
+  #player-settings { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 18px; }
+  #player-settings h3 { font-size: 15px; margin: 0 0 10px; }
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  #direction-mode { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+  #restore-local { margin-top: 12px; }
+  .game-shell { margin-bottom: 24px; position: relative; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #080a09; }
+  #player-loading { min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; }
+  .loading-light { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px #c0ee8844; }
+  #player-loading h2 { font-size: 22px; }
+  #game { width: 100%; height: min(70vh, 680px); }
+
+  .save-line { display: flex; align-items: baseline; gap: 10px; padding: 0 2px 16px; font-size: 13px; }
+  .save-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; flex-shrink: 0; }
+  #save-status { font-size: 13px; margin-top: 10px; }
+  .site-footer { border-top: 1px solid var(--line); padding: 22px 0 32px; font-size: 12px; }
+  .footer-row { display: flex; justify-content: space-between; gap: 20px; }
+  .shape-detail { color: #8b928a; letter-spacing: .4em; white-space: nowrap; }
+  #help { max-width: 620px; margin: 16px 0 0; border: 0; }
+  #help summary { width: fit-content; min-width: 110px; padding: 8px 0; gap: 20px; font-size: 14px; }
+  #help p + p { margin-top: 10px; }
+  body[data-player-state] .welcome { display: none; }
+  @media (max-width: 600px) {
+    main { padding: 0 16px; }
+    .site-header { min-height: 80px; }
+    .header-note { max-width: 145px; font-size: 10px; letter-spacing: .08em; }
+    .welcome { margin-top: 40px; }
+    form { padding: 20px; margin-bottom: 40px; }
+    .settings-grid { grid-template-columns: 1fr; gap: 20px; }
+    .play-heading { margin-top: 20px; }
+    #play-tools { width: 100%; }
+    #play-tools button { flex: 1; padding: 10px 12px; }
+    #game { height: 64vh; height: 64dvh; min-height: 300px; }
+    .footer-row { flex-direction: column; gap: 12px; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    .site-header { min-height: 56px; }
+    .play-heading { margin: 12px 0; }
+    .play-title .eyebrow { display: none; }
+    #game { height: 76vh; height: 76dvh; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
   body[data-direction-mode="dpad"] .b_direction_stick,
   body[data-direction-mode="stick"] .b_direction_buttons { visibility: hidden; pointer-events: none; }
   #game .ejs_virtualGamepad_left { --pad-size: clamp(144px, 44vw, 168px); width: var(--pad-size); height: var(--pad-size); left: 8px; }
@@ -31,9 +116,7 @@
     content: ''; position: absolute; left: 35%; top: 35%; width: 30%; height: 30%;
     border: 1px dashed #fff9; border-radius: 50%;
   }
-  button { background: #9cceff; color: #10141e; border: 0; border-radius: 8px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; }
-  #screen { display: none; } #game { width: 100%; height: min(70vh, 680px); }
-  @media (max-width: 600px) { main { padding: 8px; } }
+  #screen { display: none; }
   #game:fullscreen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
   #game:-webkit-full-screen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
   @media (pointer: coarse) {
@@ -51,19 +134,20 @@
   #game[data-picture-zoom="true"]:fullscreen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
   #game[data-picture-zoom="true"]:-webkit-full-screen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
   #game .ejs_canvas_parent { overflow: hidden; }
-  #status { color: #ffcc99; }
   #leave-fill { display: none; }
   #resume-panel[hidden], #resume-panel button[hidden] { display: none; }
   #resume-panel { position: fixed; inset: 0; z-index: 11000; display: grid; place-items: center; background: #000c; padding: 24px; }
-  #resume-panel > div { width: min(100%, 400px); background: #1c2535; padding: 24px; border-radius: 16px; }
-  #resume-panel button { margin: 4px; }
+  #resume-panel > div { width: min(100%, 400px); background: var(--panel); border: 1px solid var(--line); padding: 28px; border-radius: 18px; box-shadow: 0 24px 100px #0008; }
+  #resume-panel h2 { font-size: 24px; margin-bottom: 12px; }
+  #resume-panel button { width: 100%; margin-top: 12px; }
   body.fill-screen { overflow: hidden; }
   .fill-screen #screen {
     display: block; position: fixed; inset: 0; z-index: 9999;
     width: 100%; height: 100vh; height: 100dvh; background: #000;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  .fill-screen #screen > :not(#game):not(#leave-fill):not(#resume-panel) { display: none; }
+  .fill-screen #screen > :not(.game-shell):not(#leave-fill):not(#resume-panel) { display: none; }
+  .fill-screen .game-shell { margin-bottom: 0; width: 100%; height: 100%; border: 0; border-radius: 0; }
   .fill-screen #game { width: 100%; height: 100%; }
   .fill-screen #leave-fill {
     display: block; position: absolute; z-index: 10000;
@@ -72,47 +156,136 @@
   }
 </style>
 <main>
-  <h1>PS1 Player</h1>
-  <p>Pick your game. Then press Play. Your files stay on this device.</p>
-  <p>iPhone: use Share → Add to Home Screen → Open as Web App to hide Safari’s bars.</p>
+  <header class="site-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">△</span> PS1 Player</div>
+    <span class="header-note">Your own little time machine</span>
+  </header>
+  <div class="welcome">
+    <p class="eyebrow">Press pause on the day</p>
+    <h1>Good games.<br>Right where you left them.</h1>
+    <p>Your PlayStation classics. Your own pace.</p>
+  </div>
   <form id="setup">
-    <label>1. Game file<input id="rom" type="file" accept=".chd,.pbp,.zip,.7z,.bin,.iso,.img" required></label>
-    <p>Use a CHD, PBP, or ZIP. If you have CUE and BIN files, put them all in one ZIP first.</p>
-    <label>2. PS1 BIOS file (optional)<input id="bios" type="file" accept=".bin,.rom"></label>
-    <p>No BIOS? Leave this blank to use the built-in substitute. Some games may have sound, save, or start-up bugs.</p>
-    <button type="submit">Play</button>
-    <p id="status" role="status"></p>
+    <label class="file-picker" for="rom">
+      <span class="file-symbol" aria-hidden="true">⊕</span>
+      <span id="choose-game-label">Choose game</span>
+      <span id="selected-game" class="file-name" aria-live="polite">Pick a file from your device</span>
+      <input id="rom" type="file" accept=".chd,.pbp,.zip,.7z,.bin,.iso,.img" aria-describedby="game-format" required>
+    </label>
+    <p id="game-format" class="hint">CHD, PBP, ZIP, 7Z, BIN, ISO or IMG. For CUE + BIN, put all the files in one ZIP.</p>
+    <details id="game-setup">
+      <summary>Game setup <span class="file-name">Optional BIOS</span></summary>
+      <div class="details-body">
+        <label for="bios">PS1 BIOS file</label>
+        <input id="bios" type="file" accept=".bin,.rom" aria-describedby="bios-warning">
+        <p id="bios-warning" class="warning">A BIOS helps games run well. Without one, the built-in substitute may have sound, save, or start-up bugs. Use a 512 KB PS1 BIOS.</p>
+      </div>
+    </details>
+    <button id="play-game" class="primary" type="submit">Play game</button>
+    <p class="privacy-note">Your game and BIOS stay on this device.</p>
+    <p id="status" role="status" aria-live="polite"></p>
   </form>
-  <section id="screen"><p><a href="/">Pick another game</a> · Use the game menu for keys, saves, and full screen.</p><div id="play-tools">
-      <button id="fill-screen" type="button" disabled>Fill screen</button>
-      <button id="save-now" type="button" disabled>Save now</button>
-      <button id="restore-local" type="button" disabled>Restore last save</button>
-      <select id="direction-mode" aria-label="Direction control">
-        <option value="dpad">Arrow buttons</option>
-        <option value="stick">Joystick</option>
-      </select>
+  <section id="screen" aria-label="Game player">
+    <div class="play-heading">
+      <div class="play-title"><p class="eyebrow" id="player-label">Now loading</p><h1 id="game-title">Your game</h1></div>
+      <div id="play-tools">
+        <button id="save-now" type="button" disabled>Save now</button>
+        <button id="fill-screen" type="button" disabled>Fullscreen</button>
+        <button id="settings-toggle" type="button" aria-expanded="false" aria-controls="player-settings">Settings</button>
+      </div>
+    </div>
+    <div class="save-line"><span class="save-dot" aria-hidden="true"></span><p id="recovery-status" role="status" aria-live="polite">Your save will be checked when the game starts.</p></div>
+    <div id="player-settings" hidden>
+      <div class="settings-grid">
+        <div>
+          <label for="direction-mode">Touch controls</label>
+          <select id="direction-mode"><option value="dpad">Arrow buttons</option><option value="stick">Joystick</option></select>
+          <p class="hint">Use the game menu for key settings and more controls.</p>
+        </div>
+        <div>
+          <h3>Saves &amp; backups</h3>
+          <p class="hint">Use Save State in the game menu to download a backup.</p>
+          <button id="restore-local" type="button" disabled>Restore last save</button>
+          <label class="hint" for="state-file">Load a .state backup</label>
+          <input id="state-file" type="file" accept=".state" aria-describedby="state-warning save-status" disabled>
+          <p id="state-warning" class="hint">Pick a save for this game and disc. We check the file type, but cannot check which game it belongs to.</p>
+          <p id="save-status" role="status" aria-live="polite">Start the game before loading a save.</p>
+        </div>
+      </div>
     </div>
     <button id="leave-fill" type="button">Exit full screen</button>
-    <div id="game"></div>
-    <div id="resume-panel" hidden role="dialog" aria-modal="true" aria-labelledby="resume-title">
+    <div id="player-loading" role="status"><span class="loading-light" aria-hidden="true"></span><h2>Getting your game ready</h2><p>This may take a moment. Settle in.</p><button id="retry-loader" type="button" hidden>Try again</button></div>
+    <div class="game-shell"><div id="game" tabindex="-1" aria-label="Game screen"></div></div>
+    <div id="resume-panel" hidden role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-message" tabindex="-1">
       <div>
-        <h2 id="resume-title">Your game</h2>
+        <p class="eyebrow">Right where you left it</p>
+        <h2 id="resume-title">Your game is here</h2>
         <p id="resume-message"></p>
-        <button id="resume-game" type="button">Resume game</button>
+        <button id="resume-game" class="primary" type="button">Resume game</button>
         <button id="start-fresh" type="button" hidden>Start fresh</button>
         <button id="reload-game" type="button" hidden>Reload player</button>
       </div>
     </div>
-    <p id="recovery-status" role="status">Checking for a saved game…</p>
-    <label>Load a .state file<input id="state-file" type="file" accept=".state" disabled></label>
-    <p id="save-status" role="status" aria-live="polite">Start the game before loading a save.</p>
   </section>
-  <p>Saves are kept in this browser. Keep using this same address. Export your saves from the game menu for a backup.</p>
+  <footer class="site-footer">
+    <div class="footer-row"><p>Your saves live in this browser. Keep using this same address.</p><span class="shape-detail" aria-hidden="true">△ ○ × □</span></div>
+    <details id="help"><summary>Need a hand?</summary><div class="details-body">
+      <p>On iPhone, use Share → Add to Home Screen → Open as Web App to hide Safari’s bars.</p>
+      <p>Use Fullscreen for more room. Zoom picture can hide game borders, but may crop the edges.</p>
+      <p>Save now keeps your latest point here. For a backup you can keep, use Save State in the game menu.</p>
+      <p>To play a different game, save first. Then reload this page and choose your next game.</p>
+    </div></details>
+  </footer>
 </main>
 <script src="recovery.js"></script>
 <script src="touch-controls.js"></script>
 <script>
 let recovery;
+const romPicker = document.querySelector('#rom');
+romPicker.addEventListener('change', () => {
+  const file = romPicker.files[0];
+  document.querySelector('#selected-game').textContent = file ? file.name : 'Pick a file from your device';
+  document.querySelector('#choose-game-label').textContent = file ? 'Change game' : 'Choose game';
+  document.querySelector('#status').textContent = '';
+});
+document.querySelector('#retry-loader').addEventListener('click', () => location.reload());
+const settingsToggle = document.querySelector('#settings-toggle');
+settingsToggle.addEventListener('click', () => {
+  const settings = document.querySelector('#player-settings');
+  settings.hidden = !settings.hidden;
+  settingsToggle.setAttribute('aria-expanded', String(!settings.hidden));
+});
+const resumePanel = document.querySelector('#resume-panel');
+let returnFocus;
+function dialogButtons() {
+  return [...resumePanel.querySelectorAll('button')].filter(button => !button.hidden && !button.disabled);
+}
+new MutationObserver(() => {
+  if (!resumePanel.hidden) {
+    returnFocus = document.activeElement;
+    (dialogButtons()[0] || resumePanel).focus({ preventScroll: true });
+  } else if (returnFocus) {
+    (returnFocus === document.body ? document.querySelector('#game') : returnFocus).focus({ preventScroll: true });
+    returnFocus = null;
+  }
+}).observe(resumePanel, { attributes: true, attributeFilter: ['hidden'] });
+document.addEventListener('keydown', event => {
+  if (resumePanel.hidden) return;
+  event.stopImmediatePropagation();
+  if (event.key === 'Tab') {
+    const buttons = dialogButtons();
+    const first = buttons[0] || resumePanel;
+    const last = buttons[buttons.length - 1] || resumePanel;
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === resumePanel)) {
+      event.preventDefault(); last.focus({ preventScroll: true });
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first.focus({ preventScroll: true });
+    }
+  }
+}, true);
+document.addEventListener('focusin', event => {
+  if (!resumePanel.hidden && !resumePanel.contains(event.target)) (dialogButtons()[0] || resumePanel).focus({ preventScroll: true });
+});
 const directionChoice = document.querySelector('#direction-mode');
 function setDirectionMode(mode) {
   mode = mode === 'stick' ? 'stick' : 'dpad';
@@ -201,7 +374,11 @@ window.EJS_onGameStart = () => {
   fillButton.disabled = false;
   statePicker.disabled = false;
   PS1Recovery.attach(window.EJS_emulator, window.EJS_gameName).then(controller => { recovery = controller; });
-  saveStatus.textContent = 'Use Load a .state file below the game to restore your save.';
+  saveStatus.textContent = 'Load a .state backup here to restore a save from a file.';
+  document.body.dataset.playerState = 'playing';
+  document.querySelector('#player-label').textContent = 'Now playing';
+  document.querySelector('#player-loading').hidden = true;
+  resizePlayer();
 };
 window.EJS_onLoadState = () => {
   if (statePicker.disabled) {
@@ -217,8 +394,12 @@ document.querySelector('#setup').addEventListener('submit', (event) => {
   if (!game) return;
   if (bios && bios.size !== 524288) {
     document.querySelector('#status').textContent = 'This BIOS must be 512 KB. Pick a PS1 BIOS file.';
+    document.querySelector('#game-setup').open = true;
+    document.querySelector('#bios').focus();
     return;
   }
+  document.body.dataset.playerState = 'loading';
+  document.querySelector('#game-title').textContent = game.name.replace(/\.[^.]+$/, '');
   window.EJS_player = '#game';
   window.EJS_core = 'pcsx_rearmed';
   window.EJS_VirtualGamepadSettings = [
@@ -244,7 +425,12 @@ document.querySelector('#setup').addEventListener('submit', (event) => {
   document.querySelector('#screen').style.display = 'block';
   const loader = document.createElement('script');
   loader.src = 'data/loader.js';
-  loader.onerror = () => { document.querySelector('#game').textContent = 'Could not load the player. Reload this page and try again.'; };
+  loader.onerror = () => {
+    document.querySelector('#player-label').textContent = 'Could not start';
+    document.querySelector('#player-loading h2').textContent = 'The player could not load';
+    document.querySelector('#player-loading p').textContent = 'Check your connection, then try again.';
+    document.querySelector('#retry-loader').hidden = false;
+  };
   document.body.appendChild(loader);
 });
 </script>
