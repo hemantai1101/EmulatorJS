@@ -52,3 +52,5 @@ On coarse-pointer devices, automatic menu opening from mouse movement/click is d
 Run `node display.test.cjs` after `prepare.py` for touch-menu and fullscreen CSS regression checks.
 
 Held gameplay keys prevent browser scrolling, including repeated keydown events. Settings and popups keep their normal key behavior. Run `node keyboard.test.cjs` after `prepare.py` to check held arrows and key release in both shipped engine versions.
+
+Some games draw their own black rim inside the PS1 frame. In fullscreen, Zoom picture enlarges only the canvas by 15.38%, preserving its shape and leaving menus and controls at their normal size. This fits Global Force's 208 visible rows within its 240-row frame to the screen height. Original picture turns it off. Zoom is opt-in and only affects fullscreen; other games may have useful edge content that this mode would crop. It does not change emulator state or save data.

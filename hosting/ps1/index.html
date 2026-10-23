@@ -43,6 +43,14 @@
       padding: 10px; border-radius: 8px; background: #192436dd;
     }
   }
+  @media (pointer: coarse) { body.fill-screen #leave-fill { left: auto; right: calc(60px + env(safe-area-inset-right)); transform: none; min-height: 44px; } }
+  #picture-zoom { display: none; position: absolute; z-index: 10000; top: max(6px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); min-height: 44px; padding: 8px 12px; font-size: 13px; color: white; background: #192436dd; }
+  .fill-screen #picture-zoom, #game:fullscreen #picture-zoom { display: block; }
+  #game:-webkit-full-screen #picture-zoom { display: block; }
+  .fill-screen #game[data-picture-zoom="true"] .ejs_canvas,
+  #game[data-picture-zoom="true"]:fullscreen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
+  #game[data-picture-zoom="true"]:-webkit-full-screen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
+  #game .ejs_canvas_parent { overflow: hidden; }
   #status { color: #ffcc99; }
   #leave-fill { display: none; }
   #resume-panel[hidden], #resume-panel button[hidden] { display: none; }
@@ -174,6 +182,22 @@ statePicker.addEventListener('change', async () => {
   }
 });
 window.EJS_onGameStart = () => {
+  const gameRoot = document.querySelector('#game');
+  if (!gameRoot.querySelector('#picture-zoom')) {
+    const zoomButton = document.createElement('button');
+    zoomButton.id = 'picture-zoom';
+    zoomButton.type = 'button';
+    zoomButton.textContent = 'Zoom picture';
+    zoomButton.title = 'Enlarge the picture by 15% to hide game borders. Other games may lose content at the edges.';
+    zoomButton.setAttribute('aria-pressed', 'false');
+    zoomButton.addEventListener('click', () => {
+      const enabled = gameRoot.dataset.pictureZoom !== 'true';
+      gameRoot.dataset.pictureZoom = String(enabled);
+      zoomButton.setAttribute('aria-pressed', String(enabled));
+      zoomButton.textContent = enabled ? 'Original picture' : 'Zoom picture';
+    });
+    gameRoot.appendChild(zoomButton);
+  }
   fillButton.disabled = false;
   statePicker.disabled = false;
   PS1Recovery.attach(window.EJS_emulator, window.EJS_gameName).then(controller => { recovery = controller; });
