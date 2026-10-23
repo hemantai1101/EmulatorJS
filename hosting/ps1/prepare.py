@@ -113,4 +113,6 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy2(ROOT / "manifest.webmanifest", public / "manifest.webmanifest")
     shutil.copy2(ROOT / "recovery.js", public / "recovery.js")
     shutil.copy2(ROOT / "touch-controls.js", public / "touch-controls.js")
+    shutil.copy2(ROOT / "robots.txt", public / "robots.txt")
+    shutil.copy2(ROOT / "sitemap.xml", public / "sitemap.xml")
 print(f"Prepared EmulatorJS {VERSION} in {public}")

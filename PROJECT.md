@@ -75,6 +75,14 @@ Google login uses Workload Identity Federation (short-lived tokens), not a saved
 
 Setup follows Google's [GitHub authentication guide](https://github.com/google-github-actions/auth), [deployment trust guide](https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines), and [Cloud Run deploy roles](https://cloud.google.com/run/docs/deploying#required_roles). Keep numeric trust IDs and pinned action hashes current if the repository, owner, or workflow moves. For rollback, list retained revisions with `gcloud run revisions list --service=ps1-player --project=heman-dev --region=asia-east2`, then route traffic to a known good revision with `gcloud run services update-traffic ps1-player --project=heman-dev --region=asia-east2 --to-revisions=REVISION=100`. Replace `REVISION` with the chosen name. Pause new deploys while rolling back; the next deploy sends traffic to latest again.
 
+## Search setup
+
+The home page has a descriptive PS1 emulator title, a page description, and a canonical link to the existing player address. Its main heading and text explain what the player does in the initial HTML, without running a game. `prepare.py` copies `robots.txt` and `sitemap.xml` into the public build. The sitemap lists the home page only. Keep the canonical URL and sitemap on the same host; no redirect or save migration is added for the alternate Cloud Run host.
+
+Search Console verification, sitemap submission, and an indexing request are still pending. Add a URL-prefix property for `https://ps1-player-168235937982.asia-east2.run.app/` in [Google Search Console](https://search.google.com/search-console/). Use its HTML-tag verification method and retain the supplied tag in the page head once added. After verification, submit `https://ps1-player-168235937982.asia-east2.run.app/sitemap.xml`, inspect the home URL, and request indexing. No Search Console tag is invented or added before Google supplies it.
+
+The page returns HTTP 200 with no `noindex` header or tag. Missing robots/sitemap files did not by themselves prevent indexing; the new files give crawlers a clear discovery path. Search results alone do not prove whether Google has indexed it. Use Search Console for that status. These changes do not guarantee indexing, rank, or a date when the site will appear. See Google's [search setup guide](https://developers.google.com/search/docs/fundamentals/seo-starter-guide).
+
 ## Ad plan
 
 Reviewed 2026-10-23. This is a plan only. No ad code, custom ad slots, account changes, or new route are part of this docs task.
