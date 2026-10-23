@@ -36,6 +36,8 @@ The root package.json and data/ belong to the upstream project. Use the Make com
 
 ## Current behavior
 
+- The setup screen has a game picker and an optional BIOS panel. During play, Settings groups touch controls, local restore, and backup import. Save status stays below the game. Help holds install and backup tips.
+- The UI uses charcoal, soft white, and green. Desktop browser layout checks covered desktop, phone portrait, and phone landscape widths. These are not real iPhone or gameplay checks.
 - Games and BIOS files stay on the device.
 - One latest save per game name is stored in IndexedDB. Save now and auto-save share one job.
 - Auto-save runs every 30 seconds and attempts another save when the page backgrounds.
