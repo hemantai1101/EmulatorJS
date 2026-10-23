@@ -14,6 +14,7 @@ Instructions for agents working on our PS1 Player fork of EmulatorJS.
 
 - The working folder is `/Users/heman/projects/ps1-player`.
 - Read `PROJECT.md` for the setup, current behavior, and next work.
+- Read `DEPLOYMENT.md` before deployment, rollback, or private GCP download work. Keep its resource snapshot and commands current when hosting changes.
 - Read `hosting/ps1/AGENTS.md` before changing the player.
 - Our fork is `https://github.com/hemantai1101/EmulatorJS`.
 - Keep work in this fork. Do not submit changes upstream unless the user asks.

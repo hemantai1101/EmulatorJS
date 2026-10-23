@@ -54,6 +54,8 @@ Do not silently migrate, overwrite, or remove existing saves when adding this fe
 
 ## Hosting
 
+Read [DEPLOYMENT.md](DEPLOYMENT.md) for deploy commands, verified GCP resources and IAM, production checks, rollback, and private download exports.
+
 GCP project `heman-dev`, region `asia-east2`, Cloud Run service `ps1-player`.
 Runtime service account: `ps1-player-runtime@heman-dev.iam.gserviceaccount.com`.
 The Docker context includes only the prepared public player, not local games or saves.

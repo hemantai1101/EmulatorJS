@@ -29,6 +29,8 @@ Open http://localhost:8765/. The server is local only, uses the GCP isolation he
 
 ## Build and deploy
 
+Full operating guide: [DEPLOYMENT.md](../../DEPLOYMENT.md). It covers live resources, account permissions, verification, rollback, and the private download bucket.
+
 Requires Python 3.11+, Node.js, 7-Zip (`brew install sevenzip`), and a signed-in `gcloud`.
 Run these commands from this folder:
 
