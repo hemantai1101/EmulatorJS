@@ -1,0 +1,90 @@
+name: Deploy PS1 Player
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hosting/ps1/**'
+      - 'Makefile'
+      - '.github/workflows/ps1-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ps1-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'hemantai1101/EmulatorJS' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PS1_PROJECT: heman-dev
+      PS1_REGION: asia-east2
+      PS1_REGISTRY: asia-east2-docker.pkg.dev
+      PS1_IMAGE: asia-east2-docker.pkg.dev/heman-dev/ps1-player/player:${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Get source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install 7-Zip
+        run: sudo apt-get update && sudo apt-get install -y 7zip
+      - name: Build and check player
+        run: make check
+      - name: Sign in to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/168235937982/locations/global/workloadIdentityPools/ps1-github/providers/github
+          service_account: ps1-github-deploy@heman-dev.iam.gserviceaccount.com
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+      - name: Build and push container
+        run: |
+          gcloud auth configure-docker "$PS1_REGISTRY" --quiet
+          docker build --tag "$PS1_IMAGE" hosting/ps1
+          docker push "$PS1_IMAGE"
+          PS1_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$PS1_IMAGE")
+          echo "PS1_DIGEST=$PS1_DIGEST" >> "$GITHUB_ENV"
+      - name: Deploy to existing service
+        run: |
+          gcloud run services update ps1-player \
+            --image="$PS1_DIGEST" --project="$PS1_PROJECT" \
+            --region="$PS1_REGION" --quiet
+          gcloud run services update-traffic ps1-player \
+            --to-latest --project="$PS1_PROJECT" --region="$PS1_REGION" --quiet
+      - name: Check live page
+        run: |
+          python3 - <<'PY'
+          import time
+          import urllib.request
+
+          url = 'https://ps1-player-168235937982.asia-east2.run.app/'
+          for attempt in range(5):
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      assert response.status == 200
+                      assert response.headers.get('Cross-Origin-Opener-Policy') == 'same-origin'
+                      assert response.headers.get('Cross-Origin-Embedder-Policy') == 'require-corp'
+                      assert 'id="setup"' in response.read().decode()
+                  print('Live player and isolation headers passed.')
+                  break
+              except Exception:
+                  if attempt == 4:
+                      raise
+                  time.sleep(5)
+          PY
