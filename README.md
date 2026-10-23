@@ -1,3 +1,15 @@
+# Our PS1 Player project
+
+Start with [PROJECT.md](PROJECT.md) for the player code, local start command, checks, hosting, and next work.
+
+```sh
+make play
+```
+
+The upstream EmulatorJS README follows.
+
+---
+
 <div align="center">
 
 <img width="300" src="docs/Logo-light.png#gh-dark-mode-only" alt="EmulatorJS Dark Mode Logo">

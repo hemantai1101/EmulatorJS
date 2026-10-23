@@ -16,9 +16,20 @@ The arrow pad is 144–168 CSS pixels wide, with 48–56 pixel arms. The 160 pix
 Use Fill screen above the game to expand it; Exit full screen brings the page back.
 On iPhone, use Safari Share → Add to Home Screen → Open as Web App, then launch the new icon to hide Safari’s bars. Keep an exported state file when switching between Safari and the Home Screen app.
 
+## Local project
+
+The working checkout is `/Users/heman/projects/ps1-player`. From that folder:
+
+```sh
+make play
+make check
+```
+
+Open http://localhost:8765/. The server is local only, uses the GCP isolation headers, and disables stale browser caching. Use `make play PORT=8766` if needed. Read PROJECT.md at the repository root for the handoff notes.
+
 ## Build and deploy
 
-Requires Python 3, 7-Zip (`brew install sevenzip`), and a signed-in `gcloud`.
+Requires Python 3.11+, Node.js, 7-Zip (`brew install sevenzip`), and a signed-in `gcloud`.
 Run these commands from this folder:
 
 ```sh
@@ -27,7 +38,7 @@ sh deploy.sh
 ```
 
 `prepare.py` downloads the official EmulatorJS 4.2.3 release, checks its SHA-256, keeps the PS1 engine, and adds timestamps to save state downloads.
-It copies `index.html` into the build. Run it again after editing that page.
+It caches the release in `.cache/` and checks its checksum on every build. It copies the player source into the build. Deployment always rebuilds and runs all checks before upload.
 Generated files in `public/` are ignored by Git.
 
 The project must have Cloud Run, Cloud Build, Artifact Registry, and IAM APIs enabled.

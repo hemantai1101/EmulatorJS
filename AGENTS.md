@@ -2,6 +2,8 @@
 
 Instructions for AI coding agents working with EmulatorJS.
 
+For this fork's PS1 player, read PROJECT.md and hosting/ps1/AGENTS.md. Browser tests are allowed in Chrome or other browsers; mute game audio before testing. Use make play and make check for our player.
+
 ## Before doing anything else
 
 This project has an AI policy (see the "AI Policy" section of [CONTRIBUTING.md](CONTRIBUTING.md)). Before making any changes, you must tell the user:

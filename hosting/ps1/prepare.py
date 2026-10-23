@@ -20,10 +20,16 @@ if not extractor:
     raise SystemExit("Install 7-Zip first: brew install sevenzip")
 
 with tempfile.TemporaryDirectory() as tmp:
-    archive = args.archive or Path(tmp) / "emulatorjs.7z"
-    if not args.archive:
+    archive = args.archive or ROOT / ".cache" / f"emulatorjs-{VERSION}.7z"
+    if not args.archive and not archive.exists():
+        archive.parent.mkdir(parents=True, exist_ok=True)
         url = f"https://github.com/EmulatorJS/EmulatorJS/releases/download/v{VERSION}/{VERSION}.7z"
-        urllib.request.urlretrieve(url, archive)
+        download = Path(tmp) / "emulatorjs.7z"
+        urllib.request.urlretrieve(url, download)
+        with download.open("rb") as release:
+            if hashlib.file_digest(release, "sha256").hexdigest() != SHA256:
+                raise SystemExit("The release checksum did not match. Nothing was cached.")
+        shutil.move(download, archive)
     with archive.open("rb") as release:
         if hashlib.file_digest(release, "sha256").hexdigest() != SHA256:
             raise SystemExit("The release checksum did not match. Nothing was built.")

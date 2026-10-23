@@ -4,7 +4,8 @@ cd "$(dirname "$0")"
 PS1_PROJECT="${PS1_PROJECT:-heman-dev}"
 PS1_REGION="asia-east2"
 PS1_IMAGE="$PS1_REGION-docker.pkg.dev/$PS1_PROJECT/ps1-player/player:$(date -u +%Y%m%d%H%M%S)"
-test -f public/data/cores/pcsx_rearmed-wasm.data || python3 prepare.py
+python3 prepare.py
+sh check.sh
 gcloud builds submit . --tag="$PS1_IMAGE" --project="$PS1_PROJECT" --region="$PS1_REGION" --quiet
 gcloud run deploy ps1-player \
     --image="$PS1_IMAGE" \
