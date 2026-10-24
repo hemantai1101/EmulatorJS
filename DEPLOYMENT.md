@@ -4,6 +4,15 @@ This is the guide for the existing GCP setup. Resource settings below were check
 
 ## Deploy the latest code
 
+Use GitHub for normal releases. Push the player changes to `main`; `.github/workflows/ps1-deploy.yml` builds, checks, and deploys the existing service. The full identity and trust setup is recorded in `PROJECT.md` under GitHub deploy. To run the latest `main` again:
+
+```sh
+gh workflow run ps1-deploy.yml --repo hemantai1101/EmulatorJS --ref main
+gh run list --repo hemantai1101/EmulatorJS --workflow ps1-deploy.yml --limit 5
+```
+
+The local Cloud Build route below remains available when requested.
+
 Run from the project folder:
 
 ```sh
