@@ -2,6 +2,8 @@
 
 Start with [PROJECT.md](PROJECT.md) for the player code, local start command, checks, hosting, and next work.
 
+For GCP deploys, rollback, and private downloads, read [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ```sh
 make play
 ```

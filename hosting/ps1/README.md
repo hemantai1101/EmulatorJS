@@ -4,11 +4,11 @@ Live player: https://ps1-player-168235937982.asia-east2.run.app/
 
 This hosts the player in `heman-dev`, in Hong Kong (`asia-east2`).
 The page is public. Game and BIOS files are read on the device, not uploaded.
-Saves stay in that browser. Save now updates the latest on-device save immediately. It shares one in-flight save job with auto-save, so repeated or overlapping requests cannot start concurrent writes. Save State still downloads a separate backup file.
+Saves stay in that browser. Save now adds a saved point immediately. It shares one in-flight save job with auto-save, so repeated or overlapping requests cannot start concurrent writes. Save State still downloads a separate backup file.
 
-The player keeps one auto-save per game every 30 seconds and tries to save again when the page goes into the background. On return, tap Resume game. If Safari closed the page, pick the same CHD and choose Restore last save. Clearing site data removes these auto-saves; exported state files remain a useful backup. To move a save from a Mac to an iPhone, export it on the Mac, copy the file to the iPhone, then load it there.
+The player keeps the latest 10 saved points per game name. Auto-save runs every 5 minutes. Leaving the page only adds an auto-save if the newest save is at least 5 minutes old, or no save exists. Manual saves count toward the same 10 points; a new save drops the oldest when full. Existing saves are kept. Pick a time under Settings → Saved points and tap Load selected save to go back. Loading a point keeps the rest of the list. On return, tap Resume game. If Safari closed the page, pick the same CHD and pick a saved point and choose Restore selected save. Clearing site data removes these auto-saves; exported state files remain a useful backup. To move a save from a Mac to an iPhone, export it on the Mac, copy the file to the iPhone, then load it there.
 
-Open the deployed HTTPS link in Safari. Pick a game from Files and press Play.
+Open the deployed HTTPS link in Safari. Pick a game from Files and press Play. Once it starts, one game copy and its optional BIOS are kept in this browser. Next time, use Play last game. The game must be picked once after this update. A different game replaces this copy but keeps saved points separate. If browser storage is full or blocked, use the picker again next time. Clearing site data or browser eviction can remove stored files.
 The BIOS file is optional; the built-in substitute can cause game or save bugs.
 Touch controls appear on phones. Turn the phone sideways for more room.
 Arrow buttons are the default. Use the Direction control selector above the game to switch between Arrow buttons and Joystick without restarting. The choice is saved on the device.
@@ -28,6 +28,8 @@ make check
 Open http://localhost:8765/. The server is local only, uses the GCP isolation headers, and disables stale browser caching. Use `make play PORT=8766` if needed. Read PROJECT.md at the repository root for the handoff notes.
 
 ## Build and deploy
+
+Full operating guide: [DEPLOYMENT.md](../../DEPLOYMENT.md). It covers live resources, account permissions, verification, rollback, and the private download bucket.
 
 Requires Python 3.11+, Node.js, 7-Zip (`brew install sevenzip`), and a signed-in `gcloud`.
 Run these commands from this folder:
@@ -64,4 +66,10 @@ Run `node display.test.cjs` after `prepare.py` for touch-menu and fullscreen CSS
 
 Held gameplay keys prevent browser scrolling, including repeated keydown events. Settings and popups keep their normal key behavior. Run `node keyboard.test.cjs` after `prepare.py` to check held arrows and key release in both shipped engine versions.
 
-Some games draw their own black rim inside the PS1 frame. In fullscreen, Zoom picture enlarges only the canvas by 15.38%, preserving its shape and leaving menus and controls at their normal size. This fits Global Force's 208 visible rows within its 240-row frame to the screen height. Original picture turns it off. Zoom is opt-in and only affects fullscreen; other games may have useful edge content that this mode would crop. It does not change emulator state or save data.
+Some games draw their own black rim inside the PS1 frame. In fullscreen, open the picture icon at the top right and choose Picture → Zoom. This enlarges only the canvas by 15.38%, preserving its shape and leaving menus and controls at their normal size. This fits Global Force's 208 visible rows within its 240-row frame to the screen height. Picture → Original turns it off. Zoom is opt-in and only affects fullscreen; other games may have useful edge content that this mode would crop. It does not change emulator state or save data.
+
+### Touch control look
+
+The top-right picture icon opens button size and button strength. The arrow pad and PS1 face buttons start larger (190 px clusters on tablets, scaled to fit phones). Strength starts at 45%, so the game shows through. The four face buttons sit farther apart. Their symbols use PS1 colours: green triangle, pink square, red circle, and blue cross. Pressed buttons become brighter. Size and strength are kept on this browser. The joystick uses its own 160 px zone. Picture, exit fullscreen, and game menu share grey 44 px tap areas.
+
+This follows the adjustable transparency and layout used by [PPSSPP](https://www.ppsspp.org/docs/settings/controls/) and transparent input overlays with press feedback in [RetroArch](https://docs.libretro.com/development/retroarch/input/overlay/). The exact sizes and strength are our defaults.

@@ -49,6 +49,16 @@ with tempfile.TemporaryDirectory() as tmp:
         if source.count(old) != 1:
             raise SystemExit(f"Expected save download code was not found in {filename}")
         path.write_text(source.replace(old, new))
+    popup_patches = {
+        "data/src/emulator.js": ('title.innerText = this.localization(popupTitle);', 'title.innerText = popupTitle ? this.localization(popupTitle) : "";'),
+        "data/emulator.min.js": ('s.innerText=this.localization(t);const o=this.createElement("div");o.classList.add("ejs_popup_body")', 's.innerText=t?this.localization(t):"";const o=this.createElement("div");o.classList.add("ejs_popup_body")'),
+    }
+    for filename, (old, new) in popup_patches.items():
+        path = extracted / filename
+        source = path.read_text()
+        if source.count(old) != 1:
+            raise SystemExit(f"Expected popup title code was not found in {filename}")
+        path.write_text(source.replace(old, new))
     # Keep the release engine intact outside the custom PS1 stick.
     touch_patches = {
         "data/src/emulator.js": [
@@ -111,6 +121,7 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy2(extracted / "LICENSE", public / "LICENSE")
     shutil.copy2(ROOT / "index.html", public / "index.html")
     shutil.copy2(ROOT / "manifest.webmanifest", public / "manifest.webmanifest")
+    shutil.copy2(ROOT / "recent-game.js", public / "recent-game.js")
     shutil.copy2(ROOT / "recovery.js", public / "recovery.js")
     shutil.copy2(ROOT / "touch-controls.js", public / "touch-controls.js")
     shutil.copy2(ROOT / "robots.txt", public / "robots.txt")

@@ -32,19 +32,22 @@ function surface() {
   const handlers = {}, elements = new Map();
   return {
     hidden: false, handlers,
+    createElement() { return {}; },
     addEventListener(name, callback) { (handlers[name] ||= []).push(callback); },
     querySelector(id) {
-      if (!elements.has(id)) elements.set(id, { hidden: id === '#resume-panel', disabled: true, textContent: '', handlers: {}, addEventListener(name, callback) { this.handlers[name] = callback; } });
+      if (!elements.has(id)) elements.set(id, { hidden: id === '#resume-panel', disabled: true, textContent: '', handlers: {}, value: '', children: [], replaceChildren() { this.children = []; }, append(child) { this.children.push(child); }, addEventListener(name, callback) { this.handlers[name] = callback; } });
       return elements.get(id);
     }
   };
 }
+let clockNow = Date.now();
+class TestDate extends Date { static now() { return clockNow; } }
 let document = surface();
 const window = surface();
 const context = {
   indexedDB: { open() { const request = {}; queueMicrotask(() => { request.result = db; request.onupgradeneeded(); request.onsuccess(); }); return request; } },
-  document, window, Date, Set, Promise,
-  setInterval(callback) { timers.set(++timerId, callback); return timerId; },
+  document, window, Date: TestDate, Set, Promise,
+  setInterval(callback, delay) { assert.equal(delay, 300000); timers.set(++timerId, callback); return timerId; },
   setTimeout(callback) { timers.set(++timerId, callback); return timerId; },
   clearInterval(id) { timers.delete(id); }, clearTimeout(id) { timers.delete(id); },
   location: { reload() {} }
@@ -99,6 +102,8 @@ function emulator() {
   await new Promise(setImmediate);
   assert.equal(saveButton.disabled, true);
   assert.equal(saveButton.textContent, 'Saving…');
+  assert.equal(document.querySelector('#local-saves').disabled, true);
+  assert.equal(document.querySelector('#restore-local').disabled, true);
   const manualJob = saveButton.handlers.click();
   const repeatedManualJob = saveButton.handlers.click();
   assert.equal(manualJob, autoJob);
@@ -119,6 +124,42 @@ function emulator() {
   assert.equal(saveButton.disabled, false);
   assert(document.querySelector('#recovery-status').textContent.includes('Could not save'));
   assert.equal(await saveButton.handlers.click(), true);
+  const beforeLeave = writes;
+  document.hidden = true;
+  document.handlers.visibilitychange[0]();
+  await new Promise(setImmediate);
+  assert.equal(writes, beforeLeave, 'quick backgrounding must not fill history');
+  document.hidden = false;
+  document.handlers.visibilitychange[0]();
+  document.querySelector('#resume-game').handlers.click();
+  const interval = [...timers.values()][0];
+  interval();
+  await new Promise(setImmediate);
+  assert.equal(writes, beforeLeave, 'auto-save waits five minutes');
+  clockNow += 300000;
+  interval();
+  await new Promise(setImmediate);
+  assert.equal(writes, beforeLeave + 1, 'auto-save runs after five minutes');
+  for (let point = 0; point < 12; point++) {
+    clockNow += 1000;
+    game.gameManager.getState = () => new Uint8Array([point]);
+    assert.equal(await saveButton.handlers.click(), true);
+  }
+  const history = stored.values().next().value;
+  assert.equal(history.history.length, 9);
+  assert.deepEqual(Array.from(history.state), [11]);
+  assert.deepEqual(Array.from(history.history.at(-1).state), [2]);
+  assert.equal(document.querySelector('#local-saves').children.length, 10);
+  document.querySelector('#local-saves').value = '9';
+  document.querySelector('#restore-local').handlers.click();
+  assert.deepEqual(game.calls.filter(x => Array.isArray(x) && x[0] === 'restore').at(-1), ['restore', [2]]);
+  assert.equal(stored.values().next().value, history, 'loading must not write a save');
+  failNextWrite = true;
+  assert.equal(await saveButton.handlers.click(), false);
+  assert.equal(stored.values().next().value, history, 'a full-store failure must keep all ten saves');
+  assert.equal(document.querySelector('#local-saves').children.length, 10);
+  const otherId = 'pcsx_rearmed-4.2.3:other game';
+  stored.set(otherId, { id: otherId, state: new Uint8Array([99]), savedAt: 1 });
   game.events.exit();
   assert.equal(saveButton.disabled, true);
 
@@ -127,15 +168,32 @@ function emulator() {
   const reloadedGame = emulator();
   await window.PS1Recovery.attach(reloadedGame, 'test game');
   assert.equal(document.querySelector('#resume-panel').hidden, false);
-  assert.equal(document.querySelector('#resume-game').textContent, 'Restore last save');
+  assert.equal(document.querySelector('#resume-game').textContent, 'Restore selected save');
   assert.equal(reloadedGame.paused, true);
+  const beforeRestore = writes;
+  for (const callback of timers.values()) callback();
+  await new Promise(setImmediate);
+  assert.equal(writes, beforeRestore, 'no auto-save before choosing restore or start fresh');
+  document.querySelector('#resume-save').value = '8';
   document.querySelector('#resume-game').handlers.click();
-  assert.deepEqual(reloadedGame.calls.find(x => Array.isArray(x) && x[0] === 'restore'), ['restore', [1,2,3]]);
+  assert.deepEqual(reloadedGame.calls.find(x => Array.isArray(x) && x[0] === 'restore'), ['restore', [3]]);
   assert.equal(reloadedGame.paused, false);
   const watch = [...timers.values()].at(-1);
   watch();
   assert.equal(document.querySelector('#reload-game').hidden, false);
   assert.equal(document.querySelector('#resume-game').hidden, true);
   assert(document.querySelector('#resume-message').textContent.includes('still stuck'));
-  console.log('PASS: manual/auto overlap, repeated taps, one write at a time, failed-write retry, background save, resume, reload restore, and stalled-loop recovery.');
+  reloadedGame.events.exit();
+  document = surface();
+  context.document = document;
+  const legacyGame = emulator();
+  await window.PS1Recovery.attach(legacyGame, 'other game');
+  assert.equal(document.querySelector('#local-saves').children.length, 1);
+  document.querySelector('#resume-game').handlers.click();
+  assert.deepEqual(legacyGame.calls.find(x => Array.isArray(x) && x[0] === 'restore'), ['restore', [99]]);
+  assert.equal(await document.querySelector('#save-now').handlers.click(), true);
+  assert.deepEqual(Array.from(stored.get(otherId).history[0].state), [99]);
+  assert.equal(stored.get(history.id), history, 'another game must keep its own history');
+  legacyGame.events.exit();
+  console.log('PASS: ten-save retention, older selection, five-minute interval, quick backgrounding, legacy save kept, per-game isolation; manual/auto overlap, repeated taps, one write at a time, failed-write retry, background save, resume, reload restore, and stalled-loop recovery.');
 })();
