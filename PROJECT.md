@@ -27,6 +27,7 @@ This checkout already has the release cached.
 
 - `hosting/ps1/index.html`: game picker, state import, fullscreen, picture zoom, control selection.
 - `hosting/ps1/recovery.js`: manual save, auto-save, background pause, resume, and restore.
+- `hosting/ps1/recent-game.js`: last played game and optional BIOS copy in a separate browser database.
 - `hosting/ps1/touch-controls.js`: stick dead zone and direction stability.
 - `hosting/ps1/prepare.py`: pinned release, checksum checks, reproducible engine patches, and public build.
 - `hosting/ps1/public/`: generated files. Rebuild these; do not edit them.
@@ -38,21 +39,24 @@ The root package.json and data/ belong to the upstream project. Use the Make com
 
 - The setup screen has a game picker and an optional BIOS panel. During play, Settings groups touch controls, local restore, and backup import. Save status stays below the game. Help holds install and backup tips.
 - The UI uses charcoal, soft white, and green. Desktop browser layout checks covered desktop, phone portrait, and phone landscape widths. These are not real iPhone or gameplay checks.
-- Games and BIOS files stay on the device.
-- One latest save per game name is stored in IndexedDB. Save now and auto-save share one job.
-- Auto-save runs every 30 seconds and attempts another save when the page backgrounds.
+- Games and BIOS files stay on the device. Once a game starts, one game copy and its optional BIOS are kept in IndexedDB database `ps1-player-recent-game`, store `files`, key `last`. The setup screen offers Play last game after reload. Names are stored explicitly so Blob/File cloning keeps the same save ID. A new game replaces only this game copy; save history uses its own database. If storage is full or blocked, the picker still works and an error is shown. Browser data clearing or eviction can remove the copy. Games played before this feature must be picked once more.
+- The latest 10 saves per game name are stored in IndexedDB. Save now and auto-save share one job. Both add a saved point; once full, each new save drops the oldest. Existing single saves stay available as the first history entry.
+- Auto-save runs every 5 minutes. Backgrounding attempts a save only if the newest save is at least 5 minutes old (or there is no save), so quick tab switches do not fill the list. Settings → Saved points lets the user pick a timestamp and Load selected save. The reload restore panel also offers the list.
 - After a reload, restoring an existing save requires a user choice before auto-save resumes.
 - A raw .state import checks the RASTATE header. It does not verify which game/disc created the state.
 - Safari backgrounding can suspend or kill the page. Recovery helps resume; the app cannot promise background gameplay.
-- Arrow buttons are the default. A larger pad and a steadier eight-direction stick are available.
+- Arrow buttons are the default. Touch controls use larger, translucent grey buttons and PS1 face symbols with bright press feedback. Face buttons have a wider diamond layout, with green triangle, pink square, red circle, and blue cross symbols; input mappings stay the same. The top-right Picture & controls icon opens Original/Zoom, button size (170–230 px before small-screen scaling), and strength (25–80%). Size and strength stay in localStorage; defaults are 190 px and 45%. The size of the arrow pad and face buttons follows the slider; the joystick keeps its own 160 px zone. Three matching 44 px icons group picture controls, exit fullscreen, and the game menu. A steadier eight-direction stick is also available.
+- The touch layout and panel were checked in muted desktop Chrome at 1024×768, 844×390, 390×844, and 320×568 with the shipped engine controls and dummy game data. Zoom, preference restore, and face-button input/release passed. No real game or physical iPad test was run for this UI update.
 - Fullscreen bypasses the normal page height cap. Optional Zoom picture hides Global Force's built-in black rim; other games can lose edge content when zoomed.
 - Repeated gameplay keys prevent page scrolling. Mobile menu opening ignores touch-generated mouse events.
+- Empty emulator popup titles render as blank, so the state drop box no longer shows undefined. The patch is reproduced by prepare.py in both engine files. The resume dialog includes its saved-point selector in keyboard focus order.
+- Last-game reload and reopen (including BIOS bytes) were checked with dummy files in the desktop in-app browser. The real popup title was checked there too; no real-game or iPhone test was run for these changes.
 
 ## Next work discussed with the user
 
 Game/disc identity checks for saves were discussed, not implemented. The suggested first step is a content fingerprint plus emulator version, with a warning for old states. Renaming should not change identity. ZIP and CHD files of the same disc need different handling if they are to count as the same game. Avoid loading a whole disc into another in-memory buffer on iPhone just to hash it.
 
-Do not silently migrate, overwrite, or remove existing saves when adding this feature. A multi-save picker is also not implemented; the current app keeps one latest local save per game name.
+Do not silently migrate, overwrite, or remove existing saves when adding this feature. The multi-save picker keeps the latest 10 points per game name. History is stored in the existing states record alongside the latest state; database, store, and game IDs stay the same. Loading an older point does not delete newer points. History grows from future saves; overwritten states from before this change cannot be recovered.
 
 ## Hosting
 

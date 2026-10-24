@@ -52,6 +52,9 @@
   input[type=file] { display: block; width: 100%; max-width: 100%; margin-top: 10px; color: var(--muted); font-size: 14px; }
   input::file-selector-button { min-height: 44px; background: #343a36; color: var(--text); border: 1px solid #59605a; border-radius: 8px; padding: 8px 12px; margin-right: 12px; font: inherit; cursor: pointer; }
   .warning { padding-left: 12px; border-left: 2px solid #d7ba83; color: #ded0b5; font-size: 13px; margin-top: 12px; }
+  #last-game { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+  #last-game-name { overflow-wrap: anywhere; margin-bottom: 12px; }
+  #play-last-game { width: 100%; }
   #play-game { width: 100%; margin-top: 12px; }
   .privacy-note { text-align: center; font-size: 12px; margin-top: 12px; }
   #status:empty { display: none; }
@@ -106,39 +109,82 @@
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
   body[data-direction-mode="dpad"] .b_direction_stick,
   body[data-direction-mode="stick"] .b_direction_buttons { visibility: hidden; pointer-events: none; }
-  #game .ejs_virtualGamepad_left { --pad-size: clamp(144px, 44vw, 168px); width: var(--pad-size); height: var(--pad-size); left: 8px; }
-  #game .b_direction_buttons .ejs_dpad_main { opacity: 0.95; }
-  #game .b_direction_buttons .ejs_dpad_horizontal { height: calc(var(--pad-size) / 3); }
-  #game .b_direction_buttons .ejs_dpad_vertical { width: calc(var(--pad-size) / 3); }
-  #game .b_direction_stick { touch-action: none; }
-  #game .b_direction_stick .back { outline: 1px solid #dce8ff; }
-  #game .b_direction_stick .back::after {
-    content: ''; position: absolute; left: 35%; top: 35%; width: 30%; height: 30%;
-    border: 1px dashed #fff9; border-radius: 50%;
+  #game { --touch-size: 190px; --touch-opacity: .45; }
+  #game .ejs_virtualGamepad_parent { bottom: max(16px, env(safe-area-inset-bottom)); }
+  #game .ejs_virtualGamepad_left, #game .ejs_virtualGamepad_right {
+    width: var(--touch-size); height: var(--touch-size); bottom: 60px;
+  }
+  #game .ejs_virtualGamepad_left { left: max(16px, env(safe-area-inset-left)); }
+  #game .ejs_virtualGamepad_right { width: calc(var(--touch-size) * 1.15); height: calc(var(--touch-size) * 1.15); right: max(16px, env(safe-area-inset-right)); }
+  #game .b_direction_buttons .ejs_dpad_main { opacity: var(--touch-opacity); }
+  #game .b_direction_buttons .ejs_dpad_horizontal { height: 34%; }
+  #game .b_direction_buttons .ejs_dpad_vertical { width: 34%; }
+  #game .ejs_dpad_bar { background: #dce1df; }
+  #game .ejs_dpad_main:is(.ejs_dpad_up_pressed, .ejs_dpad_down_pressed, .ejs_dpad_left_pressed, .ejs_dpad_right_pressed) { opacity: .8; }
+  #game .b_direction_stick { touch-action: none; opacity: var(--touch-opacity); }
+  #game .b_direction_stick .back { outline: 2px solid #f3f2ed; }
+  #game .ejs_virtualGamepad_button {
+    box-sizing: border-box; opacity: var(--touch-opacity); color: #fff;
+    background: #17191b44; border: 2px solid #f3f2ed; text-shadow: 0 1px 3px #000;
+    transition: background-color .08s, border-color .08s; touch-action: none;
+  }
+  #game .ejs_virtualGamepad_button_down { opacity: .9; background: #c0ee8855; border-color: #c0ee88; }
+  #game :is(.b_y, .b_x, .b_b, .b_a) {
+    width: 31.3%; height: 31.3%; min-width: 44px; min-height: 44px; line-height: 1; display: grid; place-items: center;
+    font-size: clamp(26px, calc(var(--touch-size) * .17), 36px) !important;
+    color: var(--ps-symbol);
+  }
+  #game .b_y { --ps-symbol: #65e6ad; left: 34.35% !important; top: 0 !important; }
+  #game .b_x { --ps-symbol: #f3a3cd; left: 0 !important; top: 34.35% !important; }
+  #game .b_b { --ps-symbol: #ff8389; left: 68.7% !important; top: 34.35% !important; }
+  #game .b_a { --ps-symbol: #8bbaff; left: 34.35% !important; top: 68.7% !important; }
+  #game .ejs_virtualGamepad_bottom { width: 232px; height: 100px; margin-left: -116px; bottom: 0; }
+  #game .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button { width: 72px; height: 44px !important; line-height: 40px !important; border-radius: 10px !important; }
+  #game .b_select { left: 36px !important; top: 0 !important; }
+  #game .b_start { left: 124px !important; top: 0 !important; }
+  #game .b_speed_fast { left: 36px !important; top: 52px !important; }
+  #game .b_speed_slow { left: 124px !important; top: 52px !important; }
+  @media (max-width: 600px), (max-height: 500px) {
+    #game .ejs_virtualGamepad_left, #game .ejs_virtualGamepad_right { width: min(calc(var(--touch-size) * .8), calc(50vw - 16px)); height: min(calc(var(--touch-size) * .8), calc(50vw - 16px)); bottom: 100px; }
+    #game .ejs_virtualGamepad_left { left: max(8px, env(safe-area-inset-left)); }
+    #game .ejs_virtualGamepad_right { width: min(calc(var(--touch-size) * .92), calc(50vw - 16px)); height: min(calc(var(--touch-size) * .92), calc(50vw - 16px)); right: max(8px, env(safe-area-inset-right)); }
   }
   #screen { display: none; }
   #game:fullscreen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
   #game:-webkit-full-screen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
-  @media (pointer: coarse) {
-    #game .ejs_virtualGamepad_open {
-      opacity: 1 !important; pointer-events: auto; width: 44px; height: 44px;
-      top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
-      padding: 10px; border-radius: 8px; background: #192436dd;
-    }
+  #game .ejs_virtualGamepad_open, #picture-zoom, #leave-fill {
+    position: absolute; z-index: 10000; top: max(12px, env(safe-area-inset-top));
+    width: 44px; height: 44px; min-height: 44px; padding: 11px;
+    border: 1px solid #ffffff33; border-radius: 12px; color: #f3f2ed;
+    background: #222527dd; cursor: pointer; opacity: 1 !important;
   }
-  @media (pointer: coarse) { body.fill-screen #leave-fill { left: auto; right: calc(60px + env(safe-area-inset-right)); transform: none; min-height: 44px; } }
-  #picture-zoom { display: none; position: absolute; z-index: 10000; top: max(6px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); min-height: 44px; padding: 8px 12px; font-size: 13px; color: white; background: #192436dd; }
-  .fill-screen #picture-zoom, #game:fullscreen #picture-zoom { display: block; }
-  #game:-webkit-full-screen #picture-zoom { display: block; }
+  #game .ejs_virtualGamepad_open { right: max(12px, env(safe-area-inset-right)); }
+  #game .ejs_virtualGamepad_open svg, #picture-zoom svg, #leave-fill svg { display: block; width: 20px; height: 20px; }
+  #picture-zoom { display: none; right: calc(116px + env(safe-area-inset-right)); }
+  #picture-zoom[aria-expanded=true] { border-color: var(--accent); color: var(--accent); }
+  .fill-screen #picture-zoom, #game:fullscreen #picture-zoom, #game:-webkit-full-screen #picture-zoom { display: block; }
+  #display-panel {
+    position: absolute; z-index: 10001; top: calc(64px + env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right)); width: min(300px, calc(100% - 24px));
+    max-height: calc(100% - 80px); overflow: auto; padding: 18px;
+    border: 1px solid var(--line); border-radius: 14px; background: #222527f5;
+    box-shadow: 0 8px 32px #0008; font: 14px/1.5 system-ui, sans-serif;
+  }
+  #display-panel label { margin-top: 14px; }
+  #display-panel select, #display-panel input { width: 100%; }
+  #display-panel input { min-height: 44px; accent-color: var(--accent); }
+  #display-panel p { font-size: 12px; margin-top: 8px; }
+  #display-panel button { width: 100%; margin-top: 12px; }
   .fill-screen #game[data-picture-zoom="true"] .ejs_canvas,
   #game[data-picture-zoom="true"]:fullscreen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
   #game[data-picture-zoom="true"]:-webkit-full-screen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
   #game .ejs_canvas_parent { overflow: hidden; }
   #leave-fill { display: none; }
-  #resume-panel[hidden], #resume-panel button[hidden] { display: none; }
+  #resume-panel[hidden], #resume-panel [hidden] { display: none; }
   #resume-panel { position: fixed; inset: 0; z-index: 11000; display: grid; place-items: center; background: #000c; padding: 24px; }
   #resume-panel > div { width: min(100%, 400px); background: var(--panel); border: 1px solid var(--line); padding: 28px; border-radius: 18px; box-shadow: 0 24px 100px #0008; }
   #resume-panel h2 { font-size: 24px; margin-bottom: 12px; }
+  #local-saves, #resume-save { width: 100%; padding: 10px; margin: 8px 0; }
   #resume-panel button { width: 100%; margin-top: 12px; }
   body.fill-screen { overflow: hidden; }
   .fill-screen #screen {
@@ -150,10 +196,9 @@
   .fill-screen .game-shell { margin-bottom: 0; width: 100%; height: 100%; border: 0; border-radius: 0; }
   .fill-screen #game { width: 100%; height: 100%; }
   .fill-screen #leave-fill {
-    display: block; position: absolute; z-index: 10000;
-    top: max(6px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
-    padding: 6px 12px; font-size: 13px; color: white; background: #192436dd;
+    display: block; left: auto; right: calc(64px + env(safe-area-inset-right)); transform: none;
   }
+
 </style>
 <main>
   <header class="site-header">
@@ -166,6 +211,12 @@
     <p>Your PlayStation classics. Your own pace.</p>
   </div>
   <form id="setup">
+    <div id="last-game" hidden>
+      <p class="eyebrow">Last played</p>
+      <p id="last-game-name"></p>
+      <button id="play-last-game" class="primary" type="button">Play last game</button>
+      <p class="hint">Kept in this browser, along with its BIOS if you used one. Or pick a different game below.</p>
+    </div>
     <label class="file-picker" for="rom">
       <span class="file-symbol" aria-hidden="true">⊕</span>
       <span id="choose-game-label">Choose game</span>
@@ -182,7 +233,7 @@
       </div>
     </details>
     <button id="play-game" class="primary" type="submit">Play game</button>
-    <p class="privacy-note">Your game and BIOS stay on this device.</p>
+    <p class="privacy-note">Your last game and BIOS are kept in this browser. Nothing is uploaded.</p>
     <p id="status" role="status" aria-live="polite"></p>
   </form>
   <section id="screen" aria-label="Game player">
@@ -195,6 +246,7 @@
       </div>
     </div>
     <div class="save-line"><span class="save-dot" aria-hidden="true"></span><p id="recovery-status" role="status" aria-live="polite">Your save will be checked when the game starts.</p></div>
+    <p id="game-cache-status" class="hint" role="status" hidden></p>
     <div id="player-settings" hidden>
       <div class="settings-grid">
         <div>
@@ -205,7 +257,10 @@
         <div>
           <h3>Saves &amp; backups</h3>
           <p class="hint">Use Save State in the game menu to download a backup.</p>
-          <button id="restore-local" type="button" disabled>Restore last save</button>
+          <p class="hint">Auto-save runs every 5 minutes. The latest 10 saves stay here, including Save now. Older saves are dropped when the list is full.</p>
+          <label for="local-saves">Saved points</label>
+          <select id="local-saves" disabled></select>
+          <button id="restore-local" type="button" disabled>Load selected save</button>
           <label class="hint" for="state-file">Load a .state backup</label>
           <input id="state-file" type="file" accept=".state" aria-describedby="state-warning save-status" disabled>
           <p id="state-warning" class="hint">Pick a save for this game and disc. We check the file type, but cannot check which game it belongs to.</p>
@@ -213,7 +268,7 @@
         </div>
       </div>
     </div>
-    <button id="leave-fill" type="button">Exit full screen</button>
+    <button id="leave-fill" type="button" aria-label="Exit full screen" title="Exit full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 3 6 6M3 9h6V3m12 0-6 6m0-6v6h6M3 21l6-6m-6 0h6v6m12 0-6-6m0 6v-6h6"/></svg></button>
     <div id="player-loading" role="status"><span class="loading-light" aria-hidden="true"></span><h2>Getting your game ready</h2><p>This may take a moment. Settle in.</p><button id="retry-loader" type="button" hidden>Try again</button></div>
     <div class="game-shell"><div id="game" tabindex="-1" aria-label="Game screen"></div></div>
     <div id="resume-panel" hidden role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-message" tabindex="-1">
@@ -221,6 +276,8 @@
         <p class="eyebrow">Right where you left it</p>
         <h2 id="resume-title">Your game is here</h2>
         <p id="resume-message"></p>
+        <label id="resume-save-label" for="resume-save" hidden>Pick a saved point</label>
+        <select id="resume-save" hidden></select>
         <button id="resume-game" class="primary" type="button">Resume game</button>
         <button id="start-fresh" type="button" hidden>Start fresh</button>
         <button id="reload-game" type="button" hidden>Reload player</button>
@@ -237,10 +294,31 @@
     </div></details>
   </footer>
 </main>
+<script src="recent-game.js"></script>
 <script src="recovery.js"></script>
 <script src="touch-controls.js"></script>
 <script>
-let recovery;
+let recovery, lastGame, playingFiles;
+const lastGameButton = document.querySelector('#play-last-game');
+const cacheStatus = document.querySelector('#game-cache-status');
+PS1RecentGame.read().then(saved => {
+  if (!saved) return;
+  lastGame = saved;
+  document.querySelector('#last-game-name').textContent = saved.name;
+  document.querySelector('#last-game').hidden = false;
+}).catch(() => {
+  document.querySelector('#status').textContent = 'This browser could not read the last game. Use the file picker below.';
+});
+lastGameButton.addEventListener('click', () => {
+  if (!lastGame || document.body.dataset.playerState) return;
+  try {
+    const files = PS1RecentGame.files(lastGame);
+    const chosenBios = document.querySelector('#bios').files[0];
+    startGame(files.game, chosenBios || files.bios);
+  } catch (error) {
+    document.querySelector('#status').textContent = 'This game could not be opened. Pick the game file below.';
+  }
+});
 const romPicker = document.querySelector('#rom');
 romPicker.addEventListener('change', () => {
   const file = romPicker.files[0];
@@ -258,7 +336,7 @@ settingsToggle.addEventListener('click', () => {
 const resumePanel = document.querySelector('#resume-panel');
 let returnFocus;
 function dialogButtons() {
-  return [...resumePanel.querySelectorAll('button')].filter(button => !button.hidden && !button.disabled);
+  return [...resumePanel.querySelectorAll('button, select')].filter(button => !button.hidden && !button.disabled);
 }
 new MutationObserver(() => {
   if (!resumePanel.hidden) {
@@ -354,23 +432,84 @@ statePicker.addEventListener('change', async () => {
     statePicker.value = '';
   }
 });
-window.EJS_onGameStart = () => {
-  const gameRoot = document.querySelector('#game');
-  if (!gameRoot.querySelector('#picture-zoom')) {
-    const zoomButton = document.createElement('button');
-    zoomButton.id = 'picture-zoom';
-    zoomButton.type = 'button';
-    zoomButton.textContent = 'Zoom picture';
-    zoomButton.title = 'Enlarge the picture by 15% to hide game borders. Other games may lose content at the edges.';
-    zoomButton.setAttribute('aria-pressed', 'false');
-    zoomButton.addEventListener('click', () => {
-      const enabled = gameRoot.dataset.pictureZoom !== 'true';
-      gameRoot.dataset.pictureZoom = String(enabled);
-      zoomButton.setAttribute('aria-pressed', String(enabled));
-      zoomButton.textContent = enabled ? 'Original picture' : 'Zoom picture';
-    });
-    gameRoot.appendChild(zoomButton);
+function setupDisplayTools(gameRoot) {
+  const zoomButton = document.createElement('button');
+  zoomButton.id = 'picture-zoom';
+  zoomButton.type = 'button';
+  zoomButton.title = 'Picture & controls';
+  zoomButton.setAttribute('aria-label', 'Picture and touch controls');
+  zoomButton.setAttribute('aria-expanded', 'false');
+  zoomButton.setAttribute('aria-controls', 'display-panel');
+  zoomButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 16 5-5 5 5 3-3 5 5"/><circle cx="16" cy="9" r="1"/></svg>';
+  const panel = document.createElement('div');
+  panel.id = 'display-panel';
+  panel.hidden = true;
+  panel.setAttribute('role', 'region');
+  panel.setAttribute('aria-label', 'Picture and touch controls');
+  panel.innerHTML = `<strong>Picture &amp; controls</strong>
+    <label for="picture-mode">Picture</label>
+    <select id="picture-mode"><option value="false">Original</option><option value="true">Zoom</option></select>
+    <p>Zoom hides borders. It may cut off game edges.</p>
+    <label for="touch-size">Button size <output id="touch-size-value"></output></label>
+    <input id="touch-size" type="range" min="170" max="230" step="10" value="190">
+    <label for="touch-opacity">Button strength <output id="touch-opacity-value"></output></label>
+    <input id="touch-opacity" type="range" min="25" max="80" step="5" value="45">
+    <p>Lower strength lets more of the game show through.</p>
+    <button type="button" id="display-done">Done</button>`;
+  gameRoot.append(zoomButton, panel);
+  const setOpen = open => {
+    panel.hidden = !open;
+    zoomButton.setAttribute('aria-expanded', String(open));
+    if (open) panel.querySelector('select').focus({ preventScroll: true });
+  };
+  zoomButton.addEventListener('click', () => setOpen(panel.hidden));
+  panel.querySelector('#display-done').addEventListener('click', () => { setOpen(false); zoomButton.focus(); });
+  panel.addEventListener('keydown', event => {
+    event.stopPropagation();
+    if (event.key === 'Escape') { event.preventDefault(); setOpen(false); zoomButton.focus(); }
+  });
+  panel.addEventListener('keyup', event => event.stopPropagation());
+  document.addEventListener('pointerdown', event => {
+    if (!panel.hidden && !panel.contains(event.target) && !zoomButton.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener('fullscreenchange', () => setOpen(false));
+  document.querySelector('#leave-fill').addEventListener('click', () => setOpen(false));
+  panel.querySelector('#picture-mode').addEventListener('change', event => {
+    gameRoot.dataset.pictureZoom = event.target.value;
+  });
+  for (const [name, fallback, min, max] of [['size', 190, 170, 230], ['opacity', 45, 25, 80]]) {
+    const input = panel.querySelector('#touch-' + name);
+    let saved = fallback;
+    try { saved = Number(localStorage.getItem('ps1-touch-' + name)) || fallback; } catch (error) { /* Use the default. */ }
+    input.value = Math.max(min, Math.min(max, saved));
+    const apply = () => {
+      gameRoot.style.setProperty('--touch-' + name, name === 'size' ? input.value + 'px' : input.value / 100);
+      panel.querySelector('#touch-' + name + '-value').textContent = name === 'size' ? Math.round(input.value / 190 * 100) + '%' : input.value + '%';
+      try { localStorage.setItem('ps1-touch-' + name, input.value); } catch (error) { /* Controls still work. */ }
+    };
+    input.addEventListener('input', apply);
+    apply();
   }
+  const menu = gameRoot.querySelector('.ejs_virtualGamepad_open');
+  if (menu) {
+    menu.setAttribute('role', 'button');
+    menu.setAttribute('tabindex', '0');
+    menu.setAttribute('aria-label', 'Game menu');
+    menu.title = 'Game menu';
+    menu.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); window.EJS_emulator.menu.toggle(); }
+    });
+  }
+}
+window.EJS_onGameStart = () => {
+  if (playingFiles) {
+    PS1RecentGame.remember(playingFiles.game, playingFiles.bios).catch(() => {
+      cacheStatus.hidden = false;
+      cacheStatus.textContent = 'This game could not be kept in this browser. Pick its file again next time. Your save points are kept separately.';
+    });
+  }
+  const gameRoot = document.querySelector('#game');
+  if (!gameRoot.querySelector('#picture-zoom')) setupDisplayTools(gameRoot);
   fillButton.disabled = false;
   statePicker.disabled = false;
   PS1Recovery.attach(window.EJS_emulator, window.EJS_gameName).then(controller => { recovery = controller; });
@@ -389,15 +528,17 @@ window.EJS_onLoadState = () => {
 };
 document.querySelector('#setup').addEventListener('submit', (event) => {
   event.preventDefault();
-  const game = document.querySelector('#rom').files[0];
-  const bios = document.querySelector('#bios').files[0];
-  if (!game) return;
+  startGame(romPicker.files[0], document.querySelector('#bios').files[0]);
+});
+function startGame(game, bios) {
+  if (!game || document.body.dataset.playerState) return;
   if (bios && bios.size !== 524288) {
     document.querySelector('#status').textContent = 'This BIOS must be 512 KB. Pick a PS1 BIOS file.';
     document.querySelector('#game-setup').open = true;
     document.querySelector('#bios').focus();
     return;
   }
+  playingFiles = { game, bios };
   document.body.dataset.playerState = 'loading';
   document.querySelector('#game-title').textContent = game.name.replace(/\.[^.]+$/, '');
   window.EJS_player = '#game';
@@ -405,10 +546,10 @@ document.querySelector('#setup').addEventListener('submit', (event) => {
   window.EJS_VirtualGamepadSettings = [
     { type: 'dpad', id: 'direction_buttons', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
     { type: 'zone', ps1Touch: true, size: 160, color: '#d3e6ff', id: 'direction_stick', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
-    { type: 'button', text: 'Y', id: 'y', location: 'right', left: 40, bold: true, input_value: 9 },
-    { type: 'button', text: 'X', id: 'x', location: 'right', top: 40, bold: true, input_value: 1 },
-    { type: 'button', text: 'B', id: 'b', location: 'right', left: 81, top: 40, bold: true, input_value: 8 },
-    { type: 'button', text: 'A', id: 'a', location: 'right', left: 40, top: 80, bold: true, input_value: 0 },
+    { type: 'button', text: '△', id: 'y', location: 'right', left: 40, bold: true, input_value: 9 },
+    { type: 'button', text: '□', id: 'x', location: 'right', top: 40, bold: true, input_value: 1 },
+    { type: 'button', text: '○', id: 'b', location: 'right', left: 81, top: 40, bold: true, input_value: 8 },
+    { type: 'button', text: '×', id: 'a', location: 'right', left: 40, top: 80, bold: true, input_value: 0 },
     { type: 'button', text: 'Start', id: 'start', location: 'center', left: 60, fontSize: 15, block: true, input_value: 3 },
     { type: 'button', text: 'Select', id: 'select', location: 'center', left: -5, fontSize: 15, block: true, input_value: 2 },
     { type: 'button', text: 'Fast', id: 'speed_fast', location: 'center', left: -35, top: 50, fontSize: 15, block: true, input_value: 27 },
@@ -432,6 +573,6 @@ document.querySelector('#setup').addEventListener('submit', (event) => {
     document.querySelector('#retry-loader').hidden = false;
   };
   document.body.appendChild(loader);
-});
+}
 </script>
 </html>

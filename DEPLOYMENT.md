@@ -47,7 +47,9 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 Keep using the same player address. Browser storage belongs to the exact origin, so the alternate hostname has separate saves. Localhost and different localhost ports also have separate saves.
 
-The last verified ready revision was `ps1-player-00011-lp7`, with 100% of traffic. Its image tag was `20261023050145`. Later local commits added project tooling and docs; those commits do not by themselves change the live site.
+On **24 October 2026 (Hong Kong)**, deployed and verified ready revision `ps1-player-00017-8cf`, with 100% of traffic. Its image tag is `20261024062118` (UTC), digest `sha256:105d9bc9cf5cf3702bd51ff7a33eaff3e3c788f4aa6dedfc123624c321a291ed`. Cloud Build `13c0b6ee-9b63-4a9b-aaae-3fdf8d460d9a` succeeded. This release adds Play last game (a local game/BIOS copy) and removes undefined from empty popup titles. It includes the earlier five-minute auto-save and latest-10 picker. All player checks passed. The normal player address returned HTTP 200; index.html, recent-game.js, and both engine files matched the local build byte for byte, with both isolation headers kept. Desktop in-app browser checks used dummy game/BIOS files to verify reload, last-game reopen, and the real popup title. No real iPhone or gameplay test was run for this release.
+
+Previous ready revision `ps1-player-00016-8m2`, image tag `20261023163852`, served the five-minute/latest-10 save feature before this deploy.
 
 ## Container and Cloud Run settings
 

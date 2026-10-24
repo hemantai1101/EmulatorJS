@@ -1,4 +1,6 @@
 (function () {
+  const SAVE_INTERVAL = 5 * 60 * 1000;
+  const SAVE_LIMIT = 10;
   const database = new Promise((resolve, reject) => {
     const request = indexedDB.open('ps1-player-recovery', 1);
     request.onupgradeneeded = () => request.result.createObjectStore('states', { keyPath: 'id' });
@@ -16,11 +18,11 @@
       request.onerror = () => reject(request.error);
     });
   }
-  async function writeSave(save) {
+  async function writeSave(save, saves) {
     const db = await database;
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('states', 'readwrite');
-      transaction.objectStore('states').put(save);
+      transaction.objectStore('states').put({ ...save, history: saves.slice(1) });
       transaction.oncomplete = resolve;
       transaction.onerror = () => reject(transaction.error);
       transaction.onabort = () => reject(transaction.error);
@@ -36,8 +38,11 @@
       const fresh = document.querySelector('#start-fresh');
       const restore = document.querySelector('#restore-local');
       const saveNow = document.querySelector('#save-now');
+      const savePicker = document.querySelector('#local-saves');
+      const resumePicker = document.querySelector('#resume-save');
       const status = document.querySelector('#recovery-status');
       const id = 'pcsx_rearmed-4.2.3:' + gameName;
+      let saves = [];
       let lastSave, backgrounded = false, schedulerPaused = false;
       let ready = false, pendingSave = null, manualRequested = false;
       let active = true, failedRecovery = false;
@@ -57,16 +62,32 @@
       function showPanel(text, savedGame = false, failed = false) {
         failedRecovery = failed;
         message.textContent = text;
-        resume.textContent = savedGame ? 'Restore last save' : 'Resume game';
+        resume.textContent = savedGame ? 'Restore selected save' : 'Resume game';
+        resumePicker.hidden = !savedGame;
+        document.querySelector('#resume-save-label').hidden = !savedGame;
         resume.hidden = failed;
         fresh.hidden = !savedGame;
         reload.hidden = !failed;
         panel.hidden = false;
         updateSaveButton();
       }
+      function updateSaveList() {
+        for (const picker of [savePicker, resumePicker]) {
+          picker.replaceChildren();
+          saves.forEach((save, index) => {
+            const option = document.createElement('option');
+            option.value = String(index);
+            option.textContent = new Date(save.savedAt).toLocaleString() + (index === 0 ? ' (latest)' : '');
+            picker.append(option);
+          });
+          picker.value = '0';
+        }
+      }
       function updateSaveButton() {
         saveNow.disabled = !!pendingSave || !active || !ready || failedRecovery || !panel.hidden;
         saveNow.textContent = pendingSave ? 'Saving…' : 'Save now';
+        restore.disabled = savePicker.disabled = !active || !saves.length || !!pendingSave;
+        resumePicker.disabled = !!pendingSave;
       }
       function checkpoint(allowPaused = false, manual = false) {
         if (!active || !ready || failedRecovery || (emulator.paused && !allowPaused) || !panel.hidden) return Promise.resolve(false);
@@ -80,16 +101,18 @@
         saveNow.textContent = 'Saving…';
         try {
           save = { id, state: emulator.gameManager.getState(), savedAt: Date.now() };
-          lastSave = save;
-          restore.disabled = false;
         } catch (error) {
           status.textContent = 'Could not save on this device. Use Save State to download a backup.';
           manualRequested = false;
           updateSaveButton();
           return Promise.resolve(false);
         }
-        pendingSave = writeSave(save).then(() => {
-          status.textContent = (manualRequested ? 'Saved now at ' : 'Auto-saved at ') + new Date(save.savedAt).toLocaleTimeString() + '.';
+        const nextSaves = [save, ...saves].slice(0, SAVE_LIMIT);
+        pendingSave = writeSave(save, nextSaves).then(() => {
+          saves = nextSaves;
+          lastSave = save;
+          updateSaveList();
+          status.textContent = (manualRequested ? 'Saved now at ' : 'Auto-saved at ') + new Date(save.savedAt).toLocaleTimeString() + '. ' + saves.length + ' of 10 saves kept here.';
           return true;
         }).catch(() => {
           status.textContent = 'Could not save on this device. Use Save State to download a backup.';
@@ -99,13 +122,18 @@
           manualRequested = false;
           updateSaveButton();
         });
+        updateSaveButton();
         return pendingSave;
       }
       saveNow.addEventListener('click', () => checkpoint(true, true));
+      function autoCheckpoint() {
+        if (saves.length && Date.now() - saves[0].savedAt < SAVE_INTERVAL) return Promise.resolve(false);
+        return checkpoint(true);
+      }
       function hideGame() {
         if (!active || !emulator.started) return;
         clearTimeout(watchdog);
-        if (!backgrounded) checkpoint(true);
+        if (!backgrounded) autoCheckpoint();
         backgrounded = true;
         try { pauseEngine(); } catch (error) { failedRecovery = true; }
       }
@@ -158,13 +186,18 @@
           showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last save.', false, true);
         }
       }
-      resume.addEventListener('click', resumeEngine);
+      resume.addEventListener('click', () => {
+        if (restoreOnResume) lastSave = saves[Number(resumePicker.value)];
+        resumeEngine();
+      });
       fresh.addEventListener('click', () => {
         restoreOnResume = false;
         resumeEngine();
       });
       reload.addEventListener('click', () => location.reload());
       restore.addEventListener('click', () => {
+        if (pendingSave || !active) return;
+        lastSave = saves[Number(savePicker.value)];
         if (!lastSave) return;
         try {
           pauseEngine();
@@ -185,16 +218,21 @@
         showPanel('Safari stopped the game screen. Reload, pick the same CHD, and restore your last save.', false, true);
       });
       try {
-        lastSave = await readSave(id);
+        const stored = await readSave(id);
+        if (stored) {
+          lastSave = { id: stored.id, state: stored.state, savedAt: stored.savedAt };
+          saves = [lastSave, ...(stored.history || [])];
+          updateSaveList();
+        }
         if (lastSave) {
           restore.disabled = false;
-          status.textContent = 'A recent auto-save is kept on this device.';
+          status.textContent = saves.length + ' of 10 saves kept here. Auto-save runs every 5 minutes.';
           restoreOnResume = true;
           pauseEngine();
           showPanel('A save from ' + new Date(lastSave.savedAt).toLocaleString() + ' is kept on this device.', true);
         } else {
           ready = true;
-          status.textContent = 'Auto-save is on. It saves every 30 seconds and when you leave.';
+          status.textContent = 'Auto-save is on. Every 5 minutes; keeps the latest 10 saves.';
         }
       } catch (error) {
         ready = true;
@@ -202,8 +240,8 @@
       }
       updateSaveButton();
       timer = setInterval(() => {
-        if (!document.hidden) checkpoint();
-      }, 30000);
+        if (!document.hidden && !emulator.paused) autoCheckpoint();
+      }, SAVE_INTERVAL);
       if (document.hidden) hideGame();
       emulator.on('exit', () => {
         active = false;
