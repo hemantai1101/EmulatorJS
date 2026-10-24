@@ -220,9 +220,13 @@
     padding: 0; margin: 0; background: none; color: inherit; font-size: 14px; white-space: normal;
   }
   #game .ejs_menu_text::before, #game .ejs_menu_bar_spacer { display: none; }
-  #game .ejs_menu_bar .ejs_volume_parent { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0; }
+  #game .ejs_menu_bar .ejs_volume_parent { display: flex; align-items: center; gap: 12px; width: 100%; max-width: none; flex: 0 0 auto; margin: 0; padding: 0; }
   #game .ejs_menu_bar .ejs_volume_parent button { width: 112px; flex-shrink: 0; }
-  #game .ejs_menu_bar .ejs_volume_parent input { width: 100%; min-width: 0; min-height: 44px; }
+  #game .ejs_menu_bar .ejs_volume_parent input { width: auto; flex: 1; min-width: 0; min-height: 44px; background: transparent; color: #c0ee88; touch-action: none; }
+  #game .ejs_menu_bar .ejs_volume_parent input::-webkit-slider-runnable-track { background-color: #ffffff33; }
+  #game .ejs_menu_bar .ejs_volume_parent input::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -9px; }
+  #game .ejs_menu_bar .ejs_volume_parent input::-moz-range-track { background-color: #ffffff33; }
+  #game .ejs_menu_bar .ejs_volume_parent input::-moz-range-thumb { width: 24px; height: 24px; }
   #game .ps1-menu-group { margin: 0; border-top: 1px solid #3a3e40; }
   #game .ps1-menu-group summary { padding: 10px 12px; min-height: 44px; font: inherit; font-weight: 650; }
   #game .ps1-menu-group-body { display: flex; flex-direction: column; gap: 10px; }

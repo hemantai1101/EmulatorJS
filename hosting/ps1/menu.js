@@ -22,6 +22,11 @@
     };
     move('playPause', menu);
     menu.append(menu.querySelector('.ejs_volume_parent'));
+    const volume = menu.querySelector('input[data-range="volume"]');
+    volume.addEventListener('input', () => {
+      emulator.volume = Number(volume.value);
+      emulator.setVolume(emulator.volume);
+    });
     move('gamepad', menu);
     menu.append(emulator.diskParent);
 
