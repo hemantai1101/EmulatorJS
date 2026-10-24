@@ -91,6 +91,44 @@
     move('cheat', advanced);
     advanced.append(emulator.settingParent);
     move('exit', advanced);
+    const settingsButton = bar.settings[0][0];
+    const settingsPage = document.createElement('section');
+    settingsPage.className = 'ps1-settings-page';
+    settingsPage.hidden = true;
+    settingsPage.setAttribute('aria-label', 'Settings');
+    const settingsHeader = document.createElement('div');
+    settingsHeader.className = 'ps1-settings-header';
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.textContent = 'Back';
+    const heading = document.createElement('h3');
+    heading.textContent = 'Settings';
+    settingsHeader.append(back, heading);
+    settingsPage.append(settingsHeader, emulator.settingsMenu);
+    menu.append(settingsPage);
+    let menuScroll = 0;
+    const showSettings = open => {
+      if (open) menuScroll = menu.scrollTop;
+      settingsPage.hidden = !open;
+      menu.classList.toggle('ps1-settings-view', open);
+      menu.scrollTop = open ? 0 : menuScroll;
+      if (open) back.focus({ preventScroll: true });
+    };
+    const closeSettings = emulator.closeSettingsMenu.bind(emulator);
+    emulator.closeSettingsMenu = () => {
+      closeSettings();
+      if (menu.classList.contains('ps1-settings-view')) showSettings(false);
+    };
+    settingsButton.addEventListener('click', () => showSettings(emulator.settingsMenuOpen));
+    back.addEventListener('click', () => {
+      emulator.closeSettingsMenu();
+      settingsButton.focus({ preventScroll: true });
+    });
+    emulator.settingsMenu.addEventListener('click', () => { menu.scrollTop = 0; });
+    for (const type of ['mousedown', 'touchstart']) {
+      menu.addEventListener(type, event => event.stopPropagation(), { passive: true });
+    }
+
     menu.querySelector('.ejs_menu_bar_spacer').hidden = true;
     for (const button of menu.querySelectorAll('.ejs_menu_button')) {
       const label = button.querySelector('.ejs_menu_text')?.textContent;
