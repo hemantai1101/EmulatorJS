@@ -140,12 +140,10 @@
   #game .b_x { --ps-symbol: #f3a3cd; left: 0 !important; top: 34.35% !important; }
   #game .b_b { --ps-symbol: #ff8389; left: 68.7% !important; top: 34.35% !important; }
   #game .b_a { --ps-symbol: #8bbaff; left: 34.35% !important; top: 68.7% !important; }
-  #game .ejs_virtualGamepad_bottom { width: 232px; height: 100px; margin-left: -116px; bottom: 0; }
-  #game .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button { width: 72px; height: 44px !important; line-height: 40px !important; border-radius: 10px !important; }
-  #game .b_select { left: 36px !important; top: 0 !important; }
-  #game .b_start { left: 124px !important; top: 0 !important; }
-  #game .b_speed_fast { left: 36px !important; top: 52px !important; }
-  #game .b_speed_slow { left: 124px !important; top: 52px !important; }
+  #game .ejs_virtualGamepad_bottom { width: min(320px, calc(100% - 32px)); height: 44px; margin-left: 0; transform: translateX(-50%); bottom: 0; }
+  #game .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button { width: 96px; height: 44px !important; line-height: 40px !important; border-radius: 10px !important; }
+  #game .b_select { left: 0 !important; top: 0 !important; }
+  #game .b_start { left: auto !important; right: 0 !important; top: 0 !important; }
   @media (max-width: 600px), (max-height: 500px) {
     #game .ejs_virtualGamepad_left, #game .ejs_virtualGamepad_right { width: min(calc(var(--touch-size) * .8), calc(50vw - 16px)); height: min(calc(var(--touch-size) * .8), calc(50vw - 16px)); bottom: 100px; }
     #game .ejs_virtualGamepad_left { left: max(8px, env(safe-area-inset-left)); }
@@ -200,6 +198,41 @@
   .fill-screen #leave-fill {
     display: block; left: auto; right: calc(64px + env(safe-area-inset-right)); transform: none;
   }
+
+  #game .ejs_menu_bar {
+    display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+    left: auto; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom));
+    width: min(340px, calc(100% - 24px)); max-height: calc(100% - 80px);
+    padding: 16px; overflow: auto; transform: none; background: #222527f5;
+    border: 1px solid #3a3e40; border-radius: 14px; text-align: left;
+    box-shadow: 0 8px 32px #0008; color: #f3f2ed; font: 14px/1.5 system-ui, sans-serif;
+  }
+  #game .ejs_menu_bar_hidden { opacity: 0; visibility: hidden; pointer-events: none; transform: none; }
+  #game .ejs_menu_bar .ejs_menu_button, #game .ps1-menu-group-body > button {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px;
+    margin: 0 !important; padding: 10px 12px; border: 1px solid #ffffff22;
+    border-radius: 10px; background: #2c3032; color: #f3f2ed; text-align: left; line-height: 1.4;
+  }
+  #game .ejs_menu_bar .ejs_menu_button:hover { background: #3a3f41; box-shadow: none; }
+  #game .ejs_menu_bar .ejs_menu_button svg { float: none; width: 20px; height: 20px; flex-shrink: 0; }
+  #game .ejs_menu_bar .ejs_menu_text {
+    display: inline; position: static; opacity: 1; visibility: visible; transform: none !important;
+    padding: 0; margin: 0; background: none; color: inherit; font-size: 14px; white-space: normal;
+  }
+  #game .ejs_menu_text::before, #game .ejs_menu_bar_spacer { display: none; }
+  #game .ejs_menu_bar .ejs_volume_parent { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0; }
+  #game .ejs_menu_bar .ejs_volume_parent button { width: 112px; flex-shrink: 0; }
+  #game .ejs_menu_bar .ejs_volume_parent input { width: 100%; min-width: 0; min-height: 44px; }
+  #game .ps1-menu-group { margin: 0; border-top: 1px solid #3a3e40; }
+  #game .ps1-menu-group summary { padding: 10px 12px; min-height: 44px; font: inherit; font-weight: 650; }
+  #game .ps1-menu-group-body { display: flex; flex-direction: column; gap: 10px; }
+  #game .ps1-menu-group-body select { width: 100%; min-height: 44px; padding: 8px; color: #f3f2ed; background: #2c3032; }
+  #game .ps1-menu-group-body p { color: #b3b7b5; font-size: 12px; margin: 0 0 6px; }
+  #game .ejs_menu_bar .ejs_settings_parent { position: relative; bottom: auto; margin: 8px 0 0; max-width: 100%; background: #222527; }
+  #game .ejs_menu_bar .ejs_settings_parent::before, #game .ejs_menu_bar .ejs_settings_parent::after { display: none; }
+  #game .ejs_menu_bar .ejs_settings_transition { max-width: 100%; }
+  #game .ejs_menu_bar .ejs_settings_main_bar, #game .ejs_menu_bar .ejs_back_button, #game .ejs_menu_bar .ejs_option_row { min-height: 44px; color: #f3f2ed; font-size: 14px; }
+  #game .ejs_menu_bar .ejs_settings_main_bar_selected { padding-left: 12px; }
 
 </style>
 <main>
@@ -299,6 +332,7 @@
 <script src="recent-game.js"></script>
 <script src="recovery.js"></script>
 <script src="touch-controls.js"></script>
+<script src="menu.js"></script>
 <script>
 let recovery, lastGame, playingFiles;
 const lastGameButton = document.querySelector('#play-last-game');
@@ -512,6 +546,7 @@ window.EJS_onGameStart = () => {
   }
   const gameRoot = document.querySelector('#game');
   if (!gameRoot.querySelector('#picture-zoom')) setupDisplayTools(gameRoot);
+  PS1Menu.setup(window.EJS_emulator);
   fillButton.disabled = false;
   statePicker.disabled = false;
   PS1Recovery.attach(window.EJS_emulator, window.EJS_gameName).then(controller => { recovery = controller; });
@@ -554,9 +589,14 @@ function startGame(game, bios) {
     { type: 'button', text: '×', id: 'a', location: 'right', left: 40, top: 80, bold: true, input_value: 0 },
     { type: 'button', text: 'Start', id: 'start', location: 'center', left: 60, fontSize: 15, block: true, input_value: 3 },
     { type: 'button', text: 'Select', id: 'select', location: 'center', left: -5, fontSize: 15, block: true, input_value: 2 },
-    { type: 'button', text: 'Fast', id: 'speed_fast', location: 'center', left: -35, top: 50, fontSize: 15, block: true, input_value: 27 },
-    { type: 'button', text: 'Slow', id: 'speed_slow', location: 'center', left: 95, top: 50, fontSize: 15, block: true, input_value: 29 }
+
   ];
+  window.EJS_Buttons = {
+    fullscreen: false, cacheManager: false, netplay: false,
+    contextMenu: { visible: false }, rightClick: false,
+    quickSave: false, quickLoad: false, screenRecord: false, screenshot: false
+  };
+  window.EJS_hideSettings = ['menu-bar-button'];
   window.EJS_gameName = game.name.replace(/\.[^.]+$/, '');
   window.EJS_gameUrl = game;
   window.EJS_biosUrl = bios || '';

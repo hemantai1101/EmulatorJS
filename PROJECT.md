@@ -29,6 +29,7 @@ This checkout already has the release cached.
 - `hosting/ps1/recovery.js`: manual save, auto-save, background pause, resume, and restore.
 - `hosting/ps1/recent-game.js`: last played game and optional BIOS copy in a separate browser database.
 - `hosting/ps1/touch-controls.js`: stick dead zone and direction stability.
+- `hosting/ps1/menu.js`: native menu grouping, saved-point access, and Restart confirmation.
 - `hosting/ps1/prepare.py`: pinned release, checksum checks, reproducible engine patches, and public build.
 - `hosting/ps1/public/`: generated files. Rebuild these; do not edit them.
 - `hosting/ps1/*.test.cjs`: save, touch, fullscreen, menu, and keyboard regression checks.
@@ -38,6 +39,8 @@ The root package.json and data/ belong to the upstream project. Use the Make com
 ## Current behavior
 
 - The setup screen has a game picker and an optional BIOS panel. During play, Settings groups touch controls, local restore, and backup import. Save status stays below the game. Help holds install and backup tips.
+- The game menu keeps all existing EmulatorJS action names, including Save State and Load State. It uses a grey panel with 44 px tap rows. Saves holds Save now, Saved points, Load selected save, Save State, and Load State. Advanced holds Restart (with confirmation), Export Save File, Import Save File, Cheats, Settings, and Exit Emulation when enabled. The main menu keeps Play/Pause, Mute/Unmute, Control Settings, and Disks. Existing native action handlers are kept; menu saves call the existing single-flight save controls. Duplicate fullscreen/context controls and netplay are hidden. The menu-button hide setting is unavailable so touch users cannot hide their way back in.
+- Select and Start sit farther apart at the bottom. Fast and Slow are removed from the touch layout; speed settings remain under Advanced → Settings.
 - The UI uses charcoal, soft white, and green. Desktop browser layout checks covered desktop, phone portrait, and phone landscape widths. These are not real iPhone or gameplay checks.
 - Games and BIOS files stay on the device. Once a game starts, one game copy and its optional BIOS are kept in IndexedDB database `ps1-player-recent-game`, store `files`, key `last`. The setup screen offers Play last game after reload. Names are stored explicitly so Blob/File cloning keeps the same save ID. A new game replaces only this game copy; save history uses its own database. If storage is full or blocked, the picker still works and an error is shown. Browser data clearing or eviction can remove the copy. Games played before this feature must be picked once more.
 - The latest 10 saves per game name are stored in IndexedDB. Save now and auto-save share one job. Both add a saved point; once full, each new save drops the oldest. Existing single saves stay available as the first history entry.
@@ -46,7 +49,7 @@ The root package.json and data/ belong to the upstream project. Use the Make com
 - A raw .state import checks the RASTATE header. It does not verify which game/disc created the state.
 - Safari backgrounding can suspend or kill the page. Recovery helps resume; the app cannot promise background gameplay.
 - Arrow buttons are the default. Touch controls use larger, translucent grey buttons and PS1 face symbols with bright press feedback. Face buttons have a wider diamond layout, with green triangle, pink square, red circle, and blue cross symbols; input mappings stay the same. The top-right Picture & controls icon opens Original/Zoom, button size (170–230 px before small-screen scaling), and strength (25–80%). Size and strength stay in localStorage; defaults are 190 px and 45%. The size of the arrow pad and face buttons follows the slider; the joystick keeps its own 160 px zone. Three matching 44 px icons group picture controls, exit fullscreen, and the game menu. A steadier eight-direction stick is also available.
-- The touch layout and panel were checked in muted desktop Chrome at 1024×768, 844×390, 390×844, and 320×568 with the shipped engine controls and dummy game data. Zoom, preference restore, and face-button input/release passed. No real game or physical iPad test was run for this UI update.
+- The touch layout and panel were checked in muted desktop Chrome at 1024×768, 844×390, 390×844, and 320×568 with the shipped engine controls and dummy game data. Zoom, preference restore, and face-button input/release passed. No real game or physical iPad test was run for this UI update. The menu follow-up also checked the shipped engine menu/settings, saved-point delegation, state download/import with dummy bytes, Restart cancel/confirm, and Escape in desktop Chrome.
 - Fullscreen bypasses the normal page height cap. Optional Zoom picture hides Global Force's built-in black rim; other games can lose edge content when zoomed.
 - Repeated gameplay keys prevent page scrolling. Mobile menu opening ignores touch-generated mouse events.
 - Empty emulator popup titles render as blank, so the state drop box no longer shows undefined. The patch is reproduced by prepare.py in both engine files. The resume dialog includes its saved-point selector in keyboard focus order.
@@ -106,7 +109,7 @@ Reviewed 2026-10-23. This is a plan only. No ad code, custom ad slots, account c
 
 ## User preferences
 
-Keep replies short and plain. Chrome tests are allowed. Mute audio before a browser game test.
+Keep replies short and plain. Keep existing emulator action names, especially Save State and Load State. Chrome tests are allowed. Mute audio before a browser game test.
 Work in this fork. Include the required Assisted-by trailer in commits.
 
 The old chat output path points to this folder for compatibility. This project folder is the source of truth.

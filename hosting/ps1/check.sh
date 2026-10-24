@@ -9,6 +9,7 @@ node --check public/data/emulator.min.js
 node --check recent-game.js
 node --check recovery.js
 node --check touch-controls.js
+node --check menu.js
 node keyboard.test.cjs
 node display.test.cjs
 node touch-controls.test.cjs

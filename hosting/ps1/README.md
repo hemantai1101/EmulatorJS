@@ -73,3 +73,7 @@ Some games draw their own black rim inside the PS1 frame. In fullscreen, open th
 The top-right picture icon opens button size and button strength. The arrow pad and PS1 face buttons start larger (190 px clusters on tablets, scaled to fit phones). Strength starts at 45%, so the game shows through. The four face buttons sit farther apart. Their symbols use PS1 colours: green triangle, pink square, red circle, and blue cross. Pressed buttons become brighter. Size and strength are kept on this browser. The joystick uses its own 160 px zone. Picture, exit fullscreen, and game menu share grey 44 px tap areas.
 
 This follows the adjustable transparency and layout used by [PPSSPP](https://www.ppsspp.org/docs/settings/controls/) and transparent input overlays with press feedback in [RetroArch](https://docs.libretro.com/development/retroarch/input/overlay/). The exact sizes and strength are our defaults.
+
+### Game menu
+
+Existing EmulatorJS action names stay the same. Saves groups local saved points with Save State and Load State. Advanced groups Restart, Export Save File, Import Save File, Cheats, Settings, and Exit Emulation when enabled. Restart asks before acting. Save now uses the same save job as the page toolbar and auto-save. Select and Start are spaced apart at the bottom; Fast and Slow touch buttons are removed. Speed options remain in Advanced → Settings.
