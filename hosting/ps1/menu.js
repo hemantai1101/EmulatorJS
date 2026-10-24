@@ -111,6 +111,7 @@
     menu.addEventListener('keydown', event => event.stopPropagation());
     menu.addEventListener('keyup', event => event.stopPropagation());
     emulator.on('exit', () => observer.disconnect());
+    emulator.menu.close();
   }
   root.PS1Menu = { setup };
 })(window);
