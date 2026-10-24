@@ -237,6 +237,15 @@
   #game .ejs_menu_bar .ejs_settings_transition { max-width: 100%; }
   #game .ejs_menu_bar .ejs_settings_main_bar, #game .ejs_menu_bar .ejs_back_button, #game .ejs_menu_bar .ejs_option_row { min-height: 44px; color: #f3f2ed; font-size: 14px; }
   #game .ejs_menu_bar .ejs_settings_main_bar_selected { padding-left: 12px; }
+  #game .ejs_menu_bar.ps1-settings-view > :not(.ps1-settings-page) { display: none !important; }
+  #game .ps1-settings-page { width: 100%; }
+  #game .ps1-settings-header { display: flex; align-items: center; gap: 16px; position: sticky; top: -16px; z-index: 1; background: #222527; margin-top: -16px; padding: 16px 0 12px; }
+  #game .ps1-settings-header h3 { margin: 0; font-size: 16px; }
+  #game .ps1-settings-header button { min-height: 44px; padding: 8px 14px; }
+  #game .ps1-settings-page .ejs_settings_parent { position: static !important; margin: 0; border: 0; box-shadow: none; white-space: normal; }
+  #game .ps1-settings-page .ejs_settings_transition { width: 100% !important; height: auto !important; transition: none; }
+  #game .ps1-settings-page :is(.ejs_settings_transition, .ejs_settings_transition > div, .ejs_setting_menu, .ejs_parent_option_div) { max-height: none !important; overflow: visible; }
+
 
 </style>
 <main>
