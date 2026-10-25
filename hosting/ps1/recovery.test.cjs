@@ -101,7 +101,7 @@ function emulator() {
   const autoJob = controller.checkpoint();
   await new Promise(setImmediate);
   assert.equal(saveButton.disabled, true);
-  assert.equal(saveButton.textContent, 'Saving…');
+  assert.equal(document.querySelector('#save-now-label').textContent, 'Saving…');
   assert.equal(document.querySelector('#local-saves').disabled, true);
   assert.equal(document.querySelector('#restore-local').disabled, true);
   const manualJob = saveButton.handlers.click();
@@ -114,7 +114,7 @@ function emulator() {
   assert.equal(await manualJob, true);
   assert.equal(maxActiveWrites, 1);
   assert.equal(saveButton.disabled, false);
-  assert.equal(saveButton.textContent, 'Save now');
+  assert.equal(document.querySelector('#save-now-label').textContent, 'Save now');
   assert(document.querySelector('#recovery-status').textContent.startsWith('Saved now at '));
   holdWrites = false;
   const previousSave = stored.values().next().value;

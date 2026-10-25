@@ -38,6 +38,7 @@
       const fresh = document.querySelector('#start-fresh');
       const restore = document.querySelector('#restore-local');
       const saveNow = document.querySelector('#save-now');
+      const saveLabel = document.querySelector('#save-now-label');
       const savePicker = document.querySelector('#local-saves');
       const resumePicker = document.querySelector('#resume-save');
       const status = document.querySelector('#recovery-status');
@@ -85,7 +86,7 @@
       }
       function updateSaveButton() {
         saveNow.disabled = !!pendingSave || !active || !ready || failedRecovery || !panel.hidden;
-        saveNow.textContent = pendingSave ? 'Saving…' : 'Save now';
+        saveLabel.textContent = saveNow.title = pendingSave ? 'Saving…' : 'Save now';
         restore.disabled = savePicker.disabled = !active || !saves.length || !!pendingSave;
         resumePicker.disabled = !!pendingSave;
       }
@@ -98,7 +99,7 @@
         let save;
         manualRequested = manual;
         saveNow.disabled = true;
-        saveNow.textContent = 'Saving…';
+        saveLabel.textContent = saveNow.title = 'Saving…';
         try {
           save = { id, state: emulator.gameManager.getState(), savedAt: Date.now() };
         } catch (error) {
