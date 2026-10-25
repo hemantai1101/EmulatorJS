@@ -103,8 +103,7 @@
     form { padding: 20px; margin-bottom: 40px; }
     .settings-grid { grid-template-columns: 1fr; gap: 20px; }
     .play-heading { margin-top: 20px; }
-    #play-tools { width: 100%; }
-    #play-tools button { flex: 1; padding: 10px 12px; }
+    #play-tools { width: 100%; justify-content: flex-end; }
     #game { height: 64vh; height: 64dvh; min-height: 300px; }
     .footer-row { flex-direction: column; gap: 12px; }
   }
@@ -117,7 +116,7 @@
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
   body[data-direction-mode="dpad"] .b_direction_stick,
   body[data-direction-mode="stick"] .b_direction_buttons { visibility: hidden; pointer-events: none; }
-  #game { position: relative; --touch-size: 190px; --touch-opacity: .45; }
+  #game { position: relative; container-type: size; --touch-size: 190px; --touch-opacity: .45; }
   #game .ejs_virtualGamepad_parent { bottom: max(16px, env(safe-area-inset-bottom)); }
   #game .ejs_virtualGamepad_left, #game .ejs_virtualGamepad_right {
     width: var(--touch-size); height: var(--touch-size); bottom: 60px;
@@ -172,7 +171,7 @@
   #picture-zoom[aria-expanded=true] { border-color: var(--accent); color: var(--accent); }
   .fill-screen #picture-zoom, #game:fullscreen #picture-zoom, #game:-webkit-full-screen #picture-zoom { display: block; }
   #display-panel {
-    position: absolute; z-index: 10001; top: calc(64px + env(safe-area-inset-top));
+    position: absolute; z-index: 10001; top: 64px;
     right: max(12px, env(safe-area-inset-right)); width: min(300px, calc(100% - 24px));
     max-height: calc(100% - 80px); overflow: auto; padding: 18px;
     border: 1px solid var(--line); border-radius: 14px; background: #222527f5;
@@ -191,6 +190,24 @@
   #game[data-picture-zoom="true"]:fullscreen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
   #game[data-picture-zoom="true"]:-webkit-full-screen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
   #game .ejs_canvas_parent { overflow: hidden; }
+  #game:has(.ejs_virtualGamepad_open) .ejs_canvas_parent,
+  .fill-screen #game .ejs_canvas_parent,
+  #game:fullscreen .ejs_canvas_parent,
+  #game:-webkit-full-screen .ejs_canvas_parent {
+    position: absolute; top: 64px; left: 0; width: 100%; height: calc(100% - 64px); overflow: hidden;
+  }
+  @media (orientation: landscape) and (max-height: 500px) {
+    #game { min-height: 300px; }
+    #game .ejs_virtualGamepad_left, #game .ejs_virtualGamepad_right {
+      bottom: 60px;
+      width: min(calc(var(--touch-size) * .8), calc(50vw - 16px), calc(100cqh - 148px));
+      height: min(calc(var(--touch-size) * .8), calc(50vw - 16px), calc(100cqh - 148px));
+    }
+    #game .ejs_virtualGamepad_right {
+      width: min(calc(var(--touch-size) * .92), calc(50vw - 16px), calc(100cqh - 148px));
+      height: min(calc(var(--touch-size) * .92), calc(50vw - 16px), calc(100cqh - 148px));
+    }
+  }
   #leave-fill { display: none; }
   #resume-panel[hidden], #resume-panel [hidden] { display: none; }
   #resume-panel { position: fixed; inset: 0; z-index: 11000; display: grid; place-items: center; background: #000c; padding: 24px; }
