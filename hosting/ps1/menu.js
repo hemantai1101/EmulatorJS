@@ -135,6 +135,25 @@
       if (label) { button.setAttribute('aria-label', label); button.title = label; }
     }
     for (const button of [...bar.contextMenu, ...bar.fullscreen]) button.hidden = true;
+    const openMenu = emulator.menu.open.bind(emulator.menu);
+    emulator.menu.open = () => openMenu(true);
+    emulator.menu.toggle = () => {
+      if (!emulator.started) return;
+      if (menu.classList.contains('ejs_menu_bar_hidden')) {
+        emulator.menu.open();
+      } else {
+        emulator.closeSettingsMenu();
+        emulator.closeDisksMenu();
+        emulator.menu.close();
+      }
+    };
+    document.addEventListener('pointerdown', event => {
+      if (menu.contains(event.target) || emulator.elements.menuToggle?.contains(event.target)) return;
+      if (menu.classList.contains('ejs_menu_bar_hidden') || emulator.isPopupOpen()) return;
+      emulator.closeSettingsMenu();
+      emulator.closeDisksMenu();
+      emulator.menu.close();
+    });
     menu.addEventListener('pointerdown', () => emulator.menu.open(true));
     menu.addEventListener('focusin', () => emulator.menu.open(true));
     document.addEventListener('keydown', event => {

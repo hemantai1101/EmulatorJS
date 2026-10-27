@@ -80,15 +80,50 @@ with tempfile.TemporaryDirectory() as tmp:
                 raise SystemExit(f"Expected touch control code was not found in {filename}")
             source = source.replace(old, new)
         path.write_text(source)
-    # Phones must open the menu with its button, not mouse events made from taps.
+    # The game menu opens only through its button.
     menu_patches = {
-        "data/emulator.min.js": [
-            ('createBottomMenuBarListeners=()=>{const t=t=>{', 'createBottomMenuBarListeners=()=>{const t=t=>{if(matchMedia("(pointer:coarse)").matches||t.sourceCapabilities?.firesTouchEvents)return;'),
-            ('},i=t=>{if(!this.started||e||document.pointerLockElement===this.canvas)return;', '},i=t=>{if(matchMedia("(pointer:coarse)").matches||t.sourceCapabilities?.firesTouchEvents)return;if(!this.started||e||document.pointerLockElement===this.canvas)return;'),
+        'data/src/emulator.js': [
+            ((
+                '        this.createBottomMenuBarListeners = () => {\n'
+                '            const clickListener = (e) => {\n'
+                '                if (e.pointerType === "touch") return;\n'
+                '                if (!this.started || ignoreEvents || document.pointerLockElement === this.canvas) return;\n'
+                '                if (this.isPopupOpen()) return;\n'
+                '                show();\n'
+                '            }\n'
+                '            const mouseListener = (e) => {\n'
+                '                if (!this.started || ignoreEvents || document.pointerLockElement === this.canvas) return;\n'
+                '                if (this.isPopupOpen()) return;\n'
+                '                const deltaX = e.movementX;\n'
+                '                const deltaY = e.movementY;\n'
+                '                const threshold = this.elements.menu.offsetHeight + 30;\n'
+                '                const mouseY = e.clientY;\n'
+                '\n'
+                '                if (mouseY >= window.innerHeight - threshold) {\n'
+                '                    show();\n'
+                '                    return;\n'
+                '                }\n'
+                '                let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);\n'
+                '                if (angle < 0) angle += 360;\n'
+                '                if (angle < 85 || angle > 95) return;\n'
+                '                show();\n'
+                '            }\n'
+                '            if (this.menu.mousemoveListener) this.removeEventListener(this.menu.mousemoveListener);\n'
+                '            \n'
+                '            if ((this.preGetSetting("menubarBehavior") || "downward") === "downward") {\n'
+                '                this.menu.mousemoveListener = this.addEventListener(this.elements.parent, "mousemove", mouseListener);\n'
+                '            } else {\n'
+                '                this.menu.mousemoveListener = this.addEventListener(this.elements.parent, "mousemove", clickListener);\n'
+                '            }\n'
+                '\n'
+                '            this.addEventListener(this.elements.parent, "click", clickListener);\n'
+                '        }\n'
+            ), '        this.createBottomMenuBarListeners = () => {};\n'),
+            ('            let timeout;\n            let ready = true;\n            this.addEventListener(menuButton, "touchstart touchend mousedown mouseup click", (e) => {\n                if (!ready) return;\n                clearTimeout(timeout);\n                timeout = setTimeout(() => {\n                    ready = true;\n                }, 2000)\n                ready = false;\n                e.preventDefault();\n                this.menu.toggle();\n            })\n', '            this.addEventListener(menuButton, "click", (e) => {\n                e.preventDefault();\n                this.menu.toggle();\n            });\n'),
         ],
-        "data/src/emulator.js": [
-            ('const clickListener = (e) => {', 'const clickListener = (e) => { if (matchMedia("(pointer:coarse)").matches || e.sourceCapabilities?.firesTouchEvents) return;'),
-            ('const mouseListener = (e) => {', 'const mouseListener = (e) => { if (matchMedia("(pointer:coarse)").matches || e.sourceCapabilities?.firesTouchEvents) return;'),
+        'data/emulator.min.js': [
+            ('this.createBottomMenuBarListeners=()=>{const t=t=>{"touch"!==t.pointerType&&this.started&&!e&&document.pointerLockElement!==this.canvas&&(this.isPopupOpen()||n())},i=t=>{if(!this.started||e||document.pointerLockElement===this.canvas)return;if(this.isPopupOpen())return;const i=t.movementX,s=t.movementY,o=this.elements.menu.offsetHeight+30;if(t.clientY>=window.innerHeight-o)return void n();let a=Math.atan2(s,i)*(180/Math.PI);a<0&&(a+=360),a<85||a>95||n()};this.menu.mousemoveListener&&this.removeEventListener(this.menu.mousemoveListener),"downward"===(this.preGetSetting("menubarBehavior")||"downward")?this.menu.mousemoveListener=this.addEventListener(this.elements.parent,"mousemove",i):this.menu.mousemoveListener=this.addEventListener(this.elements.parent,"mousemove",t),this.addEventListener(this.elements.parent,"click",t)}', 'this.createBottomMenuBarListeners=()=>{}'),
+            ('let i=!0;this.addEventListener(t,"touchstart touchend mousedown mouseup click",(t=>{i&&(clearTimeout(e),e=setTimeout((()=>{i=!0}),2e3),i=!1,t.preventDefault(),this.menu.toggle())}))', 'this.addEventListener(t,"click",(t=>{t.preventDefault(),this.menu.toggle()}))'),
         ],
     }
     for filename, replacements in menu_patches.items():
