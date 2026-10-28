@@ -77,7 +77,8 @@
   #player-settings { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 18px; }
   #player-settings h3 { font-size: 15px; margin: 0 0 10px; }
   .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  #direction-mode { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+  .touch-visibility { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+  .touch-visibility input, #display-panel .touch-visibility input { width: 22px; min-height: 22px; margin: 0; }
   #restore-local { margin-top: 12px; }
   .game-shell { margin-bottom: 24px; position: relative; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #080a09; }
   #player-loading { min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; }
@@ -116,14 +117,14 @@
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
   body[data-direction-mode="dpad"] .b_direction_stick,
   body[data-direction-mode="stick"] .b_direction_buttons { visibility: hidden; pointer-events: none; }
-  #game { position: relative; container-type: size; --touch-size: 190px; --touch-opacity: .45; }
-  #game .ejs_virtualGamepad_parent { bottom: max(16px, env(safe-area-inset-bottom)); }
+  #game { position: relative; container-type: size; --touch-size: 190px; --touch-opacity: .45; --touch-spacing: 1; --touch-scale: 1; --touch-safe-left: env(safe-area-inset-left); --touch-safe-right: env(safe-area-inset-right); --touch-safe-bottom: env(safe-area-inset-bottom); }
+  #game .ejs_virtualGamepad_parent { left: 0; width: 100%; bottom: max(16px, env(safe-area-inset-bottom)); }
   #game .ejs_virtualGamepad_left, #game .ejs_virtualGamepad_right {
     width: var(--touch-size); height: var(--touch-size); bottom: 60px;
   }
   #game .ejs_virtualGamepad_left { left: max(16px, env(safe-area-inset-left)); }
   #game .ejs_virtualGamepad_right { width: calc(var(--touch-size) * 1.15); height: calc(var(--touch-size) * 1.15); right: max(16px, env(safe-area-inset-right)); }
-  #game .b_direction_buttons .ejs_dpad_main { opacity: var(--touch-opacity); }
+  #game .b_direction_buttons .ejs_dpad_main { opacity: var(--touch-opacity); cursor: pointer; }
   #game .b_direction_buttons .ejs_dpad_horizontal { height: 34%; }
   #game .b_direction_buttons .ejs_dpad_vertical { width: 34%; }
   #game .ejs_dpad_bar { background: #dce1df; }
@@ -133,7 +134,7 @@
   #game .ejs_virtualGamepad_button {
     box-sizing: border-box; opacity: var(--touch-opacity); color: #fff;
     background: #17191b44; border: 2px solid #f3f2ed; text-shadow: 0 1px 3px #000;
-    transition: background-color .08s, border-color .08s; touch-action: none;
+    transition: background-color .08s, border-color .08s; touch-action: none; cursor: pointer;
   }
   #game .ejs_virtualGamepad_button_down { opacity: .9; background: #c0ee8855; border-color: #c0ee88; }
   #game :is(.b_y, .b_x, .b_b, .b_a) {
@@ -152,6 +153,7 @@
   #game .b_select { left: 0 !important; top: 0 !important; }
   #game .b_start { left: auto !important; right: 0 !important; top: 0 !important; }
   @media (max-width: 600px), (max-height: 500px) {
+    #game { --touch-scale: .8; }
     #game .ejs_virtualGamepad_left, #game .ejs_virtualGamepad_right { width: min(calc(var(--touch-size) * .8), calc(50vw - 16px)); height: min(calc(var(--touch-size) * .8), calc(50vw - 16px)); bottom: 100px; }
     #game .ejs_virtualGamepad_left { left: max(8px, env(safe-area-inset-left)); }
     #game .ejs_virtualGamepad_right { width: min(calc(var(--touch-size) * .92), calc(50vw - 16px)); height: min(calc(var(--touch-size) * .92), calc(50vw - 16px)); right: max(8px, env(safe-area-inset-right)); }
@@ -178,14 +180,19 @@
     box-shadow: 0 8px 32px #0008; font: 14px/1.5 system-ui, sans-serif;
   }
   #display-panel label { margin-top: 14px; }
-  #picture-mode-label { display: block; margin-top: 14px; font-weight: 650; }
-  #picture-mode { display: flex; gap: 8px; margin-top: 8px; }
-  #picture-mode button { flex: 1; width: auto; margin: 0; min-height: 44px; padding: 8px 12px; }
-  #picture-mode button[aria-pressed=true] { color: #c0ee88; border-color: #c0ee88; background: #c0ee8815; }
   #display-panel select, #display-panel input { width: 100%; }
   #display-panel input { min-height: 44px; accent-color: var(--accent); }
   #display-panel p { font-size: 12px; margin-top: 8px; }
+  #display-panel #game-analog-status { font-size: 14px; font-weight: 650; color: var(--text); }
+  #analog-advanced summary { -webkit-tap-highlight-color: transparent; }
   #display-panel button { width: 100%; margin-top: 12px; }
+  #picture-mode-label, .direction-label { display: block; margin-top: 14px; font-weight: 650; }
+  #picture-mode, .direction-choice { display: flex; gap: 8px; margin-top: 8px; }
+  #picture-mode button, #direction-mode button, #touch-direction button { flex: 1; min-width: 0; width: auto; margin: 0; min-height: 44px; padding: 8px 12px; }
+  #picture-mode button[aria-pressed=true], .direction-choice button[aria-pressed=true] { color: #c0ee88; border-color: #c0ee88; background: #c0ee8815; }
+  .direction-choice button { display: grid; place-items: center; }
+  .direction-choice svg { display: block; width: 28px; height: 28px; pointer-events: none; }
+
   .fill-screen #game[data-picture-zoom="true"] .ejs_canvas,
   #game[data-picture-zoom="true"]:fullscreen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
   #game[data-picture-zoom="true"]:-webkit-full-screen .ejs_canvas { transform: scale(1.153846154); transform-origin: center; }
@@ -208,6 +215,42 @@
       height: min(calc(var(--touch-size) * .92), calc(50vw - 16px), calc(100cqh - 148px));
     }
   }
+  @container (min-aspect-ratio: 3 / 2) {
+    #game .ejs_virtualGamepad_parent {
+      --pad-size: min(calc(var(--touch-size) * var(--touch-scale)), calc(50cqw - 16px), calc(100cqh - 148px));
+      --face-size: min(calc(var(--touch-size) * var(--touch-scale) * 1.15), calc(50cqw - 16px), calc(100cqh - 148px));
+      --side-center: max(calc(var(--face-size) / 2 + 12px), calc((100cqw - (100cqh - 64px) * 4 / 3) / 4));
+      --side-shift: calc((1 - var(--touch-spacing)) * min(64px, 8cqw));
+      --left-center: max(calc(var(--face-size) / 2 + var(--touch-safe-left)), calc(var(--side-center) + var(--side-shift)));
+      --right-center: max(calc(var(--face-size) / 2 + var(--touch-safe-right)), calc(var(--side-center) + var(--side-shift)));
+    }
+    #game .ejs_virtualGamepad_left {
+      width: var(--pad-size); height: var(--pad-size);
+      left: calc(var(--left-center) - var(--pad-size) / 2);
+    }
+    #game .ejs_virtualGamepad_right {
+      width: var(--face-size); height: var(--face-size);
+      right: calc(var(--right-center) - var(--face-size) / 2);
+    }
+    #game .ejs_virtualGamepad_bottom { left: 0; width: 100%; transform: none; }
+    #game .ejs_virtualGamepad_bottom .b_select { left: calc(var(--left-center) - 48px) !important; }
+    #game .ejs_virtualGamepad_bottom .b_start { right: calc(var(--right-center) - 48px) !important; }
+  }
+  @container (min-aspect-ratio: 3 / 2) and (max-height: 500px) {
+    #game .ejs_virtualGamepad_parent {
+      --direction-size: var(--pad-size);
+      bottom: max(16px, var(--touch-safe-bottom));
+    }
+    body[data-direction-mode="stick"] #game .ejs_virtualGamepad_parent { --direction-size: max(160px, var(--pad-size)); }
+    #game .ejs_virtualGamepad_left { height: var(--direction-size); bottom: 0; }
+    #game .ejs_virtualGamepad_right { bottom: 0; }
+    #game .ejs_virtualGamepad_bottom { height: 0; }
+    #game .ejs_virtualGamepad_bottom .b_select { top: auto !important; bottom: calc(var(--direction-size) + 12px); }
+    #game .ejs_virtualGamepad_bottom .b_start { top: auto !important; bottom: calc(var(--face-size) + 12px); }
+  }
+  .fill-screen #game { --touch-safe-left: 0px; --touch-safe-right: 0px; --touch-safe-bottom: 0px; }
+  #game:fullscreen { --touch-safe-left: env(safe-area-inset-left); --touch-safe-right: env(safe-area-inset-right); --touch-safe-bottom: env(safe-area-inset-bottom); }
+  #game:-webkit-full-screen { --touch-safe-left: env(safe-area-inset-left); --touch-safe-right: env(safe-area-inset-right); --touch-safe-bottom: env(safe-area-inset-bottom); }
   #leave-fill { display: none; }
   #resume-panel[hidden], #resume-panel [hidden] { display: none; }
   #resume-panel { position: fixed; inset: 0; z-index: 11000; display: grid; place-items: center; background: #000c; padding: 24px; }
@@ -328,9 +371,14 @@
     <div id="player-settings" hidden>
       <div class="settings-grid">
         <div>
-          <label for="direction-mode">Touch controls</label>
-          <select id="direction-mode"><option value="dpad">Arrow buttons</option><option value="stick">Joystick</option></select>
-          <p class="hint">Use the game menu for key settings and more controls.</p>
+          <label class="touch-visibility"><input id="show-touch-controls" type="checkbox">Show touch controls</label>
+          <p class="hint">Use a mouse to drag the stick or click and hold the buttons.</p>
+          <span id="direction-mode-label" class="direction-label">Direction control</span>
+          <div id="direction-mode" class="direction-choice" role="group" aria-labelledby="direction-mode-label">
+            <button type="button" data-direction="stick" aria-label="Analog stick" title="Analog stick" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="18" rx="8" ry="3"/><path d="M12 18V9"/><circle cx="12" cy="6" r="3"/></svg></button>
+            <button type="button" data-direction="dpad" aria-label="Arrow buttons" title="Arrow buttons" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z"/></svg></button>
+          </div>
+          <p class="hint">Drag farther for more input. The stick turns PS1 analog on. Arrows turn it off. Your choice is kept for this game.</p>
         </div>
         <div>
           <h3>Saves &amp; backups</h3>
@@ -374,7 +422,7 @@
 </main>
 <script src="recent-game.js"></script>
 <script src="recovery.js"></script>
-<script src="touch-controls.js"></script>
+<script src="touch-controls.js?v=20261028-analog-status"></script>
 <script src="menu.js"></script>
 <script>
 let recovery, lastGame, playingFiles;
@@ -443,20 +491,95 @@ document.addEventListener('keydown', event => {
 document.addEventListener('focusin', event => {
   if (!resumePanel.hidden && !resumePanel.contains(event.target)) (dialogButtons()[0] || resumePanel).focus({ preventScroll: true });
 });
-const directionChoice = document.querySelector('#direction-mode');
-function setDirectionMode(mode) {
-  mode = mode === 'stick' ? 'stick' : 'dpad';
+const touchVisibility = document.querySelector('#show-touch-controls');
+let savedTouchVisibility = null;
+try {
+  const saved = localStorage.getItem('ps1-show-touch-controls');
+  if (saved === 'true' || saved === 'false') savedTouchVisibility = saved === 'true';
+} catch (error) { /* Use the device's control visibility. */ }
+function setTouchControlsVisible(show, remember = true) {
   PS1Touch.reset();
-  directionChoice.value = mode;
+  const emulator = window.EJS_emulator;
+  if (emulator?.gameManager) {
+    for (let input = 0; input < 20; input++) emulator.gameManager.simulateInput(0, input, 0);
+    emulator.toggleVirtualGamepad(show);
+  }
+  document.querySelectorAll('#show-touch-controls, #quick-show-touch-controls').forEach(input => { input.checked = show; });
+  if (remember) {
+    savedTouchVisibility = show;
+    try { localStorage.setItem('ps1-show-touch-controls', String(show)); } catch (error) { /* Controls still work without storage. */ }
+  }
+}
+touchVisibility.addEventListener('change', () => setTouchControlsVisible(touchVisibility.checked));
+const directionChoice = document.querySelector('#direction-mode');
+let directionGameKey = null;
+let modeApplyTimer, modeSyncPending = false, applyingController = false;
+function refreshAnalogStatus(note = '') {
+  const button = document.querySelector('#game-analog-switch');
+  const status = document.querySelector('#game-analog-status');
+  if (!button || !status) return;
+  const mode = PS1Touch.getAnalogMode(window.EJS_emulator);
+  const text = 'PS1 analog: ' + (mode === null ? 'Unknown' : mode ? 'On' : 'Off') + (note ? '. ' + note : '');
+  if (status.textContent !== text) status.textContent = text;
+  const action = mode === null ? 'Switch mode' : mode ? 'Turn analog off' : 'Turn analog on';
+  if (button.textContent !== action) button.textContent = action;
+}
+function scheduleControllerMode() {
+  modeSyncPending = true;
+  clearTimeout(modeApplyTimer);
+  modeApplyTimer = setTimeout(async () => {
+    const emulator = window.EJS_emulator;
+    if (!emulator?.started) return;
+    if (emulator.paused || document.hidden) { refreshAnalogStatus('Resume the game to apply your choice.'); return; }
+    modeSyncPending = false;
+    applyingController = true;
+    const button = document.querySelector('#game-analog-switch');
+    if (button) button.disabled = true;
+    refreshAnalogStatus('Applying your control choice…');
+    try {
+      const wanted = document.body.dataset.directionMode === 'stick';
+      const actual = await PS1Touch.setAnalogMode(emulator, wanted);
+      refreshAnalogStatus(actual === null ? 'The controller mode could not be read.' : actual !== (document.body.dataset.directionMode === 'stick') ? 'The game kept its own controller mode.' : '');
+    } catch (error) {
+      if (emulator.paused || document.hidden) modeSyncPending = true;
+      refreshAnalogStatus(error.message);
+    }
+    finally { applyingController = false; if (button) button.disabled = false; }
+  }, 100);
+}
+window.addEventListener('ps1-state-loaded', scheduleControllerMode);
+window.addEventListener('ps1-game-resumed', () => { if (modeSyncPending) scheduleControllerMode(); else refreshAnalogStatus(); });
+function setDirectionMode(mode, remember = true, apply = true) {
+  mode = mode === 'dpad' ? 'dpad' : 'stick';
+  PS1Touch.reset();
+  document.querySelectorAll('[data-direction]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.direction === mode));
+  });
   document.body.dataset.directionMode = mode;
   const manager = window.EJS_emulator && window.EJS_emulator.gameManager;
-  if (manager) [4, 5, 6, 7].forEach(input => manager.simulateInput(0, input, 0));
-  try { localStorage.setItem('ps1-direction-mode', mode); } catch (error) { /* Controls still work without storage. */ }
+  if (manager) [4, 5, 6, 7, 16, 17, 18, 19].forEach(input => manager.simulateInput(0, input, 0));
+  if (remember) {
+    try {
+      if (directionGameKey) {
+        const choices = JSON.parse(localStorage.getItem('ps1-game-direction-modes-v1') || '{}');
+        const stored = choices && typeof choices === 'object' && !Array.isArray(choices) ? choices : {};
+        stored[directionGameKey] = mode;
+        localStorage.setItem('ps1-game-direction-modes-v1', JSON.stringify(stored));
+      } else localStorage.setItem('ps1-direction-mode-v2', mode);
+    } catch (error) { /* Controls still work without storage. */ }
+  }
+  if (apply && window.EJS_emulator?.started) scheduleControllerMode();
 }
-let savedDirectionMode = 'dpad';
-try { savedDirectionMode = localStorage.getItem('ps1-direction-mode') || 'dpad'; } catch (error) { /* Use arrow buttons. */ }
+let savedDirectionMode = 'stick';
+try { savedDirectionMode = localStorage.getItem('ps1-direction-mode-v2') || 'stick'; } catch (error) { /* Use the analog stick. */ }
 setDirectionMode(savedDirectionMode);
-directionChoice.addEventListener('change', () => setDirectionMode(directionChoice.value));
+function bindDirectionChoice(group) {
+  for (const button of group.querySelectorAll('[data-direction]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.direction === document.body.dataset.directionMode));
+    button.addEventListener('click', () => setDirectionMode(button.dataset.direction));
+  }
+}
+bindDirectionChoice(directionChoice);
 const fillButton = document.querySelector('#fill-screen');
 const windowFillButton = document.querySelector('#fill-window');
 const leaveFillButton = document.querySelector('#leave-fill');
@@ -545,8 +668,26 @@ function setupDisplayTools(gameRoot) {
       <button type="button" data-zoom="true" aria-pressed="false">Zoom</button>
     </div>
     <p>Zoom hides borders. It may cut off game edges.</p>
+    <label class="touch-visibility"><input id="quick-show-touch-controls" type="checkbox">Show touch controls</label>
+    <p>Use a mouse to drag the stick or click and hold the buttons.</p>
+    <span id="touch-direction-label" class="direction-label">Direction control</span>
+    <div id="touch-direction" class="direction-choice" role="group" aria-labelledby="touch-direction-label">
+      <button type="button" data-direction="stick" aria-label="Analog stick" title="Analog stick" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="18" rx="8" ry="3"/><path d="M12 18V9"/><circle cx="12" cy="6" r="3"/></svg></button>
+      <button type="button" data-direction="dpad" aria-label="Arrow buttons" title="Arrow buttons" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z"/></svg></button>
+    </div>
+    <p>Drag farther for more input. The stick turns PS1 analog on. Arrows turn it off. Your choice is kept for this game.</p>
+    <p id="game-analog-status" role="status" aria-live="polite">PS1 analog: Unknown</p>
+    <details id="analog-advanced">
+      <summary>Advanced</summary>
+      <button type="button" id="game-analog-switch">Switch mode</button>
+      <p>Manual override for games that need a different controller mode.</p>
+    </details>
     <label for="touch-size">Button size <output id="touch-size-value"></output></label>
     <input id="touch-size" type="range" min="170" max="230" step="10" value="190">
+    <label for="touch-spacing">Control spacing <output id="touch-spacing-value"></output></label>
+    <input id="touch-spacing" type="range" min="0" max="100" step="5" value="100" aria-describedby="touch-spacing-help">
+    <p id="touch-spacing-help">In a wide view, move both sides in or out. Higher means wider.</p>
+    <button type="button" id="touch-spacing-reset">Reset spacing</button>
     <label for="touch-opacity">Button strength <output id="touch-opacity-value"></output></label>
     <input id="touch-opacity" type="range" min="25" max="80" step="5" value="45">
     <p>Lower strength lets more of the game show through.</p>
@@ -555,14 +696,44 @@ function setupDisplayTools(gameRoot) {
   tools.id = 'player-quick-tools';
   tools.setAttribute('role', 'group');
   tools.setAttribute('aria-label', 'Player tools');
-  const menuButton = gameRoot.querySelector('.ejs_virtualGamepad_open');
+  let menuButton = gameRoot.querySelector('.ejs_virtualGamepad_open');
+  if (!menuButton) {
+    menuButton = document.createElement('button');
+    menuButton.type = 'button';
+    menuButton.className = 'ejs_virtualGamepad_open';
+    menuButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+    menuButton.addEventListener('click', () => window.EJS_emulator.menu.toggle());
+    window.EJS_emulator.elements.menuToggle = menuButton;
+  }
   tools.append(zoomButton, document.querySelector('#leave-fill'));
   if (menuButton) tools.append(menuButton);
   gameRoot.append(tools, panel);
+  const quickVisibility = panel.querySelector('#quick-show-touch-controls');
+  quickVisibility.checked = touchVisibility.checked;
+  quickVisibility.addEventListener('change', () => setTouchControlsVisible(quickVisibility.checked));
+  bindDirectionChoice(panel.querySelector('#touch-direction'));
+  const analogSwitch = panel.querySelector('#game-analog-switch');
+  analogSwitch.addEventListener('click', async () => {
+    clearTimeout(modeApplyTimer);
+    modeSyncPending = false;
+    analogSwitch.disabled = true;
+    refreshAnalogStatus('Switching controller mode…');
+    try { await PS1Touch.toggleAnalog(window.EJS_emulator); refreshAnalogStatus(); }
+    catch (error) { refreshAnalogStatus(error.message); }
+    finally { analogSwitch.disabled = false; }
+  });
+  let statusTimer;
   const setOpen = open => {
+    clearInterval(statusTimer);
     panel.hidden = !open;
     zoomButton.setAttribute('aria-expanded', String(open));
-    if (open) panel.focus({ preventScroll: true });
+    if (open) {
+      refreshAnalogStatus();
+      statusTimer = setInterval(() => {
+        if (!document.hidden && !window.EJS_emulator.paused && !analogSwitch.disabled && !applyingController) refreshAnalogStatus();
+      }, 1000);
+      panel.focus({ preventScroll: true });
+    }
   };
   zoomButton.addEventListener('click', () => setOpen(panel.hidden));
   panel.querySelector('#display-done').addEventListener('click', () => { setOpen(false); zoomButton.focus(); });
@@ -595,10 +766,13 @@ function setupDisplayTools(gameRoot) {
     button.setAttribute('aria-label', label);
     button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + shape + '</svg>';
   }
-  for (const [name, fallback, min, max] of [['size', 190, 170, 230], ['opacity', 45, 25, 80]]) {
+  for (const [name, fallback, min, max] of [['size', 190, 170, 230], ['opacity', 45, 25, 80], ['spacing', 100, 0, 100]]) {
     const input = panel.querySelector('#touch-' + name);
     let saved = fallback;
-    try { saved = Number(localStorage.getItem('ps1-touch-' + name)) || fallback; } catch (error) { /* Use the default. */ }
+    try {
+      const value = localStorage.getItem('ps1-touch-' + name);
+      if (value !== null && Number.isFinite(Number(value))) saved = Number(value);
+    } catch (error) { /* Use the default. */ }
     input.value = Math.max(min, Math.min(max, saved));
     const apply = () => {
       gameRoot.style.setProperty('--touch-' + name, name === 'size' ? input.value + 'px' : input.value / 100);
@@ -608,6 +782,11 @@ function setupDisplayTools(gameRoot) {
     input.addEventListener('input', apply);
     apply();
   }
+  panel.querySelector('#touch-spacing-reset').addEventListener('click', () => {
+    const input = panel.querySelector('#touch-spacing');
+    input.value = '100';
+    input.dispatchEvent(new Event('input'));
+  });
   const menu = gameRoot.querySelector('.ejs_virtualGamepad_open');
   if (menu) {
     menu.setAttribute('role', 'button');
@@ -615,7 +794,12 @@ function setupDisplayTools(gameRoot) {
     menu.setAttribute('aria-label', 'Game menu');
     menu.title = 'Game menu';
     menu.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); window.EJS_emulator.menu.toggle(); }
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.stopPropagation();
+      if (menu.tagName !== 'BUTTON') {
+        event.preventDefault();
+        window.EJS_emulator.menu.toggle();
+      }
     });
   }
 }
@@ -628,11 +812,13 @@ window.EJS_onGameStart = () => {
   }
   const gameRoot = document.querySelector('#game');
   if (!gameRoot.querySelector('#picture-zoom')) setupDisplayTools(gameRoot);
+  PS1Touch.attach(window.EJS_emulator);
   PS1Menu.setup(window.EJS_emulator);
+  setTouchControlsVisible(savedTouchVisibility ?? (window.EJS_emulator.touch || window.EJS_emulator.getSettingValue('virtual-gamepad') === 'enabled'), false);
   fillButton.disabled = false;
   windowFillButton.disabled = false;
   statePicker.disabled = false;
-  PS1Recovery.attach(window.EJS_emulator, window.EJS_gameName).then(controller => { recovery = controller; });
+  PS1Recovery.attach(window.EJS_emulator, window.EJS_gameName).then(controller => { recovery = controller; scheduleControllerMode(); });
   saveStatus.textContent = 'Load a .state backup here to restore a save from a file.';
   document.body.dataset.playerState = 'playing';
   document.querySelector('#player-label').textContent = 'Now playing';
@@ -659,13 +845,24 @@ function startGame(game, bios) {
     return;
   }
   playingFiles = { game, bios };
+  directionGameKey = 'pcsx_rearmed-4.2.3:' + game.name.replace(/\.[^.]+$/, '');
+  let gameDirection = savedDirectionMode;
+  try {
+    const saved = JSON.parse(localStorage.getItem('ps1-game-direction-modes-v1') || '{}')?.[directionGameKey];
+    if (saved === 'stick' || saved === 'dpad') gameDirection = saved;
+  } catch (error) { /* Use the browser's default choice. */ }
+  setDirectionMode(gameDirection, false, false);
   document.body.dataset.playerState = 'loading';
   document.querySelector('#game-title').textContent = game.name.replace(/\.[^.]+$/, '');
   window.EJS_player = '#game';
   window.EJS_core = 'pcsx_rearmed';
+  window.EJS_paths = {
+    'emulator.min.js': 'data/emulator.min.js?v=20261028-analog-status',
+    'emulator.js': 'data/src/emulator.js?v=20261028-analog-status'
+  };
   window.EJS_VirtualGamepadSettings = [
     { type: 'dpad', id: 'direction_buttons', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
-    { type: 'zone', ps1Touch: true, size: 160, color: '#d3e6ff', id: 'direction_stick', location: 'left', left: '50%', top: '50%', joystickInput: false, inputValues: [4, 5, 6, 7] },
+    { type: 'zone', ps1Touch: true, size: 160, color: '#d3e6ff', id: 'direction_stick', location: 'left', left: '50%', top: '50%', joystickInput: true, inputValues: [16, 17, 18, 19] },
     { type: 'button', text: '△', id: 'y', location: 'right', left: 40, bold: true, input_value: 9 },
     { type: 'button', text: '□', id: 'x', location: 'right', top: 40, bold: true, input_value: 1 },
     { type: 'button', text: '○', id: 'b', location: 'right', left: 81, top: 40, bold: true, input_value: 8 },

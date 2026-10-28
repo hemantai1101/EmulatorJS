@@ -59,14 +59,26 @@ with tempfile.TemporaryDirectory() as tmp:
         if source.count(old) != 1:
             raise SystemExit(f"Expected popup title code was not found in {filename}")
         path.write_text(source.replace(old, new))
-    # Keep the release engine intact outside the custom PS1 stick.
+    # PS1 touch controls and visibility.
     touch_patches = {
         "data/src/emulator.js": [
+            ('this.addEventListener(button, "touchstart touchend touchcancel", (e) => {', 'window.PS1Touch.bindMouseButton(this, button, value, downValue);\n                this.addEventListener(button, "touchstart touchend touchcancel", (e) => {'),
+            ('this.addEventListener(dpadMain, "touchend touchcancel", cancelCb);', 'this.addEventListener(dpadMain, "touchend touchcancel", cancelCb);\n            window.PS1Touch.bindMouseDpad(dpadMain, updateCb, cancelCb);'),
+            ('this.toggleVirtualGamepad = (show) => {', 'this.toggleVirtualGamepad = (show) => { clearTimeout(this.virtualGamepadResizeTimeout); this.virtualGamepad.style.opacity = "";'),
+            ('setTimeout(() => {\n                    this.virtualGamepad.style.display = "none";', 'this.virtualGamepadResizeTimeout = setTimeout(() => {\n                    this.virtualGamepad.style.display = "none";'),
+            ('            const args = [];', '            const args = [];\n            if (this.getCore() === "pcsx_rearmed") args.push("--device=1:517");'),
             ('"zone": elem,', '"zone": elem, "size": zone.size || 100,'),
             ('zoneObj.on("end", () => {', 'zoneObj.on("end", () => { if (zone.ps1Touch) { window.PS1Touch.handle(this.gameManager, zone); return; }'),
             ('zoneObj.on("move", (e, info) => {', 'zoneObj.on("move", (e, info) => { if (zone.ps1Touch) { window.PS1Touch.handle(this.gameManager, zone, info); return; }'),
         ],
         "data/emulator.min.js": [
+            ('this.addEventListener(n,"touchstart touchend touchcancel",', 'window.PS1Touch.bindMouseButton(this,n,s,o);this.addEventListener(n,"touchstart touchend touchcancel",'),
+            ('this.addEventListener(n,"touchstart touchmove",(', 'const ps1Move=('),
+            ('i(l,r,c,d)})),this.addEventListener(n,"touchend touchcancel",(', 'i(l,r,c,d)});const ps1End=('),
+            ('i(0,0,0,0)})),e.appendChild(n)};', 'i(0,0,0,0)});this.addEventListener(n,"touchstart touchmove",ps1Move);this.addEventListener(n,"touchend touchcancel",ps1End);window.PS1Touch.bindMouseDpad(n,ps1Move,ps1End);e.appendChild(n)};'),
+            ('this.toggleVirtualGamepad=t=>{this.virtualGamepad.style.display=', 'this.toggleVirtualGamepad=t=>{clearTimeout(this.virtualGamepadResizeTimeout);this.virtualGamepad.style.opacity="";this.virtualGamepad.style.display='),
+            ('this.virtualGamepad.style.display="",setTimeout((()=>{this.virtualGamepad.style.display="none"', 'this.virtualGamepad.style.display="",this.virtualGamepadResizeTimeout=setTimeout((()=>{this.virtualGamepad.style.display="none"'),
+            ('startGame(){try{const t=[];', 'startGame(){try{const t=[];this.getCore()==="pcsx_rearmed"&&t.push("--device=1:517");'),
             ('nipplejs.create({zone:i,', 'nipplejs.create({zone:i,size:t.size||100,'),
             ('n.on("end",(()=>{this.gameManager.simulateInput(0,t.inputValues[0],0)', 'n.on("end",(()=>{if(t.ps1Touch){window.PS1Touch.handle(this.gameManager,t);return;}this.gameManager.simulateInput(0,t.inputValues[0],0)'),
             ('n.on("move",((e,i)=>{const n=i.angle.degree', 'n.on("move",((e,i)=>{if(t.ps1Touch){window.PS1Touch.handle(this.gameManager,t,i);return;}const n=i.angle.degree'),
