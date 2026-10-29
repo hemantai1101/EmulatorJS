@@ -43,6 +43,14 @@
     const load = document.createElement('button');
     load.type = 'button';
     load.textContent = 'Load selected save';
+    const exportSave = document.createElement('button');
+    exportSave.type = 'button';
+    exportSave.textContent = 'Export selected save';
+    exportSave.addEventListener('click', () => document.querySelector('#export-local').click());
+    const manage = document.createElement('button');
+    manage.type = 'button';
+    manage.textContent = 'Manage saves & memory cards';
+    manage.addEventListener('click', () => root.PS1Saves.open());
     const status = document.createElement('p');
     status.setAttribute('role', 'status');
     const source = document.querySelector('#local-saves');
@@ -55,19 +63,21 @@
       picker.disabled = source.disabled;
       saveNow.disabled = originalSave.disabled;
       load.disabled = originalLoad.disabled;
+      exportSave.disabled = document.querySelector('#export-local').disabled;
       status.textContent = originalStatus.textContent;
     };
     const observer = new MutationObserver(sync);
-    for (const element of [source, originalSave, originalLoad, originalStatus]) {
+    for (const element of [source, originalSave, originalLoad, originalStatus, document.querySelector('#export-local')]) {
       observer.observe(element, { subtree: true, childList: true, attributes: true, characterData: true });
     }
     picker.addEventListener('change', () => { source.value = picker.value; });
+    source.addEventListener('change', sync);
     load.addEventListener('click', () => {
       source.value = picker.value;
       originalLoad.click();
       emulator.menu.close();
     });
-    saves.append(saveNow, pickerLabel, picker, load, status);
+    saves.append(manage, saveNow, pickerLabel, picker, load, exportSave, status);
     move('saveState', saves);
     move('loadState', saves);
     const hint = document.createElement('p');
@@ -83,11 +93,11 @@
         event.stopImmediatePropagation();
       }
     }, true);
-    move('saveSavFiles', advanced);
-    move('loadSavFiles', advanced);
+    move('saveSavFiles', saves);
+    move('loadSavFiles', saves);
     const cardHint = document.createElement('p');
     cardHint.textContent = 'Memory card files hold saves made inside the game. They are different from .state backups.';
-    advanced.append(cardHint);
+    saves.append(cardHint);
     move('cheat', advanced);
     advanced.append(emulator.settingParent);
     move('exit', advanced);

@@ -162,6 +162,32 @@ with tempfile.TemporaryDirectory() as tmp:
         if source.count(old) != 1:
             raise SystemExit(f"Expected keyboard code was not found in {filename}")
         path.write_text(source.replace(old, new))
+    core_default_patches = {
+        "data/src/emulator.js": (
+            '        return "";\n    }\n    loadSettings() {',
+            '        return Object.entries(this.config.defaultOptions || {}).map(([key, value]) => key + " = " + JSON.stringify(String(value))).join("\\n");\n    }\n    loadSettings() {',
+        ),
+        "data/emulator.min.js": (
+            'return""}loadSettings(){',
+            'return Object.entries(this.config.defaultOptions||{}).map(([key,value])=>key+" = "+JSON.stringify(String(value))).join("\\n")}loadSettings(){',
+        ),
+    }
+    for filename, (old, new) in core_default_patches.items():
+        path = extracted / filename
+        source = path.read_text()
+        if source.count(old) != 1:
+            raise SystemExit(f"Expected core defaults code was not found in {filename}")
+        path.write_text(source.replace(old, new))
+    save_mount_patches = {
+        "data/src/GameManager.js": ('            this.FS.unmount("/data/saves");\n', ''),
+        "data/emulator.min.js": ('this.FS.unmount("/data/saves"),', ''),
+    }
+    for filename, (old, new) in save_mount_patches.items():
+        path = extracted / filename
+        source = path.read_text()
+        if source.count(old) != 1:
+            raise SystemExit(f"Expected save mount code was not found in {filename}")
+        path.write_text(source.replace(old, new))
     public = ROOT / "public"
     public.mkdir(exist_ok=True)
     shutil.copytree(extracted / "data", public / "data", dirs_exist_ok=True)
@@ -172,6 +198,7 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy2(ROOT / "recovery.js", public / "recovery.js")
     shutil.copy2(ROOT / "touch-controls.js", public / "touch-controls.js")
     shutil.copy2(ROOT / "menu.js", public / "menu.js")
+    shutil.copy2(ROOT / "saves.js", public / "saves.js")
     shutil.copy2(ROOT / "robots.txt", public / "robots.txt")
     shutil.copy2(ROOT / "sitemap.xml", public / "sitemap.xml")
     shutil.copy2(ROOT / "google535566f4769c65a4.html", public / "google535566f4769c65a4.html")

@@ -40,6 +40,7 @@
       const saveNow = document.querySelector('#save-now');
       const saveLabel = document.querySelector('#save-now-label');
       const savePicker = document.querySelector('#local-saves');
+      const exportSave = document.querySelector('#export-local');
       const resumePicker = document.querySelector('#resume-save');
       const status = document.querySelector('#recovery-status');
       const id = 'pcsx_rearmed-4.2.3:' + gameName;
@@ -72,7 +73,7 @@
         panel.hidden = false;
         updateSaveButton();
       }
-      function updateSaveList() {
+      function updateSaveList(selected) {
         for (const picker of [savePicker, resumePicker]) {
           picker.replaceChildren();
           saves.forEach((save, index) => {
@@ -81,12 +82,14 @@
             option.textContent = new Date(save.savedAt).toLocaleString() + (index === 0 ? ' (latest)' : '');
             picker.append(option);
           });
-          picker.value = '0';
+          const index = selected ? saves.indexOf(selected) : 0;
+          picker.value = String(Math.max(0, index));
         }
       }
       function updateSaveButton() {
         saveNow.disabled = !!pendingSave || !active || !ready || failedRecovery || !panel.hidden;
         saveLabel.textContent = saveNow.title = pendingSave ? 'Saving…' : 'Save now';
+        exportSave.disabled = !active || !saves.length || !!pendingSave;
         restore.disabled = savePicker.disabled = !active || !saves.length || !!pendingSave;
         resumePicker.disabled = !!pendingSave;
       }
@@ -110,9 +113,10 @@
         }
         const nextSaves = [save, ...saves].slice(0, SAVE_LIMIT);
         pendingSave = writeSave(save, nextSaves).then(() => {
+          const selected = saves[Number(savePicker.value)];
           saves = nextSaves;
           lastSave = save;
-          updateSaveList();
+          updateSaveList(selected);
           status.textContent = (manualRequested ? 'Saved now at ' : 'Auto-saved at ') + new Date(save.savedAt).toLocaleTimeString() + '. ' + saves.length + ' of 10 saves kept here.';
           return true;
         }).catch(() => {
@@ -127,6 +131,18 @@
         return pendingSave;
       }
       saveNow.addEventListener('click', () => checkpoint(true, true));
+      exportSave.addEventListener('click', () => {
+        if (!active || pendingSave) return;
+        const selected = saves[Number(savePicker.value)];
+        if (!selected) return;
+        try {
+          const stamp = new Date(selected.savedAt).toISOString().replace(/[:.]/g, '-');
+          window.PS1Saves.download(selected.state, gameName.replace(/[^a-z0-9 _-]/gi, '_') + '-' + stamp + '.state');
+          status.textContent = 'Exported save from ' + new Date(selected.savedAt).toLocaleString() + '.';
+        } catch (error) {
+          status.textContent = 'Could not export this save. Try again.';
+        }
+      });
       function autoCheckpoint() {
         if (saves.length && Date.now() - saves[0].savedAt < SAVE_INTERVAL) return Promise.resolve(false);
         return checkpoint(true);
@@ -204,6 +220,7 @@
           pauseEngine();
           restoreOnResume = true;
           resumeEngine();
+          window.PS1Saves?.close();
         } catch (error) {
           showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last save.', false, true);
         }

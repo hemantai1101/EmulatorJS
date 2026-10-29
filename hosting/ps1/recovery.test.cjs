@@ -44,6 +44,8 @@ let clockNow = Date.now();
 class TestDate extends Date { static now() { return clockNow; } }
 let document = surface();
 const window = surface();
+const downloads = [];
+window.PS1Saves = { download(state, name) { downloads.push({ state: Array.from(state), name }); }, close() {} };
 const context = {
   indexedDB: { open() { const request = {}; queueMicrotask(() => { request.result = db; request.onupgradeneeded(); request.onsuccess(); }); return request; } },
   document, window, Date: TestDate, Set, Promise,
@@ -151,6 +153,11 @@ function emulator() {
   assert.deepEqual(Array.from(history.history.at(-1).state), [2]);
   assert.equal(document.querySelector('#local-saves').children.length, 10);
   document.querySelector('#local-saves').value = '9';
+  const beforeExport = writes;
+  document.querySelector('#export-local').handlers.click();
+  assert.deepEqual(downloads.at(-1).state, [2]);
+  assert(downloads.at(-1).name.endsWith('.state'));
+  assert.equal(writes, beforeExport, 'exporting an old point must not write or capture a new save');
   document.querySelector('#restore-local').handlers.click();
   assert.deepEqual(game.calls.filter(x => Array.isArray(x) && x[0] === 'restore').at(-1), ['restore', [2]]);
   assert.equal(stored.values().next().value, history, 'loading must not write a save');
