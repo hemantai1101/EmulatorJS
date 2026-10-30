@@ -28,6 +28,7 @@ This checkout already has the release cached.
 - `hosting/ps1/index.html`: game picker, state import, fullscreen, picture zoom, control selection.
 - `hosting/ps1/recovery.js`: manual save, auto-save, background pause, resume, restore, and export of a selected point.
 - `hosting/ps1/saves.js`: Saves dialog and memory card import/export.
+- `hosting/ps1/state-cards.js`: guarded Forbidden Memories save-counter alignment during state restore.
 - `hosting/ps1/recent-game.js`: last played game and optional BIOS copy in a separate browser database.
 - `hosting/ps1/touch-controls.js`: analog strength, stick dead zone, and input release.
 - `hosting/ps1/menu.js`: native menu grouping, saved-point access, and Restart confirmation.
@@ -78,6 +79,22 @@ The root package.json and data/ belong to the upstream project. Use the Make com
 - Last-game reload and reopen (including BIOS bytes) were checked with dummy files in the desktop in-app browser. The real popup title was checked there too; no real-game or iPhone test was run for these changes.
 
 ## Next work discussed with the user
+
+### Forbidden Memories card recovery, 30 October 2026
+
+The repeat failure later that day had a different confirmed cause: a read-only export from the live player contained a valid populated slot 1 card with the same duelist identity and save sequence 26 in both valid records. The newly supplied state expected sequence 25 for the same profile. Rewinding a game point without rewinding the external card tripped the game's anti-copy save-sequence check. The earlier one-off new-file flag recovery could not prevent this after another older-state restore.
+
+`state-cards.js` now wraps the shared native loadState path before recovery attaches, covering file import, reload restore and Load selected save. It recognizes only the pinned RASTATE/MEM/core layout plus two retail US code fingerprints, skips an in-flight card operation, and validates the occupied one-block `BASLUS-01411-YUGIOH` directory entry, checksums, both sealed payload copies, duelist identity and matching record sequences. For a valid same-profile card it passes an in-memory state copy with only the expected 32-bit save sequence at `0x8009B3B8` aligned to the card. It leaves deck, cards, story, the new-file permission flag, original file/history bytes and card bytes unchanged. Unknown states, corrupt/empty cards and other profiles are left alone; Saves reports when a matching card is missing. It does not identify arbitrary game/disc imports. Saved points and card files remain separate backups; the UI hint now states this correctly.
+
+Local `make check` passed parser/profile/checksum/duplicate-record, unchanged-original, counter-only copy, repeat alignment and unknown-state tests. Fresh muted desktop Chrome (both engine builds) and Playwright WebKit each loaded the user's exact older state against a card at 26, saved to 27, reloaded that unchanged old state and saved to 28, then repeated to 29. Only the card's expected save counter changed at restore; the game's native save then advanced it. The original new-file flag remained 0. Chrome also passed the actual reload Resume button and Saved points → Load selected save against the newer card. These are tests on this Mac, not a physical phone. User files and live gameplay were not modified; the live slot 1 export was downloaded through the visible Saves panel solely to read it. No credentials or game data went into Git/public.
+
+
+The user's exported slot 1 `.srm` had all 15 directory blocks free (`0xA0`): it was an empty formatted card. Their exact `.state` reproduced `UNABLE TO LOCATE LOAD DATA` on in-game Save in a fresh muted Chrome context. The state has RASTATE `MEM ` and `END ` chunks only; it does not carry a card image. The game RAM expected an existing save. Importing an empty card passes the card-format check but cannot satisfy that game rule. Do not describe an accepted card import as containing the expected game save.
+
+A one-off recovery copy was tested for this exact US game and pinned core state layout. RAM starts at byte 36917 in this state (32-byte core header, 4-byte save version, 1-byte HLE flag, 36864-byte screen, after the 16-byte RASTATE prefix). The original game's new-file permission byte at RAM address `0x8009B3D4` was 0; only byte 672777 of the recovery copy was changed to 1. The original files were hash-checked unchanged. This is the normal new-save path's permission flag, not a deck, reward, stats or story edit. The game's own save code then created the native `BASLUS-01411-YUGIOH` file in slot 1. Chrome showed SAVE COMPLETE on the first save and a second overwrite. Fresh muted Playwright WebKit also showed SAVE COMPLETE and produced an occupied native card block. These are tests on this Mac, not a physical phone. No live user game was changed.
+
+The recovery state and an extra populated-card backup are in the user's Downloads folder `PS1-Recovered-2026-10-30`, outside Git/public. The recovery state is the supplied game point with the one permission byte changed, before its first successful in-game save. To use it, import that state through Load State, then choose Save → Yes inside the game (confirm Overwrite if shown). No player code or deployment was changed for this recovery. Do not apply this address or flag automatically to arbitrary states or games. Keep memory card backups as well as saved points; rewinding game RAM can also rewind the game's expected save sequence while its external card remains newer. The native save rule was checked against `MemCardDialog_UpdateSave` and `SaveData_MatchesDuelistAndCurrentSequence` in the public Unchiga Forbidden Memories reverse-engineering source.
+
 
 Game/disc identity checks for saves were discussed, not implemented. The suggested first step is a content fingerprint plus emulator version, with a warning for old states. Renaming should not change identity. ZIP and CHD files of the same disc need different handling if they are to count as the same game. Avoid loading a whole disc into another in-memory buffer on iPhone just to hash it.
 

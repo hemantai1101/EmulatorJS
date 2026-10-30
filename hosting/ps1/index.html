@@ -395,7 +395,7 @@
           <label for="local-saves">Pick a save</label>
           <select id="local-saves" disabled><option>No saves yet</option></select>
           <div class="save-actions"><button id="restore-local" type="button" disabled>Load selected save</button><button id="export-local" type="button" disabled>Export selected save</button></div>
-          <p class="hint">Export a point to keep it when the list fills up. Loading a point can also roll back its memory card saves.</p>
+          <p class="hint">Export a point to keep it when the list fills up. Saved points and memory cards are separate. Keep a backup of both.</p>
           <p id="saves-status" class="hint" role="status" aria-live="polite"></p>
           <h3 class="save-subheading">Load State</h3>
           <label class="hint" for="state-file">Import a .state file</label>
@@ -410,6 +410,7 @@
           <div class="memory-card"><strong>Slot 2 · Shared card</strong><p id="card2-status" class="hint">Available when the game starts. Shared by all games in this browser.</p><div class="save-actions"><button id="enable-card2" type="button" hidden>Enable slot 2 after reload</button><button id="export-card2" type="button" disabled>Export slot 2</button><button id="import-card2" type="button" disabled>Import slot 2</button></div></div>
           <input id="card-file" type="file" accept=".srm,.mcd" hidden>
           <p class="hint">Import replaces one card. A copy of the current card downloads first. Slot 2 import needs a reload.</p>
+          <p id="card-restore-status" class="hint" role="status" aria-live="polite"></p>
           <p id="card-status" role="status" aria-live="polite"></p>
         </section>
       </div>
@@ -460,6 +461,7 @@
 <script src="touch-controls.js?v=20261028-analog-status"></script>
 <script src="menu.js?v=20261029"></script>
 <script src="saves.js?v=20261029"></script>
+<script src="state-cards.js?v=20261030"></script>
 <script>
 let recovery, lastGame, playingFiles;
 const lastGameButton = document.querySelector('#play-last-game');
@@ -857,6 +859,7 @@ window.EJS_onGameStart = () => {
   const gameRoot = document.querySelector('#game');
   if (!gameRoot.querySelector('#picture-zoom')) setupDisplayTools(gameRoot);
   PS1Touch.attach(window.EJS_emulator);
+  PS1StateCards.attach(window.EJS_emulator);
   PS1Menu.setup(window.EJS_emulator);
   setTouchControlsVisible(savedTouchVisibility ?? (window.EJS_emulator.touch || window.EJS_emulator.getSettingValue('virtual-gamepad') === 'enabled'), false);
   fillButton.disabled = false;
