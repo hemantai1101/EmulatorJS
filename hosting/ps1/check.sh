@@ -12,9 +12,6 @@ node --check touch-controls.js
 node --check menu.js
 node --check saves.js
 node --check state-cards.js
-node --check fusion/engine.js
-node --check fusion/ui.js
-node fusion/engine.test.cjs
 node keyboard.test.cjs
 node display.test.cjs
 node touch-controls.test.cjs

@@ -200,8 +200,6 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy2(ROOT / "menu.js", public / "menu.js")
     shutil.copy2(ROOT / "saves.js", public / "saves.js")
     shutil.copy2(ROOT / "state-cards.js", public / "state-cards.js")
-    shutil.copytree(ROOT / "fusion", public / "fusion", dirs_exist_ok=True,
-                    ignore=shutil.ignore_patterns("*.test.cjs", "*.py", "__pycache__"))
     shutil.copy2(ROOT / "robots.txt", public / "robots.txt")
     shutil.copy2(ROOT / "sitemap.xml", public / "sitemap.xml")
     shutil.copy2(ROOT / "google535566f4769c65a4.html", public / "google535566f4769c65a4.html")
