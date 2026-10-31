@@ -64,7 +64,7 @@
       function showPanel(text, savedGame = false, failed = false) {
         failedRecovery = failed;
         message.textContent = text;
-        resume.textContent = savedGame ? 'Restore selected save' : 'Resume game';
+        resume.textContent = savedGame ? 'Restore selected state' : 'Resume game';
         resumePicker.hidden = !savedGame;
         document.querySelector('#resume-save-label').hidden = !savedGame;
         resume.hidden = failed;
@@ -88,7 +88,7 @@
       }
       function updateSaveButton() {
         saveNow.disabled = !!pendingSave || !active || !ready || failedRecovery || !panel.hidden;
-        saveLabel.textContent = saveNow.title = pendingSave ? 'Saving…' : 'Save now';
+        saveLabel.textContent = saveNow.title = pendingSave ? 'Saving state…' : 'Save state now';
         exportSave.disabled = !active || !saves.length || !!pendingSave;
         restore.disabled = savePicker.disabled = !active || !saves.length || !!pendingSave;
         resumePicker.disabled = !!pendingSave;
@@ -102,25 +102,26 @@
         let save;
         manualRequested = manual;
         saveNow.disabled = true;
-        saveLabel.textContent = saveNow.title = 'Saving…';
+        saveLabel.textContent = saveNow.title = 'Saving state…';
         try {
           save = { id, state: emulator.gameManager.getState(), savedAt: Date.now() };
         } catch (error) {
-          status.textContent = 'Could not save on this device. Use Save State to download a backup.';
+          status.textContent = 'Could not save a state on this device. Use Save State to download a backup.';
           manualRequested = false;
           updateSaveButton();
           return Promise.resolve(false);
         }
         const nextSaves = [save, ...saves].slice(0, SAVE_LIMIT);
         pendingSave = writeSave(save, nextSaves).then(() => {
-          const selected = saves[Number(savePicker.value)];
+          const selected = !manualRequested && Number(savePicker.value) > 0
+            ? saves[Number(savePicker.value)] : null;
           saves = nextSaves;
           lastSave = save;
           updateSaveList(selected);
-          status.textContent = (manualRequested ? 'Saved now at ' : 'Auto-saved at ') + new Date(save.savedAt).toLocaleTimeString() + '. ' + saves.length + ' of 10 saves kept here.';
+          status.textContent = (manualRequested ? 'State saved at ' : 'State auto-saved at ') + new Date(save.savedAt).toLocaleTimeString() + '. ' + saves.length + ' of 10 states kept here.';
           return true;
         }).catch(() => {
-          status.textContent = 'Could not save on this device. Use Save State to download a backup.';
+          status.textContent = 'Could not save a state on this device. Use Save State to download a backup.';
           return false;
         }).finally(() => {
           pendingSave = null;
@@ -138,9 +139,9 @@
         try {
           const stamp = new Date(selected.savedAt).toISOString().replace(/[:.]/g, '-');
           window.PS1Saves.download(selected.state, gameName.replace(/[^a-z0-9 _-]/gi, '_') + '-' + stamp + '.state');
-          status.textContent = 'Exported save from ' + new Date(selected.savedAt).toLocaleString() + '.';
+          status.textContent = 'Exported state from ' + new Date(selected.savedAt).toLocaleString() + '.';
         } catch (error) {
-          status.textContent = 'Could not export this save. Try again.';
+          status.textContent = 'Could not export this state. Try again.';
         }
       });
       function autoCheckpoint() {
@@ -157,7 +158,7 @@
       function showGame() {
         if (!active || !backgrounded || document.hidden) return;
         if (failedRecovery) {
-          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last save.', false, true);
+          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', false, true);
         } else {
           showPanel('Safari paused the game while you were away. Tap Resume game.');
         }
@@ -196,11 +197,11 @@
             try { stuck = emulator.gameManager.functions.getFrameNum() === frame; } catch (error) { /* Reload an aborted core. */ }
             if (stuck) {
               try { pauseEngine(); } catch (error) { /* Keep the reload button usable. */ }
-              showPanel('Safari is still stuck. Reload, pick the same CHD, and restore your last save.', false, true);
+              showPanel('Safari is still stuck. Reload, pick the same CHD, and restore your last state.', false, true);
             }
           }, 2000);
         } catch (error) {
-          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last save.', false, true);
+          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', false, true);
         }
       }
       resume.addEventListener('click', () => {
@@ -222,7 +223,7 @@
           resumeEngine();
           window.PS1Saves?.close();
         } catch (error) {
-          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last save.', false, true);
+          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', false, true);
         }
       });
       document.addEventListener('visibilitychange', () => document.hidden ? hideGame() : showGame());
@@ -233,7 +234,7 @@
         if (!active) return;
         clearTimeout(watchdog);
         try { pauseEngine(); } catch (error) { /* Keep the reload button usable. */ }
-        showPanel('Safari stopped the game screen. Reload, pick the same CHD, and restore your last save.', false, true);
+        showPanel('Safari stopped the game screen. Reload, pick the same CHD, and restore your last state.', false, true);
       });
       try {
         const stored = await readSave(id);
@@ -244,13 +245,13 @@
         }
         if (lastSave) {
           restore.disabled = false;
-          status.textContent = saves.length + ' of 10 saves kept here. Auto-save runs every 5 minutes.';
+          status.textContent = saves.length + ' of 10 states kept here. Auto-save runs every 5 minutes.';
           restoreOnResume = true;
           pauseEngine();
-          showPanel('A save from ' + new Date(lastSave.savedAt).toLocaleString() + ' is kept on this device.', true);
+          showPanel('A state from ' + new Date(lastSave.savedAt).toLocaleString() + ' is kept on this device.', true);
         } else {
           ready = true;
-          status.textContent = 'Auto-save is on. Every 5 minutes; keeps the latest 10 saves.';
+          status.textContent = 'Auto-save states: every 5 minutes; keeps the latest 10 states.';
         }
       } catch (error) {
         ready = true;

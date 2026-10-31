@@ -33,23 +33,23 @@
     const saves = group('Saves');
     const saveNow = document.createElement('button');
     saveNow.type = 'button';
-    saveNow.textContent = 'Save now';
+    saveNow.textContent = 'Save state now';
     saveNow.addEventListener('click', () => document.querySelector('#save-now').click());
     const pickerLabel = document.createElement('label');
     pickerLabel.htmlFor = 'menu-saved-points';
-    pickerLabel.textContent = 'Saved points';
+    pickerLabel.textContent = 'Saved states';
     const picker = document.createElement('select');
     picker.id = 'menu-saved-points';
     const load = document.createElement('button');
     load.type = 'button';
-    load.textContent = 'Load selected save';
+    load.textContent = 'Load selected state';
     const exportSave = document.createElement('button');
     exportSave.type = 'button';
-    exportSave.textContent = 'Export selected save';
+    exportSave.textContent = 'Export selected state';
     exportSave.addEventListener('click', () => document.querySelector('#export-local').click());
     const manage = document.createElement('button');
     manage.type = 'button';
-    manage.textContent = 'Manage saves & memory cards';
+    manage.textContent = 'States & memory cards';
     manage.addEventListener('click', () => root.PS1Saves.open());
     const status = document.createElement('p');
     status.setAttribute('role', 'status');
@@ -81,7 +81,7 @@
     move('saveState', saves);
     move('loadState', saves);
     const hint = document.createElement('p');
-    hint.textContent = 'Backups keep the whole game at one point. Load a backup for this game and disc.';
+    hint.textContent = 'States keep one moment of play. Use the same game and disc.';
     saves.append(hint);
     sync();
 

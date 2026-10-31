@@ -1,0 +1,2078 @@
+{
+  "game": "Yu-Gi-Oh! Forbidden Memories",
+  "observed_date": "2026-10-31",
+  "timezone": "Asia/Hong_Kong",
+  "source": "Read visually from the user's live Chrome Deck and Chest screens. Deck swaps made in Chrome at the user's request and verified at 40 deck cards / 3 chest cards on 2026-10-28.",
+  "scope": "Inventory snapshot, not the current duel hand. Update only from observed cards or user-confirmed rewards/deck edits.",
+  "deck_total": 40,
+  "chest_total": 34,
+  "star_symbols": {
+    "Sun": "☉",
+    "Moon": "☾",
+    "Venus": "♀",
+    "Mercury": "☿",
+    "Mars": "♂",
+    "Jupiter": "♃",
+    "Saturn": "♄",
+    "Uranus": "⛢",
+    "Pluto": "♇",
+    "Neptune": "♆"
+  },
+  "star_cycles_each_beats_next": [
+    [
+      "Sun",
+      "Moon",
+      "Venus",
+      "Mercury"
+    ],
+    [
+      "Mars",
+      "Jupiter",
+      "Saturn",
+      "Uranus",
+      "Pluto",
+      "Neptune"
+    ]
+  ],
+  "coaching_preferences": [
+    "Use short, plain replies.",
+    "Show the current field and hand with each move. Keep proposed changes separate from confirmed changes.",
+    "Suggest fusion order, a Guardian Star with its symbol, and attack order.",
+    "Track the chosen field star; a card's two possible stars do not identify which was chosen.",
+    "Remove fusion materials and destroyed cards only when confirmed. Reset hand and field for a new duel.",
+    "Play a card before attacking. A face-down defender's star does not reveal its DEF.",
+    "Use this inventory to check card identities locally. Do not assume every owned card is in the current hand.",
+    "Female and other fusion groups can differ from the displayed card type. Verify exact pairs and ATK thresholds.",
+    "Include both Guardian Star cycles with symbols and names in every user-facing message; each sign beats the next.",
+    "Use ⛢ for Uranus, matching its game glyph (up arrow over dotted circle). Mars ♂ has a diagonal arrow and an empty circle. Previous ♅ glyph confused identification."
+  ],
+  "cards": [
+    {
+      "id": 50,
+      "name": "Basic Insect",
+      "type": "Insect",
+      "atk": 500,
+      "def": 700,
+      "stars": [
+        "Jupiter",
+        "Pluto"
+      ],
+      "deck": 0,
+      "chest": 2
+    },
+    {
+      "id": 102,
+      "name": "Mask of Darkness",
+      "type": "Fiend",
+      "atk": 900,
+      "def": 400,
+      "stars": [
+        "Mercury",
+        "Moon"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 104,
+      "name": "Curtain of the Dark Ones",
+      "type": "Spellcaster",
+      "atk": 600,
+      "def": 500,
+      "stars": [
+        "Mercury",
+        "Jupiter"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 105,
+      "name": "Tomozaurus",
+      "type": "Dinosaur",
+      "atk": 500,
+      "def": 400,
+      "stars": [
+        "Uranus",
+        "Venus"
+      ],
+      "deck": 0,
+      "chest": 2
+    },
+    {
+      "id": 107,
+      "name": "Kageningen",
+      "type": "Warrior",
+      "atk": 800,
+      "def": 600,
+      "stars": [
+        "Moon",
+        "Mars"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 129,
+      "name": "Nemuriko",
+      "type": "Spellcaster",
+      "atk": 800,
+      "def": 700,
+      "stars": [
+        "Mercury",
+        "Moon"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 130,
+      "name": "Weather Control",
+      "type": "Fairy",
+      "atk": 600,
+      "def": 400,
+      "stars": [
+        "Sun",
+        "Pluto"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 137,
+      "name": "Mystery Hand",
+      "type": "Fiend",
+      "atk": 500,
+      "def": 500,
+      "stars": [
+        "Moon",
+        "Uranus"
+      ],
+      "deck": 0,
+      "chest": 2
+    },
+    {
+      "id": 157,
+      "name": "Firegrass",
+      "type": "Plant",
+      "atk": 700,
+      "def": 600,
+      "stars": [
+        "Mars",
+        "Moon"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 158,
+      "name": "Man Eater",
+      "type": "Plant",
+      "atk": 800,
+      "def": 600,
+      "stars": [
+        "Jupiter",
+        "Uranus"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 167,
+      "name": "Ancient Jar",
+      "type": "Rock",
+      "atk": 400,
+      "def": 200,
+      "stars": [
+        "Uranus",
+        "Neptune"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 182,
+      "name": "Masked Clown",
+      "type": "Warrior",
+      "atk": 500,
+      "def": 700,
+      "stars": [
+        "Mercury",
+        "Saturn"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 192,
+      "name": "Key Mace",
+      "type": "Fairy",
+      "atk": 400,
+      "def": 300,
+      "stars": [
+        "Sun",
+        "Saturn"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 195,
+      "name": "Doron",
+      "type": "Warrior",
+      "atk": 900,
+      "def": 500,
+      "stars": [
+        "Neptune",
+        "Moon"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 200,
+      "name": "Petit Dragon",
+      "type": "Dragon",
+      "atk": 600,
+      "def": 700,
+      "stars": [
+        "Saturn",
+        "Sun"
+      ],
+      "deck": 2,
+      "chest": 0
+    },
+    {
+      "id": 206,
+      "name": "Twin Long Rods #1",
+      "type": "Aqua",
+      "atk": 900,
+      "def": 700,
+      "stars": [
+        "Moon",
+        "Mercury"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 244,
+      "name": "Dissolverock",
+      "type": "Rock",
+      "atk": 900,
+      "def": 1000,
+      "stars": [
+        "Mars",
+        "Venus"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 271,
+      "name": "Megirus Light",
+      "type": "Fiend",
+      "atk": 900,
+      "def": 600,
+      "stars": [
+        "Mercury",
+        "Uranus"
+      ],
+      "deck": 0,
+      "chest": 2
+    },
+    {
+      "id": 305,
+      "name": "Laser Cannon Armor",
+      "type": "Equip",
+      "atk": null,
+      "def": null,
+      "stars": [],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 330,
+      "name": "Forest",
+      "type": "Magic",
+      "atk": null,
+      "def": null,
+      "stars": [],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 335,
+      "name": "Yami",
+      "type": "Magic",
+      "atk": null,
+      "def": null,
+      "stars": [],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 336,
+      "name": "Dark Hole",
+      "type": "Magic",
+      "atk": null,
+      "def": null,
+      "stars": [],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 394,
+      "name": "Steel Scorpion",
+      "type": "Machine",
+      "atk": 250,
+      "def": 300,
+      "stars": [
+        "Jupiter",
+        "Neptune"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 397,
+      "name": "Leghul",
+      "type": "Insect",
+      "atk": 300,
+      "def": 350,
+      "stars": [
+        "Jupiter",
+        "Moon"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 402,
+      "name": "Monster Eye",
+      "type": "Fiend",
+      "atk": 250,
+      "def": 350,
+      "stars": [
+        "Moon",
+        "Jupiter"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 410,
+      "name": "Mechanical Spider",
+      "type": "Machine",
+      "atk": 400,
+      "def": 500,
+      "stars": [
+        "Jupiter",
+        "Mercury"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 421,
+      "name": "Cyber Commander",
+      "type": "Machine",
+      "atk": 750,
+      "def": 700,
+      "stars": [
+        "Moon",
+        "Mercury"
+      ],
+      "deck": 2,
+      "chest": 0
+    },
+    {
+      "id": 444,
+      "name": "Turu-Purun",
+      "type": "Aqua",
+      "atk": 450,
+      "def": 500,
+      "stars": [
+        "Neptune",
+        "Jupiter"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 463,
+      "name": "Electric Snake",
+      "type": "Thunder",
+      "atk": 800,
+      "def": 900,
+      "stars": [
+        "Pluto",
+        "Mars"
+      ],
+      "deck": 2,
+      "chest": 0
+    },
+    {
+      "id": 478,
+      "name": "Insect Soldiers of the Sky",
+      "type": "Insect",
+      "atk": 1000,
+      "def": 800,
+      "stars": [
+        "Saturn",
+        "Neptune"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 490,
+      "name": "Needle Ball",
+      "type": "Fiend",
+      "atk": 750,
+      "def": 700,
+      "stars": [
+        "Moon",
+        "Uranus"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 501,
+      "name": "Man-eater Bug",
+      "type": "Insect",
+      "atk": 450,
+      "def": 600,
+      "stars": [
+        "Jupiter",
+        "Pluto"
+      ],
+      "deck": 0,
+      "chest": 2
+    },
+    {
+      "id": 502,
+      "name": "D. Human",
+      "type": "Warrior",
+      "atk": 1300,
+      "def": 1100,
+      "stars": [
+        "Uranus",
+        "Mars"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 540,
+      "name": "Skelengel",
+      "type": "Fairy",
+      "atk": 900,
+      "def": 400,
+      "stars": [
+        "Sun",
+        "Pluto"
+      ],
+      "deck": 1,
+      "chest": 1
+    },
+    {
+      "id": 547,
+      "name": "Griggle",
+      "type": "Plant",
+      "atk": 350,
+      "def": 300,
+      "stars": [
+        "Jupiter",
+        "Mercury"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 556,
+      "name": "The Wandering Doomed",
+      "type": "Zombie",
+      "atk": 800,
+      "def": 600,
+      "stars": [
+        "Moon",
+        "Pluto"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 558,
+      "name": "Pot the Trick",
+      "type": "Rock",
+      "atk": 400,
+      "def": 400,
+      "stars": [
+        "Moon",
+        "Jupiter"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 567,
+      "name": "Darkworld Thorns",
+      "type": "Plant",
+      "atk": 1200,
+      "def": 900,
+      "stars": [
+        "Moon",
+        "Jupiter"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 609,
+      "name": "Bladefly",
+      "type": "Insect",
+      "atk": 600,
+      "def": 700,
+      "stars": [
+        "Jupiter",
+        "Moon"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 611,
+      "name": "Hiro's Shadow Scout",
+      "type": "Fiend",
+      "atk": 650,
+      "def": 500,
+      "stars": [
+        "Moon",
+        "Saturn"
+      ],
+      "deck": 0,
+      "chest": 1
+    },
+    {
+      "id": 635,
+      "name": "Queen's Double",
+      "type": "Warrior",
+      "atk": 350,
+      "def": 300,
+      "stars": [
+        "Uranus",
+        "Moon"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": 644,
+      "name": "Flame Viper",
+      "type": "Pyro",
+      "atk": 400,
+      "def": 450,
+      "stars": [
+        "Mars",
+        "Pluto"
+      ],
+      "deck": 1,
+      "chest": 0
+    },
+    {
+      "id": null,
+      "name": "Skull Stalker",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported reward after Rex Raptor win. Card details not checked."
+    },
+    {
+      "id": 55,
+      "name": "Giant Flea",
+      "type": "Insect",
+      "atk": 1500,
+      "def": 1200,
+      "stars": [
+        "Jupiter",
+        "Venus"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "Reward reported by user; stats, stars and Laser Cannon Armor compatibility checked against FMR card tables."
+    },
+    {
+      "id": 207,
+      "name": "Droll Bird",
+      "type": "Winged Beast",
+      "atk": 600,
+      "def": 500,
+      "stars": [
+        "Saturn",
+        "Moon"
+      ],
+      "deck": 0,
+      "chest": 1,
+      "source": "Reward reported by user; FMR stats and stars verified on card page."
+    },
+    {
+      "id": 544,
+      "name": "Dharma Cannon",
+      "type": "Machine",
+      "atk": 900,
+      "def": 500,
+      "stars": [
+        "Moon",
+        "Mercury"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "User reported reward; FMR stats, stars and fusion uses verified against Yugipedia."
+    },
+    {
+      "id": null,
+      "name": "Ameba",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported reward after Shadi win. Card details not checked."
+    },
+    {
+      "id": null,
+      "name": "Solitude",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported reward after Pegasus win. Card details not checked."
+    },
+    {
+      "id": null,
+      "name": "Ryu-kishin",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported Rex Free Duel reward. Card details not checked."
+    },
+    {
+      "id": 188,
+      "name": "Synchar",
+      "type": "Beast",
+      "atk": 800,
+      "def": 900,
+      "stars": [
+        "Jupiter",
+        "Sun"
+      ],
+      "deck": 1,
+      "chest": 1,
+      "source": "User reported Rex Free Duel reward; FMR stats and Flame Cerebrus fusion verified."
+    },
+    {
+      "id": 80,
+      "name": "Uraby",
+      "type": "Dinosaur",
+      "atk": 1500,
+      "def": 800,
+      "stars": [
+        "Uranus",
+        "Mars"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "User reported Rex reward; FMR stats checked on Yugipedia."
+    },
+    {
+      "id": 160,
+      "name": "M-warrior #1",
+      "type": "Warrior",
+      "atk": 1000,
+      "def": 500,
+      "stars": [
+        "Uranus",
+        "Moon"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "User reported Rex reward; stats and stars from previously checked Rex FMR card table."
+    },
+    {
+      "id": null,
+      "name": "Turtle Raccoon",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported Rex Free Duel reward. Details not checked."
+    },
+    {
+      "id": 537,
+      "name": "Mega Thunderball",
+      "type": "Thunder",
+      "atk": 750,
+      "def": 600,
+      "stars": [
+        "Pluto",
+        "Mercury"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "Password purchase and deck addition inferred confirmed by user saying saved after the instructions. Details verified on FMR card page."
+    },
+    {
+      "id": null,
+      "name": "Necrolancer the Timelord",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported Rex Free Duel reward. Details not yet checked."
+    },
+    {
+      "id": 156,
+      "name": "Hard Armor",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported Rex Free Duel reward. Card details not checked.",
+      "id_source": "User reported card number 156."
+    },
+    {
+      "id": 298,
+      "name": "Wicked Dragon with the Ersatz Head",
+      "type": "Dragon",
+      "atk": 900,
+      "def": 900,
+      "stars": [
+        "Moon",
+        "Neptune"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "User reported reward. Details verified at https://yugioh.fandom.com/wiki/Wicked_Dragon_with_the_Ersatz_Head_%28FMR%29"
+    },
+    {
+      "id": 249,
+      "name": "Water Omotics",
+      "type": "Aqua",
+      "atk": 1400,
+      "def": 1200,
+      "stars": [
+        "Neptune",
+        "Moon"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "User reported reward after Kaiba win. Details not yet checked.",
+      "fusion_groups": [
+        "Female"
+      ]
+    },
+    {
+      "id": null,
+      "name": "Sinister Serpent",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported reward after likely Teana win. Card details not yet checked."
+    },
+    {
+      "id": null,
+      "name": "Crass Clown",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported palace guard reward. Card details not yet checked."
+    },
+    {
+      "id": null,
+      "name": "Hoshiningen",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported reward after Jono rematch. Full card details not yet checked."
+    },
+    {
+      "id": 395,
+      "name": "Dancing Elf",
+      "type": "Fairy",
+      "atk": 300,
+      "def": 200,
+      "stars": [
+        "Jupiter",
+        "Sun"
+      ],
+      "fusion_groups": [
+        "Female",
+        "Elf"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "User reported #395 reward. Card details verified on FMR card page; Female/Elf fusion groups in full fusion guide."
+    },
+    {
+      "id": 591,
+      "name": "Morphing Jar",
+      "type": "Rock",
+      "atk": 700,
+      "def": 600,
+      "stars": [
+        "Uranus",
+        "Neptune"
+      ],
+      "deck": 1,
+      "chest": 0,
+      "source": "User reported reward after young village duelist win. Card details not yet checked."
+    },
+    {
+      "id": null,
+      "name": "Penguin Knight",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 0,
+      "source": "User reported Ocean Mage reward. Card details not yet checked.",
+      "save_status": "Prior reward lost on reload before Ocean Mage win, inferred from user confirming unsaved first temple duel and replaying Ocean Mage."
+    },
+    {
+      "id": null,
+      "name": "Obese Marmot of Nefariousness",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported Ocean Mage replay reward. Details not yet checked."
+    },
+    {
+      "id": null,
+      "name": "Meda Bat",
+      "type": null,
+      "atk": null,
+      "def": null,
+      "stars": null,
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported Ocean Mage win reward. Details not yet checked."
+    },
+    {
+      "id": 633,
+      "name": "Winged Egg of New Life",
+      "deck": 0,
+      "chest": 1,
+      "source": "User-reported reward after second Sea Shrine boss victory, 2026-10-31; stats not yet verified."
+    },
+    {
+      "id": 30,
+      "name": "Zombie Warrior",
+      "type": "Zombie",
+      "atk": 1200,
+      "def": 900,
+      "stars": [
+        "Moon",
+        "Mars"
+      ],
+      "deck": 0,
+      "chest": 1,
+      "source": "User-reported Meadow Mage reward 2026-10-31; stats and stars in authored fusion guide."
+    },
+    {
+      "id": 422,
+      "name": "Jinzo #7",
+      "deck": 0,
+      "chest": 1,
+      "source": "User-reported Free Duel Meadow Mage reward, 2026-10-31; stats not yet verified."
+    },
+    {
+      "id": 27,
+      "name": "Beaver Warrior",
+      "type": "Beast-Warrior",
+      "atk": 1200,
+      "def": 1500,
+      "stars": [
+        "Jupiter",
+        "Venus"
+      ],
+      "deck": 0,
+      "chest": 1,
+      "source": "User-reported Meadow Mage Free Duel reward; card facts checked against FMR wiki, 2026-10-31."
+    },
+    {
+      "id": 265,
+      "name": "The Furious Sea King",
+      "deck": 0,
+      "chest": 1,
+      "source": "User reported #265 after Rex Raptor Free Duel win, 2026-10-31. Identity checked at https://yugioh.fandom.com/wiki/The_Furious_Sea_King_%28FMR%29 ; stats and stars not recorded."
+    }
+  ],
+  "confirmed_played_fusions": [
+    {
+      "materials": [
+        "Electric Snake",
+        "Petit Dragon"
+      ],
+      "result": "Thunder Dragon",
+      "atk": 1600,
+      "def": 1500
+    },
+    {
+      "materials": [
+        "D. Human",
+        "Dissolverock"
+      ],
+      "result": "Flame Swordsman",
+      "atk": 1800,
+      "def": 1600
+    },
+    {
+      "materials": [
+        "Tomozaurus",
+        "Steel Scorpion"
+      ],
+      "result": "Cyber Saurus",
+      "atk": 1800,
+      "def": 1400
+    },
+    {
+      "materials": [
+        "Kageningen",
+        "Cyber Commander"
+      ],
+      "result": "Cyber Soldier",
+      "atk": 1500,
+      "def": 1700
+    },
+    {
+      "materials": [
+        "Doron",
+        "Mechanical Spider"
+      ],
+      "result": "Cyber Soldier",
+      "atk": 1500,
+      "def": 1700
+    },
+    {
+      "materials": [
+        "Petit Dragon",
+        "Cyber Commander",
+        "Laser Cannon Armor"
+      ],
+      "result": "Metal Dragon",
+      "atk": 2350,
+      "def": 2200,
+      "star": "Mars",
+      "note": "Includes +500 ATK/DEF equip; Machine type receives no Yami boost."
+    },
+    {
+      "materials": [
+        "Key Mace",
+        "Dissolverock"
+      ],
+      "result": "Mystical Sand",
+      "atk": 2100,
+      "def": 1700,
+      "star": "Saturn"
+    }
+  ],
+  "duel_status": "Rex Raptor Free Duel won, S rank, Synchar #188 rewarded. Current chips unreported; last confirmed total 20. Mountain not bought.",
+  "deck_changes": [
+    {
+      "date": "2026-10-28",
+      "previous_deck_counts_by_id": {
+        "50": 0,
+        "102": 0,
+        "104": 1,
+        "105": 1,
+        "107": 1,
+        "129": 1,
+        "130": 1,
+        "137": 2,
+        "157": 1,
+        "158": 1,
+        "167": 1,
+        "192": 1,
+        "195": 1,
+        "200": 1,
+        "206": 1,
+        "244": 1,
+        "271": 2,
+        "305": 1,
+        "330": 1,
+        "335": 0,
+        "336": 1,
+        "394": 1,
+        "397": 1,
+        "402": 1,
+        "410": 1,
+        "421": 1,
+        "444": 1,
+        "463": 1,
+        "478": 1,
+        "490": 1,
+        "501": 2,
+        "502": 1,
+        "540": 1,
+        "547": 1,
+        "556": 1,
+        "558": 1,
+        "609": 1,
+        "611": 1,
+        "635": 1,
+        "644": 1
+      },
+      "added": [
+        "Mask of Darkness",
+        "Yami",
+        "Basic Insect"
+      ],
+      "moved_to_chest": [
+        "Leghul",
+        "Man-eater Bug",
+        "Man-eater Bug"
+      ],
+      "reason": "Yami supports Fiend/Spellcaster monsters; Mask of Darkness adds a 900 ATK Mercury Fiend and fusion material; Basic Insect has better base stats than Man-eater Bug. Kept all owned cards, all Dragon/Thunder/Machine/Warrior materials, Forest, Dark Hole and Laser Cannon Armor.",
+      "saved_point": "Save now confirmed in Chrome at 7:43:59 PM, Asia/Hong_Kong.",
+      "game_screen_after_edit": "Card Shop, Hello there!; no duel started.",
+      "validation": "Observed every move, deck count 40, chest count 3, and added cards in deck. Not duel-tested."
+    },
+    {
+      "date": "2026-10-28",
+      "confirmation": "User said done after suggested swaps. Not re-inspected in Chrome.",
+      "previous_deck_counts_by_id": {
+        "50": 1,
+        "102": 1,
+        "104": 1,
+        "105": 1,
+        "107": 1,
+        "129": 1,
+        "130": 1,
+        "137": 2,
+        "157": 1,
+        "158": 1,
+        "167": 1,
+        "182": 0,
+        "192": 1,
+        "195": 1,
+        "200": 1,
+        "206": 1,
+        "244": 1,
+        "271": 2,
+        "305": 1,
+        "330": 1,
+        "335": 1,
+        "336": 1,
+        "394": 1,
+        "397": 0,
+        "402": 1,
+        "410": 1,
+        "421": 1,
+        "444": 1,
+        "463": 1,
+        "478": 1,
+        "490": 1,
+        "501": 0,
+        "502": 1,
+        "540": 1,
+        "547": 1,
+        "556": 1,
+        "558": 1,
+        "567": 0,
+        "609": 1,
+        "611": 1,
+        "635": 1,
+        "644": 1
+      },
+      "added": [
+        "Darkworld Thorns",
+        "Masked Clown"
+      ],
+      "moved_to_chest": [
+        "Basic Insect",
+        "Bladefly"
+      ]
+    },
+    {
+      "status": "confirmed by user before starting next duel",
+      "add": [
+        "Giant Flea"
+      ],
+      "remove": [
+        "Mystery Hand (one copy)"
+      ],
+      "reason": "1500 ATK standalone attacker replaces duplicate 500 ATK Fiend. Compatible with Laser Cannon Armor for 2000 ATK."
+    },
+    {
+      "status": "confirmed by user before Bandit Keith opening hand",
+      "add": [
+        "Droll Bird"
+      ],
+      "remove": [
+        "Mystery Hand (remaining copy)"
+      ],
+      "reason": "Winged Beast + Pyro makes Crimson Sunbird (2300 ATK / 1800 DEF; Mars/Mercury). Flame Viper, Firegrass, and Dissolverock supply Pyro in this deck."
+    },
+    {
+      "status": "Dharma Cannon in deck confirmed by draw; Needle Ball removal inferred from previously recommended swap.",
+      "add": [
+        "Dharma Cannon"
+      ],
+      "remove": [
+        "Needle Ball"
+      ],
+      "reason": "Replaces 750 ATK Fiend with 900 ATK Machine and adds more Warrior/Machine, Dinosaur/Machine, Dragon/Machine, and Mercury Spellcaster/Machine fusion options."
+    },
+    {
+      "status": "Uraby in deck confirmed by draw; Tomozaurus removal inferred from recommended swap.",
+      "add": [
+        "Uraby"
+      ],
+      "remove": [
+        "Tomozaurus"
+      ],
+      "reason": "1500 ATK Dinosaur replaces 500 ATK Dinosaur while preserving Dinosaur + Machine -> Cyber Saurus 1800 fusion."
+    },
+    {
+      "status": "Confirmed by user saying done before next duel.",
+      "add": [
+        "M-warrior #1"
+      ],
+      "remove": [
+        "Kageningen"
+      ],
+      "reason": "1000 ATK Warrior replaces 800 ATK Warrior with same key Machine/Rock/Plant/Pyro fusion role."
+    },
+    {
+      "status": "Inferred confirmed by user saved",
+      "add": [
+        "Petit Dragon (one extra copy)",
+        "Mega Thunderball"
+      ],
+      "remove": [
+        "Monster Eye",
+        "Megirus Light (one copy)"
+      ],
+      "reason": "Increase Dragon and Thunder material counts."
+    },
+    {
+      "status": "Synchar deck inclusion confirmed by draw; Hiro removal inferred from previously recommended swap.",
+      "add": [
+        "Synchar"
+      ],
+      "remove": [
+        "Hiro's Shadow Scout"
+      ]
+    },
+    {
+      "status": "User explicitly confirmed swapped before Kaiba duel.",
+      "add": [
+        "Wicked Dragon with the Ersatz Head"
+      ],
+      "remove": [
+        "Megirus Light (remaining deck copy)"
+      ]
+    },
+    {
+      "status": "User explicitly confirmed done the swap.",
+      "add": [
+        "Dancing Elf"
+      ],
+      "remove": [
+        "Weather Control"
+      ]
+    },
+    {
+      "status": "User explicitly confirmed Yami swapped for extra Electric Snake after load.",
+      "add": [
+        "Electric Snake (second deck copy)"
+      ],
+      "remove": [
+        "Yami"
+      ]
+    },
+    {
+      "status": "User explicitly confirmed swapped before rematch.",
+      "add": [
+        "Cyber Commander (second deck copy)"
+      ],
+      "remove": [
+        "Steel Scorpion"
+      ]
+    },
+    {
+      "date": "2026-10-30",
+      "status": "Performed by assistant in live Chrome at user request, verified visually after each card move.",
+      "add": [
+        "Electric Snake"
+      ],
+      "moved_to_chest": [
+        "Yami"
+      ]
+    },
+    {
+      "date": "2026-10-30",
+      "status": "Performed by assistant in live Chrome at user request, verified visually after each card move.",
+      "add": [
+        "Cyber Commander"
+      ],
+      "moved_to_chest": [
+        "Steel Scorpion"
+      ]
+    }
+  ],
+  "last_duel": {
+    "opponent": "Rex Raptor",
+    "mode": "Free Duel",
+    "date": "2026-10-31",
+    "result": "Won",
+    "rank": "S",
+    "rank_style": "Not reported",
+    "reward": {
+      "id": 188,
+      "name": "Synchar"
+    },
+    "chips_after": null,
+    "notes": "User confirmed win and S rank. Opening Petit Dragon + Firegrass -> B. Dragon Jungle King inferred from next-turn report. Uraby + Mechanical Spider -> Cyber Saurus was proposed; later plays and final attacks not reported. Do not infer exact final field or turn count."
+  },
+  "duel_history": [
+    {
+      "opponent": "Jono",
+      "result": "won",
+      "enemy_lp": 0,
+      "finishing_play": "Petit Dragon + Cyber Commander + Laser Cannon Armor -> Metal Dragon, 2350 ATK / 2200 DEF, Mars; user confirmed enemy LP reached zero.",
+      "reward": "not yet reported"
+    },
+    {
+      "opponent": "Kaiba / Seto (user called him Kaiba; version not confirmed)",
+      "result": "won",
+      "enemy_lp": 0,
+      "finishing_play": "Key Mace + Dissolverock -> Mystical Sand, 2100 ATK / 1700 DEF, Saturn; user confirmed win.",
+      "reward": "not yet reported"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "result": "win",
+      "reward": "Skull Stalker"
+    },
+    {
+      "opponent": "Weevil Underwood",
+      "result": "restarted",
+      "last_reported_own_lp": 300,
+      "note": "User restarted after reaching 300 LP. No loss explicitly confirmed."
+    },
+    {
+      "opponent": "Weevil Underwood",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Giant Flea",
+      "finishing_play": "Flame Swordsman (Mars) cleared Jupiter defender; Mystical Sand direct attack proposed, user confirmed win."
+    },
+    {
+      "opponent": "Mai Valentine (inferred from tournament order; name not seen by user)",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Droll Bird",
+      "finishing_play": "Charubin in Mars clearing Jupiter defender, then direct attacks proposed; user confirmed victory."
+    },
+    {
+      "opponent": "Bandit Keith",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Dharma Cannon",
+      "finishing_play": "Mystical Sand cleared Shadow Ghoul, then Skelengel direct attack proposed; user confirmed victory."
+    },
+    {
+      "opponent": "Shadi",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Ameba",
+      "finishing_play": "D. Human + field Dissolverock -> Flame Swordsman. Megirus Light cleared Hoshiningen with Mercury advantage; direct attacks proposed, user confirmed win."
+    },
+    {
+      "opponent": "Bakura",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Skelengel",
+      "finishing_play": "Giant Flea with Laser Cannon Armor in Venus cleared Mercury defender; Crimson Sunbird direct attack proposed. User confirmed win."
+    },
+    {
+      "opponent": "Pegasus",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Solitude",
+      "finishing_play": "Ushi Oni cleared Venus defender; Bean Soldier, D. Human and Droll Bird direct attacks for 3300 proposed. User confirmed win."
+    },
+    {
+      "opponent": "Isis",
+      "result": "lost",
+      "own_lp": 0,
+      "reward": null,
+      "note": "Two Aqua Dragons under Umi overwhelmed weak defensive plays. Third Neptune monster summoned on losing turn. Do not recommend unchanged blind retry; improve access to strong Dragon/Thunder fusions or removal first."
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "purpose": "Dragon/Thunder farming",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Ryu-kishin"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "purpose": "Dragon/Thunder farming",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Synchar"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "result": "restarted",
+      "reward": null,
+      "note": "User restarted before reporting result; no loss or win assumed."
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "purpose": "Dragon/Thunder farming",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Uraby"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "purpose": "Dragon/Thunder farming",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "M-warrior #1"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "purpose": "Dragon/Thunder farming",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Turtle Raccoon"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "result": "won",
+      "reward": "Necrolancer the Timelord"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "result": "won",
+      "reward": "Hard Armor"
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "result": "won",
+      "reward": "Cyber Commander"
+    },
+    {
+      "opponent": null,
+      "mode": "Campaign (inferred from prior recommendation)",
+      "result": "won",
+      "reward": "Wicked Dragon with the Ersatz Head"
+    },
+    {
+      "opponent": "Kaiba",
+      "mode": "Campaign",
+      "result": "lost",
+      "reward": null
+    },
+    {
+      "opponent": "Kaiba",
+      "mode": "Campaign",
+      "result": "lost",
+      "reward": null
+    },
+    {
+      "opponent": "Kaiba",
+      "mode": "Campaign",
+      "result": "won",
+      "enemy_lp": 0,
+      "reward": "Water Omotics"
+    },
+    {
+      "opponent": "Jono",
+      "opponent_version": "Ancient Egypt after Kaiba; exact version unconfirmed",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Tomozaurus"
+    },
+    {
+      "opponent": "Teana (inferred; user said the girl after Jono)",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Sinister Serpent"
+    },
+    {
+      "opponent": "Mage Soldier (inferred from palace guard encounter)",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Crass Clown"
+    },
+    {
+      "opponent": "Jono",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Hoshiningen"
+    },
+    {
+      "opponent": null,
+      "opponent_description": "Unidentified uncle",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Dancing Elf"
+    },
+    {
+      "opponent": null,
+      "opponent_description": "Young village duelist shown in user portrait; exact identity unconfirmed.",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Morphing Jar"
+    },
+    {
+      "opponent": "Ocean Mage",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Penguin Knight"
+    },
+    {
+      "opponent": "High Mage Secmeton",
+      "mode": "Campaign",
+      "result": "lost",
+      "reward": null,
+      "note": "Early Twin-Headed wiped by Raigeki. Held last Electric Snake with Zombie but failed to draw remaining Dragon before loss."
+    },
+    {
+      "opponent": "Ocean Mage",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Obese Marmot of Nefariousness",
+      "save_status": "Not yet confirmed saved."
+    },
+    {
+      "opponent": "Ocean Mage (inferred)",
+      "mode": "Campaign",
+      "result": "lost",
+      "reward": null,
+      "note": "Bought extra Electric Snake but explicitly did not add it to deck before duel. No Dragon drawn before loss."
+    },
+    {
+      "opponent": "Ocean Mage (inferred rematch)",
+      "mode": "Campaign",
+      "result": "restarted",
+      "reward": null
+    },
+    {
+      "opponent": "Ocean Mage",
+      "mode": "Campaign",
+      "result": "won",
+      "reward": "Meda Bat"
+    },
+    {
+      "opponent": "High Mage Secmeton (presumed same boss)",
+      "result": "Won",
+      "date": "2026-10-31",
+      "reward": "Winged Egg of New Life #633",
+      "finish": "Twin-Headed Pluto cleared Neptune defender; Immortal2000 plus Wood Remains1000 direct for lethal from2900."
+    },
+    {
+      "opponent": "Meadow Mage",
+      "result": "Won",
+      "date": "2026-10-31",
+      "reward": "Zombie Warrior #030",
+      "finish": "Twin-Headed Thunder Dragon2800 attacked Jupiter Nekogal#2 2400 for400 from350LP."
+    },
+    {
+      "opponent": "Meadow Mage",
+      "mode": "Free Duel",
+      "date": "2026-10-31",
+      "result": "Won",
+      "reward": {
+        "id": 422,
+        "name": "Jinzo #7"
+      },
+      "finish": "Twin-Headed plus Immortal direct damage."
+    },
+    {
+      "opponent": "Meadow Mage",
+      "mode": "Free Duel",
+      "date": "2026-10-31",
+      "result": "Won",
+      "reward": "Beaver Warrior #027",
+      "rank": "B",
+      "notes": "Shield caused long duel; need rank check to confirm S/A POW target for Meteor B. Dragon."
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "date": "2026-10-31",
+      "result": "Won",
+      "reward": {
+        "id": 265,
+        "name": "The Furious Sea King"
+      },
+      "rank": "B",
+      "chips_after": 20,
+      "finish": "User confirmed win after proposed D. Human summon, Mystical Sand attack on Neptune defender, then Dharma Cannon direct from enemy 400 LP. Exact final actions inferred.",
+      "notes": "Two Happy Lovers and subsequent defenders cleared. Bolt Escargot and Mystical Sand fusions inferred completed from next-turn reports. No own losses reported. Terrain and own LP unreported."
+    },
+    {
+      "opponent": "Rex Raptor",
+      "mode": "Free Duel",
+      "date": "2026-10-31",
+      "result": "Won",
+      "rank": "S",
+      "rank_style": "Not reported",
+      "reward": {
+        "id": 188,
+        "name": "Synchar"
+      },
+      "chips_after": null,
+      "notes": "User confirmed win and S rank. Opening Petit Dragon + Firegrass -> B. Dragon Jungle King inferred from next-turn report. Uraby + Mechanical Spider -> Cyber Saurus was proposed; later plays and final attacks not reported. Do not infer exact final field or turn count."
+    }
+  ],
+  "active_duel": {
+    "opponent": "Rex Raptor",
+    "mode": "Free Duel",
+    "status": "Won; user confirmed",
+    "result": "Won",
+    "rank": "S",
+    "reward": {
+      "id": 188,
+      "name": "Synchar"
+    },
+    "enemy_lp": 0,
+    "chips_after": null,
+    "final_field": "Not reported"
+  },
+  "story_progress": "Ocean Mage beaten with fixed deck; entered second Sea Shrine duel against High Mage.",
+  "verified_game_rules": {
+    "Dark Hole": {
+      "effect": "Destroys all cards on both sides of the field, including monsters and set Magic/Trap cards.",
+      "source": "https://cyberdemon531.com/yugiohfm/guide-1/",
+      "verified_date": "2026-10-29",
+      "correction": "Earlier coaching incorrectly used the physical card game monsters-only effect and questioned user row identification. User observation was consistent with standard Forbidden Memories behavior."
+    },
+    "Winged Beast + Pyro": {
+      "rule": "Both materials below 1300 ATK produce Mavelus (1300). At least one material at 1300+ and both below 2300 produce Crimson Sunbird (2300), subject to fusion conflicts.",
+      "example": "Droll Bird + Flame Viper -> Mavelus; then + Firegrass -> Crimson Sunbird.",
+      "source": "https://raw.githubusercontent.com/MarceloSilvarolla/YFM-Database-and-Fusion-Guide/main/FUSION_GUIDE.txt",
+      "correction": "Earlier coaching incorrectly said Droll Bird + Flame Viper alone produced Crimson Sunbird."
+    },
+    "Mercury Spellcaster + Jar": {
+      "rule": "Produces Ushi Oni 2150/1950 unless a conflicting fusion takes priority. Curtain of the Dark Ones + Ancient Jar produces Ushi Oni. Female Mercury Spellcasters such as Nemuriko instead make Mystical Sand with Ancient Jar.",
+      "source": "https://raw.githubusercontent.com/MarceloSilvarolla/YFM-Database-and-Fusion-Guide/main/FUSION_GUIDE.txt"
+    },
+    "Sea field": {
+      "rule": "Boosts Aqua, Fish, Sea Serpent and Thunder by 500 ATK/DEF; weakens Machine and Pyro by 500 ATK/DEF. Other types unaffected.",
+      "source": "https://www.supercheats.com/playstation/walkthroughs/yugiohforbiddenmemories-walkthrough04.txt"
+    },
+    "Synchar + Skelengel": {
+      "result": "Garvas",
+      "atk": 2000,
+      "def": 1700,
+      "stars": [
+        "Jupiter",
+        "Pluto"
+      ],
+      "type": "Beast",
+      "source": "https://raw.githubusercontent.com/MarceloSilvarolla/YFM-Database-and-Fusion-Guide/main/FUSION_GUIDE.txt"
+    },
+    "Queen's Double + Firegrass": {
+      "result": "Queen of Autumn Leaves1800/1500",
+      "correction": "Previous assistant incorrectly predicted Charubin. Firegrass Plant + Female yields Queen, which takes priority over Warrior+Pyro Charubin. Full guide Pyro+Warrior lists Queen as a conflict taking priority. Distinguish Queen Double + Dissolverock, where Charubin may take priority over Mystical Sand.",
+      "source": "https://raw.githubusercontent.com/MarceloSilvarolla/YFM-Database-and-Fusion-Guide/main/FUSION_GUIDE.txt",
+      "confirmed_by": "User explicitly reported Queen and set it in DEF."
+    }
+  },
+  "reload_reconciliation_needed": "Latest Ocean Mage loss. Confirm whether purchased Electric Snake survived load; it was never put in deck. Do not assume purchase or6-chip estimate remains after reload.",
+  "improvement_plan": {
+    "status": "Before boss retry, request actual Star Chip count and assess cheap unredeemed Thunder password purchases. Do not force more farming.",
+    "priority": "Increase Dragon and Thunder material counts before Isis retry.",
+    "known_current_materials": {
+      "Dragon": [
+        "Petit Dragon x1"
+      ],
+      "Thunder": [
+        "Electric Snake x1"
+      ]
+    },
+    "initial_target": "At least 3 Dragon materials and 3 Thunder materials; not a requirement to finish farming before reassessment.",
+    "farm": "Free Duel: Rex Raptor. Aim for quick S/A POW wins. Useful rewards: Dragon Zombie, Wicked Dragon with the Ersatz Head, Electric Snake, Oscillo Hero #2.",
+    "key_combo": "Dragon Zombie (1600 ATK, hidden Dragon fusion group) + Electric Snake -> Twin-Headed Thunder Dragon (2800). Select Pluto versus Neptune: Umi boosts Thunder to 3300, star bonus gives 3800 in that battle.",
+    "replace_when_rewards_arrive": [
+      "Monster Eye",
+      "Hiro's Shadow Scout",
+      "Megirus Light (duplicate copies as needed)"
+    ],
+    "keep": [
+      "Dark Hole",
+      "Yami",
+      "Dragon and Thunder materials",
+      "Rock and Plant material for upgrading low Dragons"
+    ],
+    "source": "https://www.speedrun.com/hi-IN/yugiohfm/guides/o9dax",
+    "reload_note": "Confirm rewards are still present after loading actual save. Tracker deck unchanged."
+  },
+  "pending_deck_change": {
+    "status": "Complete; both swaps performed and saved."
+  },
+  "pending_deck_changes": [
+    {
+      "status": "Uraby in deck confirmed by draw; Tomozaurus removal inferred from recommended swap.",
+      "add": [
+        "Uraby"
+      ],
+      "remove": [
+        "Tomozaurus"
+      ],
+      "reason": "1500 ATK Dinosaur replaces 500 ATK Dinosaur while preserving Dinosaur + Machine -> Cyber Saurus 1800 fusion."
+    },
+    {
+      "status": "Confirmed by user saying done before next duel.",
+      "add": [
+        "M-warrior #1"
+      ],
+      "remove": [
+        "Kageningen"
+      ],
+      "reason": "1000 ATK Warrior replaces 800 ATK Warrior with same key Machine/Rock/Plant/Pyro fusion role."
+    }
+  ],
+  "password_purchase_plan": {
+    "status": "Purchases, deck swaps, and save inferred confirmed by user saying saved after instructions.",
+    "cards": [
+      {
+        "name": "Petit Dragon",
+        "cost": 30,
+        "password": "75356564",
+        "source": "https://yugioh.fandom.com/wiki/Petit_Dragon_%28FMR%29"
+      },
+      {
+        "name": "Mega Thunderball",
+        "cost": 30,
+        "password": "21817254",
+        "type": "Thunder",
+        "atk": 750,
+        "def": 600,
+        "stars": [
+          "Pluto",
+          "Mercury"
+        ],
+        "id": 537,
+        "source": "https://yugioh.fandom.com/wiki/Mega_Thunderball_%28FMR%29"
+      }
+    ],
+    "total_cost": 60,
+    "expected_remaining_chips": 6,
+    "rule": "Each password purchase once per duelist code; availability not yet checked in game.",
+    "recommended_deck_add": [
+      "Petit Dragon (new extra copy)",
+      "Mega Thunderball"
+    ],
+    "recommended_deck_remove": [
+      "Monster Eye",
+      "Megirus Light (one copy)"
+    ],
+    "example_fusion": [
+      "Petit Dragon",
+      "Ancient Jar",
+      "Mega Thunderball"
+    ],
+    "example_result": "Stone D. (2000), then Twin-Headed Thunder Dragon (2800). Do not suggest two weak materials alone make Twin-Headed."
+  },
+  "star_chips_last_reported": 20,
+  "star_chips_estimate": null,
+  "save_checkpoint": {
+    "status": "Latest S-rank Rex reward Synchar save unconfirmed; previous campaign save and exports acknowledged.",
+    "date": "2026-10-31"
+  },
+  "next_password_purchase": {
+    "status": "Purchased; user explicitly says not added to deck",
+    "name": "Electric Snake",
+    "password": "11324436",
+    "cost": 40,
+    "expected_remaining_chips": 6,
+    "source": "https://yugioh.fandom.com/wiki/Electric_Snake_%28FMR%29",
+    "checkpoint_tradeoff": "Leaving Sea Shrine to buy requires replaying Ocean Mage. Save in-game at card shop before returning to Title. Do not treat pre-purchase emulator state as containing the purchase.",
+    "save_status": "Purchased Electric retained after load, confirmed by user performing deck swap."
+  },
+  "sea_deck_tuning": {
+    "status": "Both recommended new swaps visually confirmed in Chrome.",
+    "swaps": [
+      {
+        "remove": "Droll Bird",
+        "add": "Water Omotics",
+        "reason": "1900 ATK on Sea; Aqua supports Dragon -> Spike Seadra1600 -> Thunder2800 route."
+      },
+      {
+        "remove": "Doron",
+        "add": "Morphing Jar",
+        "reason": "Additional Rock/Jar improves Dragon -> Stone D2000 -> Thunder2800 and MercurySpellcaster -> Ushi Oni access."
+      }
+    ],
+    "next_step": "Reload, verify these cards in chest, make two swaps, save before new duel. Keep existing3 Thunder and3 Dragon deck materials."
+  },
+  "chest_total_observed": 33,
+  "deck_verification": {
+    "date": "2026-10-30",
+    "method": "Prior full40-card inspection plus four observed moves: removed Yami and Steel; added one spare Cyber and one spare Electric. Each move and final40/33 counts verified in live Chrome.",
+    "url": "https://ps1-player-168235937982.asia-east2.run.app/",
+    "deck_total_observed": 40,
+    "chest_total_observed": 33,
+    "ordered_card_ids": [
+      55,
+      80,
+      102,
+      104,
+      129,
+      157,
+      158,
+      160,
+      167,
+      182,
+      188,
+      192,
+      200,
+      200,
+      206,
+      244,
+      249,
+      298,
+      305,
+      330,
+      336,
+      395,
+      410,
+      421,
+      421,
+      444,
+      463,
+      463,
+      478,
+      502,
+      537,
+      540,
+      544,
+      547,
+      556,
+      558,
+      567,
+      591,
+      635,
+      644
+    ],
+    "key_counts": {
+      "Petit Dragon": 2,
+      "Wicked Dragon with the Ersatz Head": 1,
+      "Electric Snake": 2,
+      "Mega Thunderball": 1,
+      "Cyber Commander": 2,
+      "Water Omotics": 1,
+      "Morphing Jar": 1,
+      "Yami": 0,
+      "Steel Scorpion": 0
+    },
+    "remaining_issues": []
+  },
+  "deck_verification_history": [
+    {
+      "date": "2026-10-30",
+      "method": "Read all40 numbered deck entries in live Chrome via CUA. Navigated only; no in-game card changes made.",
+      "url": "https://ps1-player-168235937982.asia-east2.run.app/",
+      "deck_total_observed": 40,
+      "chest_total_observed": 33,
+      "ordered_card_ids": [
+        55,
+        80,
+        102,
+        104,
+        129,
+        157,
+        158,
+        160,
+        167,
+        182,
+        188,
+        192,
+        200,
+        200,
+        206,
+        244,
+        249,
+        298,
+        305,
+        330,
+        335,
+        336,
+        394,
+        395,
+        410,
+        421,
+        444,
+        463,
+        478,
+        502,
+        537,
+        540,
+        544,
+        547,
+        556,
+        558,
+        567,
+        591,
+        635,
+        644
+      ],
+      "record_reconciliation": [
+        {
+          "name": "Doron",
+          "previous_record": 1,
+          "observed_deck": 0
+        },
+        {
+          "name": "Yami",
+          "previous_record": 0,
+          "observed_deck": 1
+        },
+        {
+          "name": "Steel Scorpion",
+          "previous_record": 0,
+          "observed_deck": 1
+        },
+        {
+          "name": "Cyber Commander",
+          "previous_record": 2,
+          "observed_deck": 1
+        },
+        {
+          "name": "Electric Snake",
+          "previous_record": 2,
+          "observed_deck": 1
+        },
+        {
+          "name": "Droll Bird",
+          "previous_record": 1,
+          "observed_deck": 0
+        },
+        {
+          "name": "Water Omotics",
+          "previous_record": 0,
+          "observed_deck": 1
+        },
+        {
+          "name": "Morphing Jar",
+          "previous_record": 0,
+          "observed_deck": 1
+        }
+      ],
+      "confirmed_latest_swaps": [
+        "Droll Bird removed; Water Omotics present",
+        "Doron removed; Morphing Jar present"
+      ],
+      "remaining_issues": [
+        "Yami remains in deck; only1 Electric Snake in deck. Extra Electric Snake confirmed chest1/deck1.",
+        "Steel Scorpion remains in deck; only1 Cyber Commander in deck. Extra Cyber Commander confirmed chest1/deck1."
+      ]
+    }
+  ],
+  "boss_checkpoint": {
+    "status": "Saved after victory; user confirmed",
+    "location": "After second Sea Shrine boss victory",
+    "reward": "Winged Egg of New Life #633",
+    "save_type": "Emulator Save now; request user to save before moving on",
+    "confirmed_date": "2026-10-31"
+  },
+  "proposed_move": {
+    "status": "Duel over; final sequence not reported."
+  },
+  "verified_fusion_corrections": [
+    {
+      "materials": [
+        "Dancing Elf",
+        "Mask of Darkness",
+        "Morphing Jar"
+      ],
+      "result": "Mystical Sand",
+      "atk": 2100,
+      "def": 1700,
+      "stars": [
+        "Mercury",
+        "Saturn"
+      ],
+      "evidence": "User screenshot of resulting guardian selection",
+      "correction": "Dark Elf plus Morphing Jar gives Mystical Sand; Female+Rock overrides Ushi Oni. Do not claim Ushi Oni for this sequence."
+    },
+    {
+      "subject": "Millennium Shield on Meadow",
+      "def": 3500,
+      "reason": "Warrior receives500ATKDEF terrain bonus. Do not report3000DEF onMeadow."
+    },
+    {
+      "materials": [
+        "Griggle",
+        "Water Omotics"
+      ],
+      "result": "Queen of Autumn Leaves",
+      "evidence": "User observed fusion in latest Meadow Mage Free Duel.",
+      "reason": "Water Omotics belongs to Female secondary fusion group. Plant+Female fusion; never treat this as failed fusion."
+    }
+  ],
+  "duel_attempts": [
+    {
+      "opponent": "High Mage Secmeton (inferred from second Sea Shrine battle)",
+      "mode": "Campaign",
+      "turn": 8,
+      "hand": [
+        "Giant Flea",
+        "Masked Clown",
+        "Insect Soldiers of the Sky",
+        "Curtain of the Dark Ones",
+        "Cyber Commander"
+      ],
+      "hand_status": "Stone D. fusion completed and destroyed; three retained cards plus two reported draws.",
+      "field": [],
+      "enemy_field": [
+        {
+          "name": "Man-eating Black Shark",
+          "atk": 3100,
+          "position": "ATK",
+          "guardian_star": "Not reported this turn",
+          "equip": "Unknown equipped card"
+        }
+      ],
+      "enemy_field_confirmed": true,
+      "field_spell": "Sea",
+      "last_battle": {
+        "attacker": "B. Dragon Jungle King",
+        "defender": "Illusionist Faceless Mage",
+        "expected_lp_loss": 100,
+        "both_survive": true
+      },
+      "enemy_spell_traps": [
+        {
+          "name": "Unknown",
+          "face_up": false
+        }
+      ],
+      "last_enemy_move": "Summoned Neptune DEF monster; Crab Turtle destroyed new Stone D.",
+      "lp": null,
+      "enemy_lp": 6900,
+      "battle_discrepancy": "Resolved: displayed Crab Turtle ATK3550 exceeds Moon Twin-Headed Thunder Dragon3300.",
+      "lp_status": "Last confirmed6650 before Dark Hole. Enemy attack after board wipe not reported; ask if needed.",
+      "end_status": "Reloaded after field cleared at 250 LP; defeat not played out."
+    },
+    {
+      "opponent": "High Mage Secmeton (presumed same boss after reload)",
+      "mode": "Campaign",
+      "turn": 3,
+      "field_spell": "Sea (assumed same battle; not newly confirmed)",
+      "field": [
+        {
+          "name": "Cyber Soldier",
+          "guardian_star": "Moon",
+          "position": "DEF",
+          "status": "Survival unconfirmed; user only reported new enemy summon."
+        }
+      ],
+      "enemy_field": [
+        {
+          "name": "Dark Magician",
+          "guardian_star": "Mercury",
+          "position": "ATK",
+          "atk": "Not reported; base2500"
+        },
+        {
+          "name": "Aqua Madoor",
+          "guardian_star": "Neptune",
+          "position": "Not reported"
+        }
+      ],
+      "enemy_field_confirmed": false,
+      "hand": [
+        "Pot the Trick",
+        "Electric Snake",
+        "Electric Snake",
+        "Darkworld Thorns",
+        "Giant Flea"
+      ],
+      "lp": "Not reported after reload",
+      "hand_status": "Read elec, snake as one Electric Snake draw, plus Darkworld Thorns and Giant Flea.",
+      "last_enemy_move": "Summoned Aqua Madoor Neptune; attack and own field survival not reported.",
+      "end_status": "Reloaded for another try after user reported last turn."
+    }
+  ],
+  "next_campaign_plan": {
+    "recommendation": "Pause Meadow Mage farming at Rank B. Free Duel Rex Raptor for chips, target55 total; buy Mountain50913601 and replace Forest. Check result rank each win.",
+    "status": "User has 20 chips; 35 needed for Mountain."
+  },
+  "coaching_grid_and_speed": {
+    "board_grid": "Use 5 screen columns left-to-right and 4 rows: enemy Spells, enemy Monsters, own Monsters, own Spells. Mark unconfirmed cells unknown.",
+    "summon_slots": "User uses leftmost empty own monster slot.",
+    "speed": "One concise move reply; use verified cached fusion groups; tools only if uncertain; save log at duel end.",
+    "priority": "Accuracy before speed; check secondary fusion groups.",
+    "enemy_summon_slots": "User reports enemy default screen slots 5 -> 4 -> 3 -> 2 -> 1. Use this reported default for new summons unless contradicted; distinguish inferred positions when needed."
+  },
+  "farming_rank_check": {
+    "status": "User confirmed Rank B; not eligible for Meteor B. Dragon target drop",
+    "target": "Meadow Mage S/A POW for Meteor B. Dragon",
+    "source": "https://fusion.lukadevv.com/duelists/meadow-mage",
+    "note": "Check rank before recommending repeated long duels.",
+    "next_action": "Check chips; recommend Mountain55 password50913601 in place of Forest before next farming run."
+  },
+  "pending_meadow_upgrade": {
+    "name": "Mountain",
+    "id": 332,
+    "cost": 55,
+    "password": "50913601",
+    "replace": "Forest",
+    "status": "Recommended, not purchased or swapped",
+    "reason": "Mountain boosts Twin-Headed Thunder Dragon2800->3300 while removing Meadow Warrior bonus. Choose Moon to beat Uranus Millennium Shield3000 without Pluto disadvantage.",
+    "sources": [
+      "https://ftp.yugipedia.com/wiki/Mountain_%28FMR%29",
+      "https://www.supercheats.com/playstation/walkthroughs/yugiohforbiddenmemories-walkthrough04.txt"
+    ],
+    "chips": 20,
+    "shortfall": 35
+  }
+}

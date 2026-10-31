@@ -19,6 +19,7 @@
       emulator.menu.close();
       root.PS1Touch?.reset();
     }
+    refreshCards();
     panel.showModal();
   }
   function close() { if (panel.open) panel.close(); }
@@ -46,6 +47,35 @@
     const path = cardPath(slot);
     return manager.FS.analyzePath(path).exists ? manager.FS.readFile(path) : null;
   }
+  function cardSummary(bytes) {
+    if (!bytes) return 'No card file yet';
+    if (!(bytes instanceof Uint8Array) || bytes.length !== 131072 || bytes[0] !== 77 || bytes[1] !== 67) return 'Cannot read card';
+    let used = 0;
+    for (let frame = 0; frame <= 15; frame++) {
+      const start = frame * 128;
+      let checksum = 0;
+      for (let i = 0; i < 127; i++) checksum ^= bytes[start + i];
+      if (checksum !== bytes[start + 127]) return 'Cannot read card';
+      if (!frame) continue;
+      if (bytes[start + 1] || bytes[start + 2] || bytes[start + 3]) return 'Cannot read card';
+      const state = bytes[start];
+      if ([0x51, 0x52, 0x53].includes(state)) used++;
+      else if (![0xa0, 0xa1, 0xa2, 0xa3].includes(state)) return 'Cannot read card';
+    }
+    if (!used) return 'Empty · 15 blocks free';
+    return (used === 15 ? 'Full' : 'Used') + ' · ' + used + '/15 blocks';
+  }
+  function refreshCards() {
+    if (!emulator || busy) return;
+    for (const slot of [1, 2]) {
+      let text = 'Cannot read card';
+      try { text = slot === 2 && !secondCardEnabled ? 'Slot off' : cardSummary(cardBytes(slot)); }
+      catch (error) { /* Keep an unreadable card distinct from an empty card. */ }
+      const output = document.querySelector('#card' + slot + '-contents');
+      if (output.textContent !== text) output.textContent = text;
+    }
+  }
+  root.addEventListener?.('ps1-state-loaded', () => { if (panel.open) refreshCards(); });
   function exportCard(slot) {
     const bytes = cardBytes(slot);
     if (!bytes) throw new Error('No card file yet. Save inside the game first.');
@@ -88,7 +118,7 @@
       if (bytes[0] !== 77 || bytes[1] !== 67) throw new Error('This file is not a raw PS1 memory card.');
       const message = slot === 1
         ? 'Replace slot 1 with this card? A backup of the current card downloads first. Use Load inside the game after import.'
-        : 'Replace the shared slot 2 card and reload? A backup downloads first. Then choose Play last game (or pick the same game) and Start fresh to use the card. Your saved points stay here.';
+        : 'Replace the shared slot 2 card and reload? A backup downloads first. Then choose Play last game (or pick the same game) and Start fresh to use the card. Your states stay here.';
       if (!root.confirm(message)) return;
       const previous = cardBytes(slot);
       if (previous) exportCard(slot);
@@ -107,7 +137,7 @@
       status.textContent = 'Imported slot ' + slot + '. Use Load inside the game.';
       if (slot === 2) location.reload();
     } catch (error) { status.textContent = 'Could not import: ' + error.message; }
-    finally { cardPicker.value = ''; setBusy(false); }
+    finally { cardPicker.value = ''; setBusy(false); refreshCards(); }
   });
   document.querySelector('#enable-card2').addEventListener('click', () => {
     if (!emulator) return;
@@ -129,7 +159,11 @@
       ? 'On · Shared by all games in this browser.'
       : 'Off · Turn it on for the next game start.';
     for (const id of ['export-card2', 'import-card2']) document.querySelector('#' + id).disabled = !enabled;
-    emulator.on('exit', () => { close(); setBusy(true); emulator = null; });
+    refreshCards();
+    emulator.on('exit', () => {
+      close(); setBusy(true); emulator = null;
+      for (const slot of [1, 2]) document.querySelector('#card' + slot + '-contents').textContent = 'Start the game to check';
+    });
   }
   root.PS1Saves = { open, close, attach, download, pickCard };
 })(window);
