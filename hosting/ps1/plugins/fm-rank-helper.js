@@ -270,6 +270,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
 // Built into play/overlay.js by play/build-overlay.cjs, after engine.js, planner.js and the card data.
 (function () {
     'use strict';
+    // Pasting the box again mid-duel keeps the old counters instead of starting over.
+    const old = window.__fmOverlay && window.__fmOverlay.counters();
     if (window.__fmOverlay) window.__fmOverlay.stop();
     const engine = FMFusion.create(window.__fmData);
     const C = id => engine.cards.get(id);
@@ -300,13 +302,38 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     let c = null, prev = null, last = '', plan = null;
     const fresh = s => ({ sig: s.myDeck.join(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: 'None' });
     const same = (a, b) => (a && a.id) === (b && b.id);
+    // Joined mid-duel: guess the counters from the deck orders. A deck is drawn in order, so the hand tells how far in it is.
+    // Fused cards leave the hand, so these are lower bounds; the field box and "turn +1" fix a miss.
+    const drawnCount = (deck, ids) => {
+        ids = ids.filter(id => deck.includes(id));
+        for (let n = 5; n <= deck.length; n++) {
+            const part = deck.slice(0, n);
+            if (ids.every(id => part.filter(x => x === id).length >= ids.filter(y => y === id).length)) return n;
+        }
+        return deck.length;
+    };
+    function guess(c, s) {
+        const mine = s.hand.filter(Boolean).map(h => h.id), foe = s.foeHand.filter(Boolean).map(h => h.id);
+        c.used = drawnCount(s.myDeck, mine);
+        c.foeDrawn = foe.length ? drawnCount(s.foeDeck, foe) : 0;
+        // The foe draws its first hand on its first turn, then one card a turn: it has drawn turn + 3 cards on my turn T.
+        c.turn = Math.max(1, c.foeDrawn - 3);
+        // A field card that was drawn but is not in the hand has been played. One such card names the land.
+        const played = [[s.myDeck, c.used, mine], [s.foeDeck, c.foeDrawn, foe]].flatMap(([d, n, h]) =>
+            Object.keys(FMPlanner.FIELDS).map(Number).filter(f => d.slice(0, n).includes(f) && !h.includes(f)));
+        if (played.length === 1) c.land = FMPlanner.FIELDS[played[0]];
+    }
     function track(s) {
         // The foe draws its first hand on its first turn, so only my hand is dealt at the start.
         const dealt = s.hand.every(Boolean);
         // Duel start (or a save state loaded back to it): full LP, empty fields, hand = top 5 of the deck.
         const startNew = dealt && s.lp === 8000 && s.foeLp === 8000 && !s.mine.some(Boolean) && !s.foe.some(Boolean) &&
             s.hand.every((h, i) => h.id === s.myDeck[i]);
-        if (startNew || (!c && dealt)) { c = fresh(s); prev = s; return; }
+        if (startNew || (!c && dealt)) {
+            if (!startNew && old && old.sig === s.myDeck.join()) c = old;
+            else { c = fresh(s); if (!startNew) guess(c, s); }
+            prev = s; return;
+        }
         if (!c) return;
         let drawn = 0, foeDrawn = 0;
         s.hand.forEach((h, i) => {
@@ -332,7 +359,14 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         });
         if (c.mine) s.foe.forEach((f, i) => { if (prev.foe[i] && !f) c.eff++; });
         if (foeDrawn) { c.mine = false; c.foeDrawn += foeDrawn; }
-        if (drawn && !c.mine) { c.mine = true; c.turn++; c.used += drawn; c.left = []; }
+        if (drawn && !c.mine) { c.mine = true; c.left = []; }
+        // The deck orders say how many cards each side has drawn, so use them for the card count and the turn.
+        // "turn +1" adds a manual offset on top.
+        if (dealt) c.used = Math.max(5, drawnCount(s.myDeck, s.hand.map(h => h.id)));
+        if (s.foeHand.some(Boolean)) {
+            c.foeDrawn = drawnCount(s.foeDeck, s.foeHand.filter(Boolean).map(h => h.id));
+            c.turn = Math.max(1, c.foeDrawn - 3) + (c.adj || 0);
+        }
         prev = s;
     }
 
@@ -441,7 +475,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         if (c.turn > 1) h += ` · win now: ${FMPlanner.rank(now).replace(' POW', '')} ${now}`;
         h += `<button class="link" data-act="turn" title="Use if the turn count is behind">turn +1</button></div>`;
         say(h);
-        body.querySelector('[data-act=turn]').onclick = () => { c.turn++; c.mine = true; last = ''; };
+        body.querySelector('[data-act=turn]').onclick = () => { c.adj = (c.adj || 0) + 1; c.turn++; c.mine = true; last = ''; };
     }
     function tick() {
         try {
