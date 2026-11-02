@@ -314,7 +314,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     }
     let B = null;
     const u16 = o => heap()[B + o] | (heap()[B + o + 1] << 8);
-    const slot = k => { const o = 0x1A7AE4 + k * 28, f = heap()[B + o + 11]; return f & 0x80 ? { id: u16(o), f, a: u16(o + 2), d: u16(o + 4) } : null; };
+    const slot = k => { const o = 0x1A7AE4 + k * 28, f = heap()[B + o + 11]; return f & 0x80 ? { id: u16(o), f, q: u16(o + 6) } : null; };
     const deck = o => Array.from({ length: 40 }, (_, i) => u16(o + i * 2));
     function read() {
         const g = (a, n) => Array.from({ length: n }, (_, i) => slot(a + i));
@@ -322,7 +322,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     }
 
     // Rank counters for the duel in progress. They start fresh when a new shuffle shows up.
-    let c = null, prev = null, last = '', plan = null;
+    let c = null, prev = null, last = '', plan = null, seen = null, steady = 0;
+    const SETTLE = 3;
     const fresh = s => ({ sig: s.myDeck.join(), deckMe: s.myDeck.slice(), deckFoe: s.foeDeck.slice(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: 'None' });
     const same = (a, b) => (a && a.id) === (b && b.id);
     // Joined mid-duel: guess the counters from the deck orders. A deck is drawn in order, so the hand tells how far in it is.
@@ -446,9 +447,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         const mon = (e, done, foe) => {
             if (!e || !engine.monster(e.id)) return null;
             const pos = foe && e.f & 0x18 ? 'def' : 'atk';
-            // RAM holds the card's ATK/DEF with equips applied, before the field bonus. Keep the gap to the printed number.
-            const printed = C(e.id)?.[pos === 'def' ? 'def' : 'atk'], ram = pos === 'def' ? e.d : e.a;
-            const eq = ram > 0 && ram <= 9999 && printed != null ? ram - printed : 0;
+            // Bytes 6-7 of a slot hold the equip bonus (+500 on Orion with an equip: 2300/2000 on screen, 1800/1500 printed).
+            const eq = e.q > 0 && e.q <= 2000 ? e.q : 0;
             return { id: e.id, atk: Math.max(0, (pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land)) + eq), eq, done, pos, star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
         };
         return {
@@ -580,8 +580,10 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             track(s);
             const duel = c && s.hand.some(Boolean) && s.foeLp > 0 && s.lp > 0;
             const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land]);
-            if (sig === last) return;
-            last = sig;
+            if (sig === last) { seen = null; return; }
+            // A new state must hold for a few ticks before it is drawn, so the fight zoom cannot flicker the panel.
+            if (last) { if (sig !== seen) { seen = sig; steady = 1; return; } if (++steady < SETTLE) return; }
+            seen = null; last = sig;
             if (!duel) { say('<span class="muted">Waiting for a duel to start.</span>'); return; }
             if (!c.mine) { drawFoe(); return; }
             // Cards have left my hand but the monster has not landed yet (fusing, picking a star):
@@ -589,8 +591,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             // The game sets the played flag (0x04) on my monsters as soon as the slot prompt opens, before the monster lands.
             // With no card seen leaving my hand or landing yet, a play is under way too: hold the plan.
             // During the fight scene my monsters read as empty: hold the panel until they are back.
-            if (c.blank) return;
-            if (c.pend.length || (s.mine.some(m => m && m.f & 0x04) && !c.act)) return;
+            if (plan && c.blank) return;
+            if (plan && (c.pend.length || (s.mine.some(m => m && m.f & 0x04) && !c.act))) return;
             if (c.mine && s.hand.some(Boolean)) plan = P.plan(state(s), Math.max(6, c.turn + 2));
             draw(s);
         } catch (e) { body.textContent = 'Error: ' + e.message; }
