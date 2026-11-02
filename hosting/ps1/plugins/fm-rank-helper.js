@@ -180,7 +180,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             hand.forEach((id, i) => { if (id && isMon(id)) add(id, [i]); });
             const idx = hand.map((id, i) => id ? i : -1).filter(i => i >= 0);
             for (const l of engine.search(idx.map(i => hand[i]), [])) add(l.result, l.order.map(j => idx[j]));
-            return [null, ...Object.values(best)];
+            // Strongest first, "nothing" last: on a tie the plan puts a card down instead of waiting.
+            return [...Object.values(best).sort((a, b) => b.atk - a.atk), null];
         }
         // My attacks: each foe monster (strongest first) is hit by my weakest monster that beats it;
         // if the foe field is then empty, the rest go direct. mine/foe are [{id, atk, done}].
