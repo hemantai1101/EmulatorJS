@@ -400,7 +400,15 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             c.pend = []; c.act = true; note('act:landed ' + m.id + ' slot ' + i + (p ? ' over ' + p.id : ''));
         });
         // An effective attack destroys an attack-position monster. Face-down and defense monsters (flag bits 0x18) do not count.
-        if (c.mine) s.foe.forEach((f, i) => { if (prev.foe[i] && !f && !(prev.foe[i].f & 0x18)) c.eff++; });
+        // Counted against the last settled foe field, so a fight-scene blip does not count as a kill.
+        const cnt = s.mine.filter(Boolean).length;
+        if (cnt >= (c.known || 0)) { c.known = cnt; c.blank = 0; }
+        else if (!c.blank) c.blank = Date.now();
+        else if (Date.now() - c.blank > 12000) { c.known = cnt; c.blank = 0; }   // a monster of mine really died
+        if (!c.blank) {
+            if (c.mine) s.foe.forEach((f, i) => { const p = (c.foeStable || [])[i]; if (p && !f && !(p.f & 0x18)) c.eff++; });
+            c.foeStable = s.foe;
+        }
         // New cards in my hand are a refill, which is my turn starting. (The hand can look full all turn: a played card may stay in RAM.)
         // The deck order says how many cards I have drawn.
         const drew = diff(now, was).filter(id => { const i = c.pend.indexOf(id); if (i >= 0) { c.pend.splice(i, 1); return false; } return true; });
@@ -408,7 +416,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             c.used = Math.max(c.used, 5, drawnCount(c.deckMe, now));
             c.mine = true; c.left = [];
             note('refill ' + drew.join()); if (c.act) { c.turn++; c.act = false; note('turn++ refill'); }
-            c.start = dealt ? now : c.start; c.gone = []; c.pend = []; c.landed = [];
+            c.start = dealt ? now : c.start; c.gone = []; c.pend = []; c.landed = []; c.known = cnt; c.blank = 0;
         }
         // The foe drew: its turn starts, so mine is over. (Flags on my monsters blip during attack animations, so they are no signal.)
         if (s.foeHand.some(Boolean)) {
@@ -570,7 +578,11 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             if (!c.mine) { drawFoe(); return; }
             // Cards have left my hand but the monster has not landed yet (fusing, picking a star):
             // the hand is half empty, so keep the last plan until the play finishes.
-            if (c.pend.length) return;
+            // The game sets the played flag (0x04) on my monsters as soon as the slot prompt opens, before the monster lands.
+            // With no card seen leaving my hand or landing yet, a play is under way too: hold the plan.
+            // During the fight scene my monsters read as empty: hold the panel until they are back.
+            if (c.blank) return;
+            if (c.pend.length || (s.mine.some(m => m && m.f & 0x04) && !c.act)) return;
             if (c.mine && s.hand.some(Boolean)) plan = P.plan(state(s), Math.max(6, c.turn + 2));
             draw(s);
         } catch (e) { body.textContent = 'Error: ' + e.message; }
