@@ -171,6 +171,9 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     // land is the default field when a state does not name one.
     function create(engine, land = 'None') {
         const atk = (id, l = land) => engine.stats(id, l).atk;
+        const def = (id, l = land) => engine.stats(id, l).def;
+        // A foe monster in defense (or face-down) is fought on its DEF: a foe is {id, atk, pos}, and atk holds that number.
+        const power = (id, pos, l) => pos === 'def' ? def(id, l) : atk(id, l);
         const isMon = id => engine.monster(id);
         // This turn's plays: nothing, the best single monster, and the best fusion for each card count.
         // Each play is {id, atk, used: [hand indexes in pick order]}.
@@ -184,7 +187,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             return [...Object.values(best).sort((a, b) => b.atk - a.atk), null];
         }
         // My attacks: each foe monster (strongest first) is hit by my weakest monster that beats it;
-        // if the foe field is then empty, the rest go direct. mine/foe are [{id, atk, done}].
+        // if the foe field is then empty, the rest go direct. mine/foe are [{id, atk, done, pos}].
+        // Breaking a defense monster costs it nothing in LP and is not an effective attack.
         function attack(mine, foe) {
             const left = mine.filter(m => !m.done).sort((a, b) => a.atk - b.atk), out = [];
             let dmg = 0, eff = 0;
@@ -192,7 +196,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
                 const i = left.findIndex(m => m.atk > f.atk);
                 if (i < 0) continue;
                 const m = left.splice(i, 1)[0];
-                dmg += m.atk - f.atk; eff++; out.push({ from: m, to: f });
+                if (f.pos !== 'def') { dmg += m.atk - f.atk; eff++; }
+                out.push({ from: m, to: f });
             }
             const foeLeft = foe.filter(f => !out.some(o => o.to === f));
             if (!foeLeft.length) for (const m of left) { dmg += m.atk; out.push({ from: m, to: null }); }
@@ -208,13 +213,14 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             const field = hand.find(id => FIELDS[id] && FIELDS[id] !== l);
             if (field) {
                 hand.splice(hand.indexOf(field), 1); l = FIELDS[field];
-                foe = foe.map(f => ({ ...f, atk: atk(f.id, l) })); mine = mine.map(m => ({ ...m, atk: atk(m.id, l) }));
+                foe = foe.map(f => ({ ...f, atk: power(f.id, f.pos, l) })); mine = mine.map(m => ({ ...m, atk: atk(m.id, l) }));
             } else {
                 const mons = hand.filter(isMon).sort((a, b) => atk(b, l) - atk(a, l));
                 if (mons.length && foe.length < 5) { hand.splice(hand.indexOf(mons[0]), 1); foe.push({ id: mons[0], atk: atk(mons[0], l) }); }
             }
             let lp = st.lp;
             for (const f of foe.slice().sort((a, b) => b.atk - a.atk)) {
+                if (f.pos === 'def') continue;
                 const targets = mine.filter(m => m.atk < f.atk).sort((a, b) => b.atk - a.atk);
                 if (targets.length) { lp -= f.atk - targets[0].atk; mine = mine.filter(m => m !== targets[0]); }
                 else if (!mine.length) lp -= f.atk;
@@ -223,9 +229,9 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         }
         // st: {land, turn, hand: [id|null] x5, myDeck, mine: [{id, atk, done}], foe: [{id, atk}], foeHand, foeDeck,
         //      lp: my LP, foeLp, used, fusions, eff, magic, equips, down, played: already played this turn}
-        // Returns the best line {score, rank, win, steps: [{turn, play, attacks}], final} or null if no win in range.
+        // Returns the best line {score, rank, win, steps: [{turn, play, attacks}], final}, or {partial, steps, foeLp} if no win in range.
         function plan(st0, horizon = 6) {
-            let best = null;
+            let best = null, partial = null;
             const go = (st, steps) => {
                 let opts = st.played ? [null] : plays(st.hand, st.land ?? land);
                 // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play or no room.
@@ -248,7 +254,12 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
                         if (!best || s > best.score || (s === best.score && st.turn < best.win)) best = { score: s, rank: rank(s), win: st.turn, steps: line, final: fin };
                         continue;
                     }
-                    if (st.turn >= horizon) continue;
+                    if (st.turn >= horizon) {
+                        // No win in range: keep the line that leaves the foe lowest, then the one that keeps most of my monsters.
+                        const key = [foeLp, -mine.length];
+                        if (!partial || key[0] < partial.key[0] || (key[0] === partial.key[0] && key[1] < partial.key[1])) partial = { key, steps: line, foeLp };
+                        continue;
+                    }
                     const next = foeTurn({ ...st, mine, foe: a.foeLeft, foeLp });
                     if (next.lp <= 0) continue;
                     hand = hand.filter(Boolean); const deck = st.myDeck.slice(); let used = st.used;
@@ -257,9 +268,10 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
                 }
             };
             go(st0, []);
-            return best;
+            // Without a win, hand back the best line so the box still names a move: {partial: true, steps, foeLp}.
+            return best || (partial && { partial: true, steps: partial.steps, foeLp: partial.foeLp });
         }
-        return { plan, plays, attack, foeTurn, atk };
+        return { plan, plays, attack, foeTurn, atk, def };
     }
     const api = { create, score, rank, tables: T, FIELDS };
     if (typeof module !== 'undefined') module.exports = api;
@@ -371,10 +383,15 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     }
 
     function state(s) {
-        const mon = (e, done) => e && engine.monster(e.id) ? { id: e.id, atk: P.atk(e.id, c.land), done } : null;
+        // Foe monsters with the 0x18 flag bits (face-down, defense) are fought on their DEF. Seen on Millennium Shield: 0xb8.
+        const mon = (e, done, foe) => {
+            if (!e || !engine.monster(e.id)) return null;
+            const pos = foe && e.f & 0x18 ? 'def' : 'atk';
+            return { id: e.id, atk: pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land), done, pos };
+        };
         return {
             land: c.land, turn: c.turn, hand: s.hand.map(h => h && h.id), myDeck: s.myDeck.slice(c.used),
-            mine: s.mine.map(m => mon(m, m && !!(m.f & 0x40))).filter(Boolean), foe: s.foe.map(f => mon(f)).filter(Boolean),
+            mine: s.mine.map(m => mon(m, m && !!(m.f & 0x40))).filter(Boolean), foe: s.foe.map(f => mon(f, false, true)).filter(Boolean),
             foeHand: s.foeHand.filter(Boolean).map(f => f.id), foeDeck: s.foeDeck.slice(c.foeDrawn),
             lp: s.lp, foeLp: s.foeLp, used: c.used, fusions: c.fusions, eff: c.eff, magic: c.magic, equips: c.equips, traps: c.traps,
             played: s.mine.some(m => m && (m.f & 0x04))
@@ -458,10 +475,15 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     function draw(s) {
         const st = state(s), now = FMPlanner.score({ ...st, turn: c.turn, down: 0 });
         fieldPick.value = c.land;
-        hrank.className = 'hrank ' + (plan ? plan.rank[0] : 'D');
-        hrank.textContent = plan ? `${plan.rank.replace(' POW', '')} · T${plan.win}` : 'no win';
+        hrank.className = 'hrank ' + (plan && !plan.partial ? plan.rank[0] : 'D');
+        hrank.textContent = plan && !plan.partial ? `${plan.rank.replace(' POW', '')} · T${plan.win}` : 'no win';
         let h = '';
-        if (!plan) {
+        if (plan && plan.partial) {
+            h += `<div class="rank">${badge('—')}<span>No win in range. Best line leaves the foe ${plan.foeLp} LP.</span></div>`;
+            const [first, ...rest] = plan.steps;
+            h += `<div class="now">${stepText(first, true)}</div>`;
+            if (rest.length) h += `<details><summary>Next turns (a guess)</summary>${rest.map(r => `T${r.turn}: ${stepText(r)}`).join('<br>')}</details>`;
+        } else if (!plan) {
             h += `<div class="rank">${badge('—')}<span>${c.turn === 1 ? 'No win in 6 turns.' : 'No winning line in range.'}</span></div>`;
             if (c.turn === 1) h += '<div class="warn">Reload for a new deal.</div>';
         } else {
