@@ -418,6 +418,11 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             note('refill ' + drew.join()); if (c.act) { c.turn++; c.act = false; note('turn++ refill'); }
             c.start = dealt ? now : c.start; c.gone = []; c.pend = []; c.landed = []; c.known = cnt; c.blank = 0;
         }
+        // I played this turn and the played flags (0x04) on my monsters are gone for a few ticks: I pressed Enter, so it is the foe's turn.
+        // (Battle blips are held above, and a monster that just landed has the flag.)
+        if (c.act && c.mine && cnt && !c.blank && !c.pend.length && !s.mine.some(m => m && m.f & 0x04)) {
+            if ((c.over = (c.over || 0) + 1) >= 3) { c.mine = false; c.over = 0; note('turn over (flags clear)'); }
+        } else c.over = 0;
         // The foe drew: its turn starts, so mine is over. (Flags on my monsters blip during attack animations, so they are no signal.)
         if (s.foeHand.some(Boolean)) {
             if (diff(ids(s.foeHand), ids(prev.foeHand)).length) {
