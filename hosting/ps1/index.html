@@ -23,7 +23,9 @@
   button, summary, select, input[type=file] { min-height: 44px; }
   button, select { border: 1px solid var(--line); border-radius: 10px; background: #2c3032; color: var(--text); }
   button { padding: 11px 18px; font-weight: 650; cursor: pointer; }
-  button:hover:not(:disabled) { background: #3a3f41; }
+  button:hover:not(:disabled), select:hover:not(:disabled) { background-color: #3a3f41; }
+  select { appearance: none; -webkit-appearance: none; padding: 8px 40px 8px 12px; line-height: 1.4; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23b3b7b5' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; text-overflow: ellipsis; }
+  select:disabled { opacity: .5; cursor: default; }
   button:disabled { opacity: .5; cursor: default; }
   :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #1b2414; }
@@ -72,7 +74,6 @@
   @media (hover: hover) and (pointer: fine) {
     #play-tools #fill-window { display: grid; }
   }
-  #play-tools select { font: inherit; padding: 10px; }
   #settings-toggle[aria-expanded=true] { border-color: var(--accent); }
   #player-settings { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 18px; }
   #player-settings h3 { font-size: 15px; margin: 0 0 10px; }
@@ -91,7 +92,6 @@
   #saves-panel .hint { margin-top: 8px; }
   #saves-panel button { padding: 10px 12px; }
   #saves-save-now { width: 100%; margin: 12px 0; }
-  #local-saves { appearance: none; min-height: 44px; font-size: 16px; padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23b3b7b5' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
   .save-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .save-actions button { flex: 1; }
   #saves-panel details { margin-top: 16px; }
@@ -99,7 +99,6 @@
   #saves-panel .details-body > .hint:first-child { margin-top: 0; }
   .memory-card { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
   .memory-card .save-actions { margin-top: 8px; }
-  #saves-panel .memory-card button { font-size: 14px; }
   #saves-panel :is(#saves-status, #card-status, #card-restore-status):empty { display: none; }
   #card-status { margin-top: 12px; font-size: 13px; overflow-wrap: anywhere; }
   .game-shell { margin-bottom: 24px; position: relative; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #080a09; }
@@ -214,7 +213,7 @@
     box-shadow: 0 8px 32px #0008; font: 14px/1.5 system-ui, sans-serif;
   }
   #display-panel label { margin-top: 14px; }
-  #display-panel select, #display-panel input { width: 100%; }
+  #display-panel select, #display-panel input { width: 100%; margin-top: 6px; }
   #display-panel input { min-height: 44px; accent-color: var(--accent); }
   #display-panel p { font-size: 12px; margin-top: 8px; }
   #display-panel #game-analog-status { font-size: 14px; font-weight: 650; color: var(--text); }
@@ -287,7 +286,7 @@
   #resume-panel { position: fixed; inset: 0; z-index: 11000; display: grid; place-items: center; background: #000c; padding: 24px; }
   #resume-panel > div { width: min(100%, 400px); background: var(--panel); border: 1px solid var(--line); padding: 28px; border-radius: 18px; box-shadow: 0 24px 100px #0008; }
   #resume-panel h2 { font-size: 24px; margin-bottom: 12px; }
-  #local-saves, #resume-save { width: 100%; padding: 10px; margin: 8px 0; }
+  #local-saves, #resume-save { width: 100%; margin: 8px 0; font-size: 16px; }
   #resume-panel button { width: 100%; margin-top: 12px; }
   body.fill-screen { overflow: hidden; }
   .fill-screen #screen {
@@ -316,7 +315,7 @@
     margin: 0 !important; padding: 10px 12px; border: 1px solid #ffffff22;
     border-radius: 10px; background: #2c3032; color: #f3f2ed; text-align: left; line-height: 1.4;
   }
-  #game .ejs_menu_bar .ejs_menu_button:hover { background: #3a3f41; box-shadow: none; }
+  #game .ejs_menu_bar .ejs_menu_button:hover, #game .ps1-menu-group-body > button:hover:not(:disabled) { background: #3a3f41; box-shadow: none; }
   #game .ejs_menu_bar .ejs_menu_button svg { float: none; width: 20px; height: 20px; flex-shrink: 0; }
   #game .ejs_menu_bar .ejs_menu_text {
     display: inline; position: static; opacity: 1; visibility: visible; transform: none !important;
@@ -331,9 +330,9 @@
   #game .ejs_menu_bar .ejs_volume_parent input::-moz-range-track { background-color: #ffffff33; }
   #game .ejs_menu_bar .ejs_volume_parent input::-moz-range-thumb { width: 24px; height: 24px; }
   #game .ps1-menu-group { margin: 0; border-top: 1px solid #3a3e40; }
-  #game .ps1-menu-group summary { padding: 10px 12px; min-height: 44px; font: inherit; font-weight: 650; }
-  #game .ps1-menu-group-body { display: flex; flex-direction: column; gap: 10px; }
-  #game .ps1-menu-group-body select { width: 100%; min-height: 44px; padding: 8px; color: #f3f2ed; background: #2c3032; }
+  #game .ps1-menu-group summary { padding: 10px 4px; min-height: 44px; font: inherit; font-weight: 650; }
+  #game .ps1-menu-group-body { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
+  #game .ps1-menu-group-body select { width: 100%; min-height: 44px; color: #f3f2ed; background-color: #2c3032; }
   #game .ps1-menu-group-body p { color: #b3b7b5; font-size: 12px; margin: 0 0 6px; }
   #game .ejs_menu_bar .ejs_settings_parent { position: relative; bottom: auto; margin: 8px 0 0; max-width: 100%; background: #222527; }
   #game .ejs_menu_bar .ejs_settings_parent::before, #game .ejs_menu_bar .ejs_settings_parent::after { display: none; }
@@ -413,9 +412,9 @@
           <div class="save-actions"><button id="restore-local" type="button" aria-label="Load selected state" disabled>Load state</button><button id="export-local" type="button" aria-label="Export selected state" disabled>Export state</button></div>
           <p id="saves-status" class="hint" role="status" aria-live="polite"></p>
           <details>
-            <summary>Load State</summary>
+            <summary>Import a state file</summary>
             <div class="details-body">
-              <label class="hint" for="state-file">Import a .state file</label>
+              <label class="hint" for="state-file">Choose a .state file</label>
               <input id="state-file" type="file" accept=".state" aria-describedby="state-warning save-status" disabled>
               <p id="state-warning" class="hint">Use the same game and disc. We cannot check this.</p>
               <p id="save-status" role="status" aria-live="polite">Start the game to import a state.</p>
