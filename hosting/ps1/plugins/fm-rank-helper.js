@@ -228,8 +228,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             let best = null;
             const go = (st, steps) => {
                 let opts = st.played ? [null] : plays(st.hand, st.land ?? land);
-                // The game wants a card down before you attack, so this turn's move is a card unless there is nothing to play or no room.
-                if (!steps.length && !st.played && st.mine.length < 5 && opts.length > 1) opts = opts.filter(Boolean);
+                // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play or no room.
+                if (!st.played && st.mine.length < 5 && opts.length > 1) opts = opts.filter(Boolean);
                 for (const p of opts) {
                     let hand = st.hand.slice(), mine = st.mine.slice(), fusions = st.fusions;
                     if (p) {
