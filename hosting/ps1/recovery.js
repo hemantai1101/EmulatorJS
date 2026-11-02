@@ -43,6 +43,7 @@
       const exportSave = document.querySelector('#export-local');
       const resumePicker = document.querySelector('#resume-save');
       const status = document.querySelector('#recovery-status');
+      const autoToggle = document.querySelector('#auto-save');
       const id = 'pcsx_rearmed-4.2.3:' + gameName;
       let saves = [];
       let lastSave, backgrounded = false, schedulerPaused = false;
@@ -144,7 +145,18 @@
           status.textContent = 'Could not export this state. Try again.';
         }
       });
+      function autoEnabled() {
+        try { return localStorage.getItem('ps1-auto-save') !== 'off'; } catch (error) { return true; }
+      }
+      if (autoToggle) {
+        autoToggle.checked = autoEnabled();
+        autoToggle.addEventListener('change', () => {
+          try { localStorage.setItem('ps1-auto-save', autoToggle.checked ? 'on' : 'off'); } catch (error) { /* Applies until reload. */ }
+          status.textContent = autoToggle.checked ? 'Auto-save is on.' : 'Auto-save is off. Use Save state now to keep your progress.';
+        });
+      }
       function autoCheckpoint() {
+        if (autoToggle ? !autoToggle.checked : !autoEnabled()) return Promise.resolve(false);
         if (saves.length && Date.now() - saves[0].savedAt < SAVE_INTERVAL) return Promise.resolve(false);
         return checkpoint(true);
       }
