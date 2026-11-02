@@ -198,6 +198,8 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy2(ROOT / "recovery.js", public / "recovery.js")
     shutil.copy2(ROOT / "touch-controls.js", public / "touch-controls.js")
     shutil.copy2(ROOT / "menu.js", public / "menu.js")
+    shutil.copy2(ROOT / "plugins.js", public / "plugins.js")
+    shutil.copytree(ROOT / "plugins", public / "plugins", dirs_exist_ok=True)
     shutil.copy2(ROOT / "saves.js", public / "saves.js")
     shutil.copy2(ROOT / "state-cards.js", public / "state-cards.js")
     shutil.copy2(ROOT / "robots.txt", public / "robots.txt")

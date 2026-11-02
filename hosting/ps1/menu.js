@@ -85,6 +85,32 @@
     saves.append(hint);
     sync();
 
+    const plugins = group('Plugins');
+    const pluginStatus = document.createElement('p');
+    pluginStatus.setAttribute('role', 'status');
+    for (const plugin of root.PS1Plugins?.list || []) {
+      const load = document.createElement('button');
+      load.type = 'button';
+      load.textContent = 'Load ' + plugin.name;
+      load.addEventListener('click', () => {
+        pluginStatus.textContent = 'Loading ' + plugin.name + '…';
+        root.PS1Plugins.load(plugin.id).then(
+          () => { pluginStatus.textContent = plugin.name + ' is running.'; emulator.menu.close(); },
+          error => { pluginStatus.textContent = error.message; }
+        );
+      });
+      const autoLabel = document.createElement('label');
+      const autoBox = document.createElement('input');
+      autoBox.type = 'checkbox';
+      autoBox.checked = root.PS1Plugins.auto().includes(plugin.id);
+      autoBox.addEventListener('change', () => root.PS1Plugins.setAuto(plugin.id, autoBox.checked));
+      autoLabel.append(autoBox, ' Load when a game starts');
+      const note = document.createElement('p');
+      note.textContent = plugin.note;
+      plugins.append(load, autoLabel, note);
+    }
+    plugins.append(pluginStatus);
+
     const advanced = group('Advanced');
     move('restart', advanced);
     bar.restart[0].addEventListener('click', event => {

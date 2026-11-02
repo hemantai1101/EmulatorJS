@@ -484,7 +484,8 @@
 <script src="recent-game.js"></script>
 <script src="recovery.js?v=20261102-autotoggle"></script>
 <script src="touch-controls.js?v=20261028-analog-status"></script>
-<script src="menu.js?v=20261031-states"></script>
+<script src="plugins.js?v=20261102"></script>
+<script src="menu.js?v=20261102-plugins"></script>
 <script src="saves.js?v=20261031-card-status"></script>
 <script src="state-cards.js?v=20261030"></script>
 <script>
@@ -893,6 +894,7 @@ window.EJS_onGameStart = () => {
   PS1Touch.attach(window.EJS_emulator);
   PS1StateCards.attach(window.EJS_emulator);
   PS1Menu.setup(window.EJS_emulator);
+  PS1Plugins.loadAuto();
   setTouchControlsVisible(savedTouchVisibility ?? (window.EJS_emulator.touch || window.EJS_emulator.getSettingValue('virtual-gamepad') === 'enabled'), false);
   fillButton.disabled = false;
   windowFillButton.disabled = false;
