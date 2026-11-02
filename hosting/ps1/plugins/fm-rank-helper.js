@@ -165,6 +165,9 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         return (n >= 40 ? 'D' : n >= 30 ? 'C' : n >= 20 ? 'B' : n >= 10 ? 'A' : 'S') + ' TEC';
     }
 
+    // Guardian stars: a star beats the next one in its cycle (+500 ATK/DEF in that fight). The flag bit 0x02 in RAM picks a card's second star.
+    const CYCLES = [['Sun', 'Moon', 'Venus', 'Mercury'], ['Mars', 'Jupiter', 'Saturn', 'Uranus', 'Pluto', 'Neptune']];
+    const edge = (a, b) => a && b && CYCLES.some(c => c.includes(a) && c[(c.indexOf(a) + 1) % c.length] === b) ? 500 : 0;
     // Field cards and the land they set.
     const FIELDS = { 330: 'Forest', 331: 'Wasteland', 332: 'Mountain', 333: 'Meadow', 334: 'Sea', 335: 'Yami' };
 
@@ -175,16 +178,24 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         // A foe monster in defense (or face-down) is fought on its DEF: a foe is {id, atk, pos}, and atk holds that number.
         const power = (id, pos, l) => pos === 'def' ? def(id, l) : atk(id, l);
         const isMon = id => engine.monster(id);
+        // Strength in a fight: a is attacking b (either may have no known star).
+        const vs = (a, b) => a.atk + edge(a.star, b.star);
+        // The star to give a new monster: the one that beats the most foe monsters it can see, the first star on a tie.
+        function pickStar(id, atkv, foe) {
+            const stars = engine.cards.get(id)?.stars || [];
+            const wins = star => foe.filter(f => atkv + edge(star, f.star) > f.atk + edge(f.star, star)).length;
+            return stars.length > 1 && wins(stars[1]) > wins(stars[0]) ? stars[1] : stars[0];
+        }
         // This turn's plays: nothing, the best single monster, and the best fusion for each card count.
-        // Each play is {id, atk, used: [hand indexes in pick order]}.
-        function plays(hand, l = land) {
+        // Each play is {id, atk, star, used: [hand indexes in pick order]}.
+        function plays(hand, l = land, foe = []) {
             const best = {};
             const add = (id, used) => { const a = atk(id, l), k = used.length; if (!best[k] || a > best[k].atk) best[k] = { id, atk: a, used }; };
             hand.forEach((id, i) => { if (id && isMon(id)) add(id, [i]); });
             const idx = hand.map((id, i) => id ? i : -1).filter(i => i >= 0);
             for (const l of engine.search(idx.map(i => hand[i]), [])) add(l.result, l.order.map(j => idx[j]));
             // Strongest first, "nothing" last: on a tie the plan puts a card down instead of waiting.
-            return [...Object.values(best).sort((a, b) => b.atk - a.atk), null];
+            return [...Object.values(best).sort((a, b) => b.atk - a.atk).map(p => ({ ...p, star: pickStar(p.id, p.atk, foe) })), null];
         }
         // My attacks: each foe monster (strongest first) is hit by my weakest monster that beats it;
         // if the foe field is then empty, the rest go direct. mine/foe are [{id, atk, done, pos}].
@@ -193,10 +204,10 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             const left = mine.filter(m => !m.done).sort((a, b) => a.atk - b.atk), out = [];
             let dmg = 0, eff = 0;
             for (const f of foe.slice().sort((a, b) => b.atk - a.atk)) {
-                const i = left.findIndex(m => m.atk > f.atk);
+                const i = left.findIndex(m => vs(m, f) > vs(f, m));
                 if (i < 0) continue;
                 const m = left.splice(i, 1)[0];
-                if (f.pos !== 'def') { dmg += m.atk - f.atk; eff++; }
+                if (f.pos !== 'def') { dmg += vs(m, f) - vs(f, m); eff++; }
                 out.push({ from: m, to: f });
             }
             const foeLeft = foe.filter(f => !out.some(o => o.to === f));
@@ -221,8 +232,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             let lp = st.lp;
             for (const f of foe.slice().sort((a, b) => b.atk - a.atk)) {
                 if (f.pos === 'def') continue;
-                const targets = mine.filter(m => m.atk < f.atk).sort((a, b) => b.atk - a.atk);
-                if (targets.length) { lp -= f.atk - targets[0].atk; mine = mine.filter(m => m !== targets[0]); }
+                const targets = mine.filter(m => vs(m, f) < vs(f, m)).sort((a, b) => b.atk - a.atk);
+                if (targets.length) { lp -= vs(f, targets[0]) - vs(targets[0], f); mine = mine.filter(m => m !== targets[0]); }
                 else if (!mine.length) lp -= f.atk;
             }
             return { ...st, foeHand: hand, foeDeck: deck, foe, mine: mine.map(m => ({ ...m, done: false })), lp, land: l };
@@ -233,7 +244,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         function plan(st0, horizon = 6) {
             let best = null, partial = null;
             const go = (st, steps) => {
-                let opts = st.played ? [null] : plays(st.hand, st.land ?? land);
+                let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe);
                 // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play or no room.
                 if (!st.played && st.mine.length < 5 && opts.length > 1) opts = opts.filter(Boolean);
                 for (const p of opts) {
@@ -241,7 +252,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
                     if (p) {
                         if (mine.length >= 5) continue;
                         for (const i of p.used) hand[i] = null;
-                        mine.push({ id: p.id, atk: p.atk, done: false, fresh: true });
+                        mine.push({ id: p.id, atk: p.atk, star: p.star, done: false, fresh: true });
                         fusions += p.used.length - 1;
                     }
                     const a = st.turn > 1 ? attack(mine, st.foe) : { dmg: 0, eff: 0, out: [], foeLeft: st.foe };
@@ -271,9 +282,9 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             // Without a win, hand back the best line so the box still names a move: {partial: true, steps, foeLp}.
             return best || (partial && { partial: true, steps: partial.steps, foeLp: partial.foeLp });
         }
-        return { plan, plays, attack, foeTurn, atk, def };
+        return { plan, plays, attack, foeTurn, atk, def, edge };
     }
-    const api = { create, score, rank, tables: T, FIELDS };
+    const api = { create, score, rank, tables: T, FIELDS, CYCLES };
     if (typeof module !== 'undefined') module.exports = api;
     else root.FMPlanner = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -384,10 +395,11 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
 
     function state(s) {
         // Foe monsters with the 0x18 flag bits (face-down, defense) are fought on their DEF. Seen on Millennium Shield: 0xb8.
+        // Flag 0x02 means the card's second guardian star (seen on Mega Thunderball and Koumori Dragon, both set to their second).
         const mon = (e, done, foe) => {
             if (!e || !engine.monster(e.id)) return null;
             const pos = foe && e.f & 0x18 ? 'def' : 'atk';
-            return { id: e.id, atk: pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land), done, pos };
+            return { id: e.id, atk: pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land), done, pos, star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
         };
         return {
             land: c.land, turn: c.turn, hand: s.hand.map(h => h && h.id), myDeck: s.myDeck.slice(c.used),
@@ -464,8 +476,9 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         if (st.play) {
             const order = st.play.used.map(i => i + 1).join(' → ');
             const what = st.play.used.length > 1 ? `Fuse ${order}` : `Play ${order}`;
-            parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))} ${st.play.atk}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
-                : `${esc(name(st.play.id))} ${st.play.atk}`);
+            const star = st.play.star ? ` · star <b>${esc(st.play.star)}</b>` : '';
+            parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))} ${st.play.atk}${star}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
+                : `${esc(name(st.play.id))} ${st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}`);
         } else parts.push(now ? '<b>No new card</b>' : 'no card');
         if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} → ${a.to ? esc(name(a.to.id)) : 'direct'}`).join(', '));
         else if (st.turn > 1 && now) parts.push('No attacks');
