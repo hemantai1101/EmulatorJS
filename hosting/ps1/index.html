@@ -354,9 +354,11 @@
   #game .ejs_menu_bar .ejs_menu_button svg { width: 18px; height: 18px; opacity: .8; }
   #game .ejs_menu_bar .ejs_volume_parent button { width: auto; }
   #game .ejs_menu_bar .ejs_volume_parent { padding-right: 12px; }
-  #game .ps1-menu-group { margin-top: 4px; border-top-color: #ffffff14; }
+  #game .ps1-menu-group[open] > summary { color: #f3f2ed; }
+  #game .ps1-menu-group { margin: 0; border-top-color: #ffffff14; }
   #game .ps1-menu-group summary { padding: 8px 12px; font-weight: 600; color: #b3b7b5; font-size: 13px; }
-  #game .ps1-menu-group summary::after { font-size: 18px; }
+  #game .ps1-menu-group summary { line-height: 1.4; }
+  #game .ps1-menu-group summary::after { width: 18px; font-size: 18px; line-height: 1; text-align: center; }
   #game .ps1-menu-group-body { padding: 0 0 8px; gap: 2px; }
   #game .ps1-menu-group-body select, #game .ps1-menu-group-body label, #game .ps1-menu-group-body p { margin-left: 12px; margin-right: 12px; width: auto; }
   @media (hover: hover) and (pointer: fine) {
