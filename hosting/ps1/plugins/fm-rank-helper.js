@@ -322,7 +322,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     }
 
     // Rank counters for the duel in progress. They start fresh when a new shuffle shows up.
-    let c = null, prev = null, last = '', plan = null, seen = null, steady = 0;
+    let c = null, prev = null, last = '', plan = null, seen = null, steady = 0, saved = '';
     const SETTLE = 3;
     const fresh = s => ({ sig: s.myDeck.join(), deckMe: s.myDeck.slice(), deckFoe: s.foeDeck.slice(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: 'None' });
     const same = (a, b) => (a && a.id) === (b && b.id);
@@ -364,8 +364,12 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         const startNew = dealt && s.lp === 8000 && s.foeLp === 8000 && !s.mine.some(Boolean) && !s.foe.some(Boolean) &&
             s.hand.every((h, i) => h.id === s.myDeck[i]);
         if (startNew || (!c && dealt)) {
-            if (!startNew && old && old.deckMe && old.deckMe.slice(6).join() === s.myDeck.slice(6).join()) c = old;
-            else { c = fresh(s); if (!startNew) guess(c, s); }
+            const g = fresh(s); if (!startNew) guess(g, s);
+            // After a page reload the counters come from storage. They are used only for this duel, and not if an older save state was loaded.
+            const prior = !startNew && (old || pref('counters'));
+            const mine = prior && prior.deckMe && prior.deckMe.slice(6).join() === s.myDeck.slice(6).join() && (prior === old || prior.turn <= g.turn + 1);
+            if (mine) { c = prior; c.used = Math.max(c.used, g.used); c.foeDrawn = Math.max(c.foeDrawn, g.foeDrawn); }
+            else c = g;
             Object.assign(c, { start: ids(s.hand), gone: [], pend: [], landed: [], act: false, partial: false });
             prev = s; return;
         }
@@ -444,16 +448,16 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     function state(s) {
         // Foe monsters with the 0x18 flag bits (face-down, defense) are fought on their DEF. Seen on Millennium Shield: 0xb8.
         // Flag 0x02 means the card's second guardian star (seen on Mega Thunderball and Koumori Dragon, both set to their second).
-        const mon = (e, done, foe) => {
+        const mon = (e, done, foe, slot) => {
             if (!e || !engine.monster(e.id)) return null;
             const pos = foe && e.f & 0x18 ? 'def' : 'atk';
             // Bytes 6-7 of a slot hold the equip bonus (+500 on Orion with an equip: 2300/2000 on screen, 1800/1500 printed).
             const eq = e.q > 0 && e.q <= 2000 ? e.q : 0;
-            return { id: e.id, atk: Math.max(0, (pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land)) + eq), eq, done, pos, star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
+            return { id: e.id, slot, atk: Math.max(0, (pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land)) + eq), eq, done, pos, star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
         };
         return {
             land: c.land, turn: c.turn, hand: handNow(s), myDeck: c.deckMe.slice(c.used),
-            mine: s.mine.map(m => mon(m, m && !!(m.f & 0x40))).filter(Boolean), foe: s.foe.map(f => mon(f, false, true)).filter(Boolean),
+            mine: s.mine.map(m => mon(m, m && !!(m.f & 0x40))).filter(Boolean), foe: s.foe.map((f, i) => mon(f, false, true, i)).filter(Boolean),
             foeHand: s.foeHand.filter(Boolean).map(f => f.id), foeDeck: c.deckFoe.slice(c.foeDrawn),
             lp: s.lp, foeLp: s.foeLp, used: c.used, fusions: c.fusions, eff: c.eff, magic: c.magic, equips: c.equips, traps: c.traps,
             played: s.mine.some(m => m && (m.f & 0x04))
@@ -530,10 +534,12 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))} ${st.play.atk}${star}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
                 : `${esc(name(st.play.id))} ${st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}`);
         } else parts.push(now ? (played ? '<b>Card played</b>' : '<b>Nothing to play</b>') : 'no card');
-        if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} → ${a.to ? esc(name(a.to.id)) : 'direct'}`).join(', '));
+        if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} → ${a.to ? esc(name(a.to.id)) + where(a.to) : 'direct'}`).join(', '));
         else if (now) parts.push(played || st.turn > 1 ? '<b>End the turn</b> (Enter)' : 'Nothing to attack with');
         return parts.join(now ? '<br>' : ' · ');
     }
+    // The foe's row faces me, so its slot 0 is the card on my far right.
+    const where = t => t.slot == null ? '' : ` <span class="muted">(${['1st', '2nd', '3rd', '4th', '5th'][t.slot]} from right, ${t.pos === 'def' ? 'defense / face-down' : 'attack'})</span>`;
     const say = html => { body.innerHTML = html; };
     function draw(s) {
         const st = state(s), now = FMPlanner.score({ ...st, turn: c.turn, down: 0 });
@@ -578,6 +584,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             if (B == null) return;
             const s = read();
             track(s);
+            if (c) { const { log, ...keep } = c, json = JSON.stringify(keep); if (json !== saved) { saved = json; pref('counters', keep); } }
             const duel = c && s.hand.some(Boolean) && s.foeLp > 0 && s.lp > 0;
             const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land]);
             if (sig === last) { seen = null; return; }
