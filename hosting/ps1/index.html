@@ -361,8 +361,34 @@
   #game .ps1-menu-group summary::after { width: 18px; font-size: 18px; line-height: 1; text-align: center; }
   #game .ps1-menu-group-body { padding: 0 0 8px; gap: 2px; }
   #game .ps1-menu-group-body select, #game .ps1-menu-group-body label, #game .ps1-menu-group-body p { margin-left: 12px; margin-right: 12px; width: auto; }
+  .ps1-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  input[type=checkbox] { accent-color: var(--accent); }
+  #game .ejs_menu_bar, #saves-panel .saves-grid, #display-panel { scrollbar-width: thin; scrollbar-color: #ffffff2e transparent; }
+  #game .ps1-menu-group-body > button svg { display: none; }
+  #game .ps1-menu-group-body > button:disabled, #game .ps1-menu-group-body select:disabled { opacity: .4; }
+  #game .ps1-menu-group-body select { margin-top: 4px; margin-bottom: 2px; }
+  #game .ps1-menu-group-body p:empty { display: none; }
+  #game .ps1-menu-group-body p { margin-top: 4px; }
+  #game .ps1-menu-group-body .ps1-menu-check { margin: 0; }
+  #game .ps1-menu-check { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 6px 12px; font-weight: 500; cursor: pointer; border-radius: 8px; }
+  #game .ps1-menu-check:hover { background: #ffffff12; }
+  #game .ps1-menu-check input { width: 16px; height: 16px; margin: 0; flex-shrink: 0; }
+  .saves-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .saves-toggle-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; }
+  .saves-toggle-label input { width: 16px; height: 16px; margin: 0; }
+  .saves-grid h3 { font-size: 15px; }
+  #saves-panel label[for=local-saves] { display: block; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  #saves-panel #local-saves { margin: 6px 0 8px; }
+  #saves-panel #saves-status { margin-top: 10px; font-size: 13px; }
+  #saves-panel details { margin-top: 14px; }
+  #saves-panel .saves-grid > details { margin-top: 0; }
+  #saves-panel summary { padding: 10px 0; font-size: 15px; }
+  #saves-panel .memory-card { background: #ffffff06; }
+  #saves-panel .memory-card .hint { margin-top: 4px; }
   @media (hover: hover) and (pointer: fine) {
     button, summary, select { min-height: 36px; }
+    #saves-panel button { padding: 7px 12px; }
+    #saves-save-now { margin: 14px 0 12px; }
     button { padding: 7px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; }
     select { padding-top: 6px; padding-bottom: 6px; border-radius: 8px; font-size: 14px; }
     #play-tools { gap: 6px; }
@@ -435,9 +461,7 @@
       <div class="saves-heading"><h2 id="saves-title">Saves</h2><button id="saves-done" type="button">Done</button></div>
       <div class="saves-grid">
         <section aria-labelledby="points-title">
-          <h3 id="points-title">Saved states</h3>
-          <p class="hint">Auto-save states: every 5 min · keeps 10.</p>
-          <label class="hint"><input id="auto-save" type="checkbox" checked> Auto-save states</label>
+          <div class="saves-row"><h3 id="points-title">Saved states</h3><label class="saves-toggle-label"><input id="auto-save" type="checkbox" checked> Auto-save</label></div>
           <button id="saves-save-now" type="button" class="primary" disabled>Save state now</button>
           <label for="local-saves">Pick a state</label>
           <select id="local-saves" disabled><option>No states yet</option></select>
@@ -457,7 +481,7 @@
           <summary id="cards-title">Memory cards</summary>
           <div class="details-body">
             <p class="hint">For Save and Load inside the game. Usually slot 1. Used does not mean it matches this state.</p>
-            <div class="memory-card"><strong>Slot 1 · This game</strong><p id="card1-contents" class="hint" role="status">Start the game to check</p><div class="save-actions"><button id="export-card1" type="button" disabled>Export Save File</button><button id="import-card1" type="button" disabled>Import Save File</button></div></div>
+            <div class="memory-card"><strong>Slot 1 · This game</strong><p id="card1-contents" class="hint" role="status">Start the game to check</p><div class="save-actions"><button id="export-card1" type="button" disabled>Export slot 1</button><button id="import-card1" type="button" disabled>Import slot 1</button></div></div>
             <div class="memory-card"><strong>Slot 2 · Shared card</strong><p id="card2-contents" class="hint" role="status">Start the game to check</p><p id="card2-status" class="hint">Shared by games in this browser.</p><div class="save-actions"><button id="enable-card2" type="button" hidden>Enable slot 2 after reload</button><button id="export-card2" type="button" disabled>Export slot 2</button><button id="import-card2" type="button" disabled>Import slot 2</button></div></div>
             <input id="card-file" type="file" accept=".srm,.mcd" hidden>
             <p class="hint">Import replaces a card and downloads a backup first. Slot 2 reloads the page.</p>

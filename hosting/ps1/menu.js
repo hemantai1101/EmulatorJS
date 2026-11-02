@@ -77,12 +77,16 @@
       originalLoad.click();
       emulator.menu.close();
     });
-    saves.append(manage, saveNow, pickerLabel, picker, load, exportSave, status);
-    move('saveState', saves);
-    move('loadState', saves);
-    const hint = document.createElement('p');
-    hint.textContent = 'States keep one moment of play. Use the same game and disc.';
-    saves.append(hint);
+    pickerLabel.className = 'ps1-visually-hidden';
+    status.hidden = true;
+    manage.textContent = 'All states & memory cards…';
+    saves.append(saveNow, pickerLabel, picker, load, exportSave, manage, status);
+    // The engine's own state and card buttons duplicate the rows above and the Saves dialog
+    const engineSaves = document.createElement('div');
+    engineSaves.hidden = true;
+    saves.append(engineSaves);
+    move('saveState', engineSaves);
+    move('loadState', engineSaves);
     sync();
 
     const plugins = group('Plugins');
@@ -90,6 +94,7 @@
     pluginStatus.setAttribute('role', 'status');
     for (const plugin of root.PS1Plugins?.list || []) {
       const row = document.createElement('label');
+      row.className = 'ps1-menu-check';
       const box = document.createElement('input');
       box.type = 'checkbox';
       box.checked = root.PS1Plugins.auto().includes(plugin.id);
@@ -107,13 +112,13 @@
         );
       });
       const text = document.createElement('span');
-      text.textContent = ' ' + plugin.name;
+      text.textContent = plugin.name;
       row.title = plugin.note;
       row.append(box, text);
       plugins.append(row);
     }
     const pluginHint = document.createElement('p');
-    pluginHint.textContent = 'Checked plugins also start with every game.';
+    pluginHint.textContent = 'Checked plugins start with every game.';
     plugins.append(pluginHint);
     plugins.append(pluginStatus);
 
@@ -125,11 +130,8 @@
         event.stopImmediatePropagation();
       }
     }, true);
-    move('saveSavFiles', saves);
-    move('loadSavFiles', saves);
-    const cardHint = document.createElement('p');
-    cardHint.textContent = 'Memory card files hold saves made inside the game. They are different from .state backups.';
-    saves.append(cardHint);
+    move('saveSavFiles', engineSaves);
+    move('loadSavFiles', engineSaves);
     move('cheat', advanced);
     advanced.append(emulator.settingParent);
     move('exit', advanced);
