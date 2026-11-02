@@ -323,7 +323,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
 
     // Rank counters for the duel in progress. They start fresh when a new shuffle shows up.
     let c = null, prev = null, last = '', plan = null;
-    const fresh = s => ({ sig: s.myDeck.join(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: 'None' });
+    const fresh = s => ({ sig: s.myDeck.join(), deckMe: s.myDeck.slice(), deckFoe: s.foeDeck.slice(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: 'None' });
     const same = (a, b) => (a && a.id) === (b && b.id);
     // Joined mid-duel: guess the counters from the deck orders. A deck is drawn in order, so the hand tells how far in it is.
     // Fused cards leave the hand, so these are lower bounds; the field box and "turn +1" fix a miss.
@@ -345,7 +345,17 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         const played = [[s.myDeck, c.used, mine], [s.foeDeck, c.foeDrawn, foe]].flatMap(([d, n, h]) =>
             Object.keys(FMPlanner.FIELDS).map(Number).filter(f => d.slice(0, n).includes(f) && !h.includes(f)));
         if (played.length === 1) c.land = FMPlanner.FIELDS[played[0]];
+        // Cards I drew that are no longer in my hand were played: magic by type, the rest went to the field.
+        const gone = diff(s.myDeck.slice(0, c.used), mine);
+        gone.forEach(id => { const t = C(id)?.type; if (t === 'Equip') c.equips++; else if (t === 'Magic' || t === 'Ritual') c.magic++; else if (t === 'Trap') c.traps++; });
+        const monsters = gone.filter(id => engine.monster(id)).length;
+        c.fusions = Math.max(0, monsters - s.mine.filter(Boolean).length);
     }
+    // Cards as a multiset, so a hand that shifts left after a refill does not look like plays.
+    const diff = (a, b) => { const m = new Map(); b.forEach(id => m.set(id, (m.get(id) || 0) + 1)); return a.filter(id => m.get(id) > 0 ? (m.set(id, m.get(id) - 1), false) : true); };
+    const ids = hand => hand.filter(Boolean).map(h => h.id);
+    const isField = id => !!FMPlanner.FIELDS[id];
+    const note = (why) => { (c.log = c.log || []).push(why); if (c.log.length > 60) c.log.shift(); };
     function track(s) {
         // The foe draws its first hand on its first turn, so only my hand is dealt at the start.
         const dealt = s.hand.every(Boolean);
@@ -353,46 +363,70 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         const startNew = dealt && s.lp === 8000 && s.foeLp === 8000 && !s.mine.some(Boolean) && !s.foe.some(Boolean) &&
             s.hand.every((h, i) => h.id === s.myDeck[i]);
         if (startNew || (!c && dealt)) {
-            if (!startNew && old && old.sig === s.myDeck.join()) c = old;
+            if (!startNew && old && old.deckMe && old.deckMe.slice(6).join() === s.myDeck.slice(6).join()) c = old;
             else { c = fresh(s); if (!startNew) guess(c, s); }
+            Object.assign(c, { start: ids(s.hand), gone: [], pend: [], landed: [], act: false, partial: false });
             prev = s; return;
         }
         if (!c) return;
-        let drawn = 0, foeDrawn = 0;
-        s.hand.forEach((h, i) => {
-            const p = prev.hand[i];
-            if (p && !same(p, h)) {
-                const t = C(p.id)?.type;
-                if (FMPlanner.FIELDS[p.id]) c.land = FMPlanner.FIELDS[p.id];
-                if (t === 'Equip') c.equips++; else if (t === 'Magic' || t === 'Ritual') c.magic++; else if (t === 'Trap') c.traps++; else c.left.push(p.id);
-            }
-            if (h && !same(p, h)) drawn++;
-        });
-        s.foeHand.forEach((h, i) => {
-            const p = prev.foeHand[i];
-            if (p && !same(p, h) && FMPlanner.FIELDS[p.id]) c.land = FMPlanner.FIELDS[p.id];
-            if (h && !same(p, h)) foeDrawn++;
-        });
-        // A monster landing on my field: the hand monsters played since the last one went into it.
+        // The game overwrites the first entries of my deck order as cards are drawn, so keep the order seen at the start.
+        // It is refreshed until I play (the first reads can still be settling) and while the foe has not drawn.
+        if (!c.act && c.turn === 1 && dealt) c.deckMe = s.myDeck.slice();
+        if (!s.foeHand.some(Boolean)) c.deckFoe = s.foeDeck.slice();
+        const was = ids(prev.hand), now = ids(s.hand);
+        // Cards that left my hand are plays. Single cards clear at once; a fusion's second card stays in RAM until the refill.
+        for (const id of diff(was, now)) {
+            const gi = c.gone.indexOf(id);
+            if (gi >= 0) { c.gone.splice(gi, 1); continue; }
+            const t = C(id)?.type;
+            c.act = true; note('act:removed ' + id);
+            if (isField(id)) c.land = FMPlanner.FIELDS[id];
+            if (t === 'Equip') c.equips++; else if (t === 'Magic' || t === 'Ritual') c.magic++; else if (t === 'Trap') c.traps++; else c.pend.push(id);
+        }
+        for (const id of diff(ids(prev.foeHand), ids(s.foeHand))) if (isField(id)) c.land = FMPlanner.FIELDS[id];
+        // A monster landing on my field: the hand monsters played since the last landing went into it.
         s.mine.forEach((m, i) => {
             const p = prev.mine[i];
             if (!m || same(p, m)) return;
-            c.fusions += p ? c.left.length : Math.max(0, c.left.length - 1);
-            c.left = [];
+            const line = !p && c.start && engine.search(c.start, []).find(l => l.result === m.id);
+            // Monsters already on my field read as empty for a moment during battle animations. A real landing has a card that left my
+            // hand for it (or a hand card of that id, or a fusion of the hand), and happens once per card per turn.
+            if (!(c.pend.length || (!p && (c.start.includes(m.id) || line))) || c.landed.includes(m.id)) return;
+            c.landed.push(m.id);
+            const used = line ? line.order.map(j => c.start[j]) : c.pend.length ? c.pend.slice() : [m.id];
+            c.fusions += p ? used.length : used.length - 1;
+            // Materials still listed in RAM are phantoms until the refill.
+            c.gone = diff(used, c.pend);
+            c.pend = []; c.act = true; note('act:landed ' + m.id + ' slot ' + i + (p ? ' over ' + p.id : ''));
         });
-        if (c.mine) s.foe.forEach((f, i) => { if (prev.foe[i] && !f) c.eff++; });
-        if (foeDrawn) { c.mine = false; c.foeDrawn += foeDrawn; }
-        if (drawn && !c.mine) { c.mine = true; c.left = []; }
-        // The deck orders say how many cards each side has drawn, so use them for the card count and the turn.
-        // "turn +1" adds a manual offset on top.
-        if (dealt) c.used = Math.max(5, drawnCount(s.myDeck, s.hand.map(h => h.id)));
+        // An effective attack destroys an attack-position monster. Face-down and defense monsters (flag bits 0x18) do not count.
+        if (c.mine) s.foe.forEach((f, i) => { if (prev.foe[i] && !f && !(prev.foe[i].f & 0x18)) c.eff++; });
+        // New cards in my hand are a refill, which is my turn starting. (The hand can look full all turn: a played card may stay in RAM.)
+        // The deck order says how many cards I have drawn.
+        const drew = diff(now, was).filter(id => { const i = c.pend.indexOf(id); if (i >= 0) { c.pend.splice(i, 1); return false; } return true; });
+        if (drew.length) {
+            c.used = Math.max(c.used, 5, drawnCount(c.deckMe, now));
+            c.mine = true; c.left = [];
+            note('refill ' + drew.join()); if (c.act) { c.turn++; c.act = false; note('turn++ refill'); }
+            c.start = dealt ? now : c.start; c.gone = []; c.pend = []; c.landed = [];
+        }
+        // The foe drew: its turn starts, so mine is over. (Flags on my monsters blip during attack animations, so they are no signal.)
         if (s.foeHand.some(Boolean)) {
-            c.foeDrawn = drawnCount(s.foeDeck, s.foeHand.filter(Boolean).map(h => h.id));
-            c.turn = Math.max(1, c.foeDrawn - 3) + (c.adj || 0);
+            if (diff(ids(s.foeHand), ids(prev.foeHand)).length) {
+                c.mine = false;
+                note('foe drew ' + diff(ids(s.foeHand), ids(prev.foeHand)).join()); if (c.act) { c.turn++; c.act = false; note('turn++ foe'); }
+            }
+            const n = drawnCount(c.deckFoe, ids(s.foeHand));
+            if (n > c.foeDrawn) c.foeDrawn = n;
         }
         prev = s;
     }
 
+    // My hand for planning: a fused card's second slot stays in RAM until the refill, so leave those out.
+    function handNow(s) {
+        const g = (c.gone || []).slice();
+        return s.hand.map(h => { if (!h) return null; const i = g.indexOf(h.id); if (i >= 0) { g.splice(i, 1); return null; } return h.id; });
+    }
     function state(s) {
         // Foe monsters with the 0x18 flag bits (face-down, defense) are fought on their DEF. Seen on Millennium Shield: 0xb8.
         // Flag 0x02 means the card's second guardian star (seen on Mega Thunderball and Koumori Dragon, both set to their second).
@@ -402,9 +436,9 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             return { id: e.id, atk: pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land), done, pos, star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
         };
         return {
-            land: c.land, turn: c.turn, hand: s.hand.map(h => h && h.id), myDeck: s.myDeck.slice(c.used),
+            land: c.land, turn: c.turn, hand: handNow(s), myDeck: c.deckMe.slice(c.used),
             mine: s.mine.map(m => mon(m, m && !!(m.f & 0x40))).filter(Boolean), foe: s.foe.map(f => mon(f, false, true)).filter(Boolean),
-            foeHand: s.foeHand.filter(Boolean).map(f => f.id), foeDeck: s.foeDeck.slice(c.foeDrawn),
+            foeHand: s.foeHand.filter(Boolean).map(f => f.id), foeDeck: c.deckFoe.slice(c.foeDrawn),
             lp: s.lp, foeLp: s.foeLp, used: c.used, fusions: c.fusions, eff: c.eff, magic: c.magic, equips: c.equips, traps: c.traps,
             played: s.mine.some(m => m && (m.f & 0x04))
         };
@@ -471,7 +505,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     });
     const esc = t => String(t).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
     const badge = r => `<span class="badge ${r[0]}">${r.replace(' POW', '').replace(' TEC', ' TEC')}</span>`;
-    function stepText(st, now) {
+    function stepText(st, now, played) {
         const parts = [];
         if (st.play) {
             const order = st.play.used.map(i => i + 1).join(' → ');
@@ -479,9 +513,9 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             const star = st.play.star ? ` · star <b>${esc(st.play.star)}</b>` : '';
             parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))} ${st.play.atk}${star}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
                 : `${esc(name(st.play.id))} ${st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}`);
-        } else parts.push(now ? '<b>No new card</b>' : 'no card');
+        } else parts.push(now ? (played ? '<b>Card played</b>' : '<b>Nothing to play</b>') : 'no card');
         if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} → ${a.to ? esc(name(a.to.id)) : 'direct'}`).join(', '));
-        else if (st.turn > 1 && now) parts.push('No attacks');
+        else if (now) parts.push(played || st.turn > 1 ? '<b>End the turn</b> (Enter)' : 'Nothing to attack with');
         return parts.join(now ? '<br>' : ' · ');
     }
     const say = html => { body.innerHTML = html; };
@@ -490,11 +524,12 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         fieldPick.value = c.land;
         hrank.className = 'hrank ' + (plan && !plan.partial ? plan.rank[0] : 'D');
         hrank.textContent = plan && !plan.partial ? `${plan.rank.replace(' POW', '')} · T${plan.win}` : 'no win';
+        const played = s.mine.some(m => m && m.f & 0x04);
         let h = '';
         if (plan && plan.partial) {
             h += `<div class="rank">${badge('—')}<span>No win in range. Best line leaves the foe ${plan.foeLp} LP.</span></div>`;
             const [first, ...rest] = plan.steps;
-            h += `<div class="now">${stepText(first, true)}</div>`;
+            h += `<div class="now">${stepText(first, true, played)}</div>`;
             if (rest.length) h += `<details><summary>Next turns (a guess)</summary>${rest.map(r => `T${r.turn}: ${stepText(r)}`).join('<br>')}</details>`;
         } else if (!plan) {
             h += `<div class="rank">${badge('—')}<span>${c.turn === 1 ? 'No win in 6 turns.' : 'No winning line in range.'}</span></div>`;
@@ -503,7 +538,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             h += `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} · win on turn ${plan.win}</span></div>`;
             if (c.turn === 1 && plan.score < 90) h += '<div class="warn">No S line. Reload if you want S.</div>';
             const [first, ...rest] = plan.steps;
-            h += `<div class="now">${stepText(first, true)}</div>`;
+            h += `<div class="now">${stepText(first, true, played)}</div>`;
             if (rest.length) h += `<details><summary>Next turns (a guess)</summary>${rest.map(r => `T${r.turn}: ${stepText(r)}`).join('<br>')}</details>`;
         }
         h += `<div class="stats">Turn ${c.turn}${c.mine ? '' : ' (foe)'} · cards ${c.used} · fusions ${c.fusions} · kills ${c.eff} · magic ${c.magic + c.equips} · LP ${s.lp} / ${s.foeLp}`;
@@ -526,7 +561,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             if (!duel) { say('<span class="muted">Waiting for a duel to start.</span>'); return; }
             // Cards have left my hand but the monster has not landed yet (fusing, picking a star):
             // the hand is half empty, so keep the last plan until the play finishes.
-            if (c.left.length) return;
+            if (c.pend.length) return;
             if (c.mine && s.hand.some(Boolean)) plan = P.plan(state(s), Math.max(6, c.turn + 2));
             draw(s);
         } catch (e) { body.textContent = 'Error: ' + e.message; }
