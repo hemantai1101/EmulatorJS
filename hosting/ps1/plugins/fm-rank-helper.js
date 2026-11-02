@@ -547,6 +547,14 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         say(h);
         body.querySelector('[data-act=turn]').onclick = () => { c.adj = (c.adj || 0) + 1; c.turn++; c.mine = true; last = ''; };
     }
+    // The foe's turn: nothing here is yours to act on, so keep the panel still until your turn starts.
+    function drawFoe() {
+        let h = plan && !plan.partial ? `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} · win on turn ${plan.win}</span></div>` : '';
+        h += `<div class="now muted">Foe's turn. The plan updates when your turn starts.</div>`;
+        h += `<div class="stats">Turn ${c.turn} next<button class="link" data-act="turn" title="Use if your turn has started and this still says foe">my turn</button></div>`;
+        say(h);
+        body.querySelector('[data-act=turn]').onclick = () => { c.mine = true; last = ''; };
+    }
     function tick() {
         try {
             if (!window.EJS_emulator?.gameManager) { say('<span class="muted">Waiting for a game to start.</span>'); return; }
@@ -555,10 +563,11 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             const s = read();
             track(s);
             const duel = c && s.hand.some(Boolean) && s.foeLp > 0 && s.lp > 0;
-            const sig = JSON.stringify(duel ? [s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c?.land] : 'idle');
+            const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land]);
             if (sig === last) return;
             last = sig;
             if (!duel) { say('<span class="muted">Waiting for a duel to start.</span>'); return; }
+            if (!c.mine) { drawFoe(); return; }
             // Cards have left my hand but the monster has not landed yet (fusing, picking a star):
             // the hand is half empty, so keep the last plan until the play finishes.
             if (c.pend.length) return;
