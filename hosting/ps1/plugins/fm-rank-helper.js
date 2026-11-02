@@ -224,7 +224,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             const field = hand.find(id => FIELDS[id] && FIELDS[id] !== l);
             if (field) {
                 hand.splice(hand.indexOf(field), 1); l = FIELDS[field];
-                foe = foe.map(f => ({ ...f, atk: power(f.id, f.pos, l) })); mine = mine.map(m => ({ ...m, atk: atk(m.id, l) }));
+                foe = foe.map(f => ({ ...f, atk: power(f.id, f.pos, l) + (f.eq || 0) })); mine = mine.map(m => ({ ...m, atk: atk(m.id, l) + (m.eq || 0) }));
             } else {
                 const mons = hand.filter(isMon).sort((a, b) => atk(b, l) - atk(a, l));
                 if (mons.length && foe.length < 5) { hand.splice(hand.indexOf(mons[0]), 1); foe.push({ id: mons[0], atk: atk(mons[0], l) }); }
@@ -314,7 +314,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     }
     let B = null;
     const u16 = o => heap()[B + o] | (heap()[B + o + 1] << 8);
-    const slot = k => { const o = 0x1A7AE4 + k * 28, f = heap()[B + o + 11]; return f & 0x80 ? { id: u16(o), f } : null; };
+    const slot = k => { const o = 0x1A7AE4 + k * 28, f = heap()[B + o + 11]; return f & 0x80 ? { id: u16(o), f, a: u16(o + 2), d: u16(o + 4) } : null; };
     const deck = o => Array.from({ length: 40 }, (_, i) => u16(o + i * 2));
     function read() {
         const g = (a, n) => Array.from({ length: n }, (_, i) => slot(a + i));
@@ -446,7 +446,10 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         const mon = (e, done, foe) => {
             if (!e || !engine.monster(e.id)) return null;
             const pos = foe && e.f & 0x18 ? 'def' : 'atk';
-            return { id: e.id, atk: pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land), done, pos, star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
+            // RAM holds the card's ATK/DEF with equips applied, before the field bonus. Keep the gap to the printed number.
+            const printed = C(e.id)?.[pos === 'def' ? 'def' : 'atk'], ram = pos === 'def' ? e.d : e.a;
+            const eq = ram > 0 && ram <= 9999 && printed != null ? ram - printed : 0;
+            return { id: e.id, atk: Math.max(0, (pos === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land)) + eq), eq, done, pos, star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
         };
         return {
             land: c.land, turn: c.turn, hand: handNow(s), myDeck: c.deckMe.slice(c.used),
