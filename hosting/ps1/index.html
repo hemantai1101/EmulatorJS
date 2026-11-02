@@ -348,6 +348,36 @@
   #game .ps1-settings-page .ejs_settings_transition { width: 100% !important; height: auto !important; transition: none; }
   #game .ps1-settings-page :is(.ejs_settings_transition, .ejs_settings_transition > div, .ejs_setting_menu, .ejs_parent_option_div) { max-height: none !important; overflow: visible; }
 
+  #game .ejs_menu_bar { gap: 2px; padding: 8px; }
+  #game .ejs_menu_bar .ejs_menu_button, #game .ps1-menu-group-body > button { border-color: transparent; background: transparent; border-radius: 8px; font-weight: 500; }
+  #game .ejs_menu_bar .ejs_menu_button:hover, #game .ps1-menu-group-body > button:hover:not(:disabled) { background: #ffffff12; }
+  #game .ejs_menu_bar .ejs_menu_button svg { width: 18px; height: 18px; opacity: .8; }
+  #game .ejs_menu_bar .ejs_volume_parent button { width: auto; }
+  #game .ejs_menu_bar .ejs_volume_parent { padding-right: 12px; }
+  #game .ps1-menu-group { margin-top: 4px; border-top-color: #ffffff14; }
+  #game .ps1-menu-group summary { padding: 8px 12px; font-weight: 600; color: #b3b7b5; font-size: 13px; }
+  #game .ps1-menu-group summary::after { font-size: 18px; }
+  #game .ps1-menu-group-body { padding: 0 0 8px; gap: 2px; }
+  #game .ps1-menu-group-body select, #game .ps1-menu-group-body label, #game .ps1-menu-group-body p { margin-left: 12px; margin-right: 12px; width: auto; }
+  @media (hover: hover) and (pointer: fine) {
+    button, summary, select { min-height: 36px; }
+    button { padding: 7px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    select { padding-top: 6px; padding-bottom: 6px; border-radius: 8px; font-size: 14px; }
+    #play-tools { gap: 6px; }
+    #play-tools button { width: 36px; height: 36px; min-height: 36px; padding: 8px; border-radius: 8px; }
+    #play-tools button svg { width: 18px; height: 18px; }
+    #play-tools #saves-toggle { padding: 6px 12px; }
+    #game .ejs_virtualGamepad_open, #picture-zoom, #leave-fill, #game-saves { width: 36px; height: 36px; min-height: 36px; flex-basis: 36px; padding: 8px; border-radius: 8px; }
+    #game .ejs_virtualGamepad_open svg, #picture-zoom svg, #leave-fill svg { width: 18px; height: 18px; }
+    #game-saves { width: auto; flex-basis: auto; padding: 6px 12px; font-size: 13px; }
+    #game .ejs_menu_bar .ejs_menu_button, #game .ps1-menu-group-body > button, #game .ps1-menu-group summary, #game .ps1-menu-group-body select { min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
+    #game .ejs_menu_bar .ejs_volume_parent input { min-height: 34px; }
+    #game .ejs_menu_bar .ejs_volume_parent input::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -5px; }
+    #game .ejs_menu_bar .ejs_volume_parent input::-moz-range-thumb { width: 16px; height: 16px; }
+    #game .ps1-settings-header button { min-height: 34px; padding: 6px 12px; }
+    #display-panel input:not([type=checkbox]) { min-height: 32px; }
+  }
+
 
 </style>
 <main>
@@ -483,8 +513,8 @@
 <script src="recent-game.js"></script>
 <script src="recovery.js?v=20261102-autotoggle"></script>
 <script src="touch-controls.js?v=20261028-analog-status"></script>
-<script src="plugins.js?v=20261102"></script>
-<script src="menu.js?v=20261102-plugins"></script>
+<script src="plugins.js?v=20261102b"></script>
+<script src="menu.js?v=20261102-plugins2"></script>
 <script src="saves.js?v=20261031-card-status"></script>
 <script src="state-cards.js?v=20261030"></script>
 <script>

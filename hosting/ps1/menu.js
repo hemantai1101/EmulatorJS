@@ -89,26 +89,32 @@
     const pluginStatus = document.createElement('p');
     pluginStatus.setAttribute('role', 'status');
     for (const plugin of root.PS1Plugins?.list || []) {
-      const load = document.createElement('button');
-      load.type = 'button';
-      load.textContent = 'Load ' + plugin.name;
-      load.addEventListener('click', () => {
+      const row = document.createElement('label');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = root.PS1Plugins.auto().includes(plugin.id);
+      box.addEventListener('change', () => {
+        root.PS1Plugins.setAuto(plugin.id, box.checked);
+        if (!box.checked) {
+          root.PS1Plugins.unload(plugin.id);
+          pluginStatus.textContent = plugin.name + ' is off.';
+          return;
+        }
         pluginStatus.textContent = 'Loading ' + plugin.name + '…';
         root.PS1Plugins.load(plugin.id).then(
-          () => { pluginStatus.textContent = plugin.name + ' is running.'; emulator.menu.close(); },
-          error => { pluginStatus.textContent = error.message; }
+          () => { pluginStatus.textContent = plugin.name + ' is on.'; },
+          error => { box.checked = false; root.PS1Plugins.setAuto(plugin.id, false); pluginStatus.textContent = error.message; }
         );
       });
-      const autoLabel = document.createElement('label');
-      const autoBox = document.createElement('input');
-      autoBox.type = 'checkbox';
-      autoBox.checked = root.PS1Plugins.auto().includes(plugin.id);
-      autoBox.addEventListener('change', () => root.PS1Plugins.setAuto(plugin.id, autoBox.checked));
-      autoLabel.append(autoBox, ' Load when a game starts');
-      const note = document.createElement('p');
-      note.textContent = plugin.note;
-      plugins.append(load, autoLabel, note);
+      const text = document.createElement('span');
+      text.textContent = ' ' + plugin.name;
+      row.title = plugin.note;
+      row.append(box, text);
+      plugins.append(row);
     }
+    const pluginHint = document.createElement('p');
+    pluginHint.textContent = 'Checked plugins also start with every game.';
+    plugins.append(pluginHint);
     plugins.append(pluginStatus);
 
     const advanced = group('Advanced');

@@ -7,7 +7,8 @@
       id: 'fm-rank-helper',
       name: 'Forbidden Memories rank helper',
       src: 'plugins/fm-rank-helper.js',
-      note: 'Shows the duel rank and the best move each turn. Built from the fm-fusion-helper repo.'
+      note: 'Shows the duel rank and the best move each turn. Built from the fm-fusion-helper repo.',
+      stop: () => root.__fmOverlay?.stop()
     }
   ];
   function auto() {
@@ -36,8 +37,12 @@
       root.document.head.append(script);
     });
   }
+  function unload(id) {
+    const plugin = list.find(p => p.id === id);
+    if (plugin?.stop) plugin.stop();
+  }
   function loadAuto() {
     return Promise.allSettled(auto().filter(id => list.some(p => p.id === id)).map(load));
   }
-  root.PS1Plugins = { list, auto, setAuto, load, loadAuto };
+  root.PS1Plugins = { list, auto, setAuto, load, unload, loadAuto };
 })(window);
