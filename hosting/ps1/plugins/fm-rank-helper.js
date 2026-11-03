@@ -170,6 +170,8 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     const edge = (a, b) => a && b && CYCLES.some(c => c.includes(a) && c[(c.indexOf(a) + 1) % c.length] === b) ? 500 : 0;
     // Field cards and the land they set.
     const FIELDS = { 330: 'Forest', 331: 'Wasteland', 332: 'Mountain', 333: 'Meadow', 334: 'Sea', 335: 'Yami' };
+    // Raigeki destroys every monster on the other side.
+    const RAIGEKI = 337;
 
     // land is the default field when a state does not name one.
     function create(engine, land = 'None') {
@@ -186,17 +188,32 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             const wins = star => foe.filter(f => atkv + edge(star, f.star) > f.atk + edge(f.star, star)).length;
             return stars.length > 1 && wins(stars[1]) > wins(stars[0]) ? stars[1] : stars[0];
         }
-        // This turn's plays: nothing, the best single monster, and the best fusion for each card count.
-        // Each play is {id, atk, star, used: [hand indexes in pick order]}.
-        function plays(hand, l = land, foe = []) {
-            const best = {};
+        // This turn's plays: nothing, the best single monster, the best fusion for each card count,
+        // the best fusion of one hand card onto each of my monsters, and each field card that changes the land.
+        // A play is {id, atk, star, used: [hand indexes in pick order]}, plus onto: the index in mine it replaces
+        // (a fusion onto that monster, or with a full field the weakest monster it is set over), or field: the land it sets.
+        function plays(hand, l = land, foe = [], mine = []) {
+            const best = {}, out = [];
             const add = (id, used) => { const a = atk(id, l), k = used.length; if (!best[k] || a > best[k].atk) best[k] = { id, atk: a, used }; };
             hand.forEach((id, i) => { if (id && isMon(id)) add(id, [i]); });
             const idx = hand.map((id, i) => id ? i : -1).filter(i => i >= 0);
-            for (const l of engine.search(idx.map(i => hand[i]), [])) add(l.result, l.order.map(j => idx[j]));
+            for (const line of engine.search(idx.map(i => hand[i]), [])) add(line.result, line.order.map(j => idx[j]));
+            // With a full field a new card goes over one of mine: the weakest, and only if the new one is stronger.
+            const weak = mine.length < 5 ? -1 : mine.reduce((w, m, i) => m.atk < mine[w].atk ? i : w, 0);
+            for (const p of Object.values(best)) if (weak < 0) out.push(p); else if (p.atk > mine[weak].atk) out.push({ ...p, onto: weak });
+            // One hand card fused onto one of my monsters (longer chains onto the field are left out: the pick order is untested).
+            mine.forEach((m, k) => idx.forEach(i => {
+                const r = engine.fuse(m.id, hand[i]);
+                if (r.success && isMon(hand[i]) && atk(r.result, l) > m.atk) out.push({ id: r.result, atk: atk(r.result, l), used: [i], onto: k, fused: true });
+            }));
+            for (const i of idx) if (FIELDS[hand[i]] && FIELDS[hand[i]] !== l) out.push({ id: hand[i], atk: 0, used: [i], field: FIELDS[hand[i]] });
+            const r = idx.find(i => hand[i] === RAIGEKI);
+            if (r != null && foe.length) out.push({ id: RAIGEKI, atk: 0, used: [r], raigeki: true });
             // Strongest first, "nothing" last: on a tie the plan puts a card down instead of waiting.
-            return [...Object.values(best).sort((a, b) => b.atk - a.atk).map(p => ({ ...p, star: pickStar(p.id, p.atk, foe) })), null];
+            return [...out.sort((a, b) => b.atk - a.atk).map(p => p.field ? p : { ...p, star: pickStar(p.id, p.atk, foe) }), null];
         }
+        // My monsters and the foe's on a new land.
+        const reland = (list, l) => list.map(m => ({ ...m, atk: power(m.id, m.pos, l) + (m.eq || 0) }));
         // My attacks: each foe monster (strongest first) is hit by my weakest monster that beats it;
         // if the foe field is then empty, the rest go direct. mine/foe are [{id, atk, done, pos}].
         // Breaking a defense monster costs it nothing in LP and is not an effective attack.
@@ -215,19 +232,55 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
             return { dmg, eff, out, foeLeft };
         }
         // Foe turn guess: draw to 5. If it holds a field card for a new land, it plays that (one card a turn);
-        // otherwise its strongest monster. Then each foe monster kills my strongest monster it beats,
+        // otherwise its strongest summon (a monster or a fusion), or an equip when that makes a stronger monster.
+        // Raigeki comes first when my strongest monster beats anything it can put down; a field card only when it helps the foe more than me.
+        // Other magic and traps are ignored: data.json has no card effects.
+        // Then each foe monster kills my strongest monster it beats,
         // or hits directly if I have none.
         function foeTurn(st) {
             const hand = st.foeHand.slice(), deck = st.foeDeck.slice();
             while (hand.length < 5 && deck.length) hand.push(deck.shift());
             let foe = st.foe.slice(), mine = st.mine.slice(), l = st.land ?? land;
-            const field = hand.find(id => FIELDS[id] && FIELDS[id] !== l);
-            if (field) {
+            // Its best summon on land x: one monster or a fusion of its hand (strong duelists fuse often).
+            const summon = x => {
+                let b = null;
+                hand.forEach((id, i) => { if (isMon(id) && (!b || atk(id, x) > b.atk)) b = { id, atk: atk(id, x), used: [i] }; });
+                for (const line of engine.search(hand.filter(id => !FIELDS[id] && id !== RAIGEKI), [])) {
+                    const rest = hand.map((id, i) => i).filter(i => !FIELDS[hand[i]] && hand[i] !== RAIGEKI);
+                    if (!b || atk(line.result, x) > b.atk) b = { id: line.result, atk: atk(line.result, x), used: line.order.map(j => rest[j]) };
+                }
+                return b;
+            };
+            // A field card is worth it when it lifts the foe's side (its monsters and its best summon) more than mine.
+            const lift = x => foe.reduce((t, f) => t + power(f.id, f.pos, x) - power(f.id, f.pos, l), 0) + ((summon(x)?.atk || 0) - (summon(l)?.atk || 0))
+                - mine.reduce((t, m) => t + atk(m.id, x) - atk(m.id, l), 0);
+            const field = hand.filter(id => FIELDS[id] && FIELDS[id] !== l).sort((a, b) => lift(FIELDS[b]) - lift(FIELDS[a]))[0];
+            const best = summon(l), top = Math.max(0, ...mine.map(m => m.atk));
+            // Raigeki when my strongest monster beats anything it can put down.
+            if (hand.includes(RAIGEKI) && mine.length && (!best || top >= best.atk)) {
+                hand.splice(hand.indexOf(RAIGEKI), 1); mine = [];
+            } else if (field && lift(FIELDS[field]) > 0) {
                 hand.splice(hand.indexOf(field), 1); l = FIELDS[field];
                 foe = foe.map(f => ({ ...f, atk: power(f.id, f.pos, l) + (f.eq || 0) })); mine = mine.map(m => ({ ...m, atk: atk(m.id, l) + (m.eq || 0) }));
             } else {
-                const mons = hand.filter(isMon).sort((a, b) => atk(b, l) - atk(a, l));
-                if (mons.length && foe.length < 5) { hand.splice(hand.indexOf(mons[0]), 1); foe.push({ id: mons[0], atk: atk(mons[0], l) }); }
+                const sum = best;
+                // Or an equip on one of its attack-position monsters: +500, Megamorph +1000.
+                let eq = null;
+                hand.forEach((e, i) => foe.forEach((f, k) => {
+                    if (f.pos === 'def' || !engine.canEquip(e, f.id)) return;
+                    const up = e === 657 ? 1000 : 500;
+                    if (!eq || f.atk + up > eq.atk) eq = { k, atk: f.atk + up, up, used: [i] };
+                }));
+                if (eq && (!sum || foe.length >= 5 || eq.atk > sum.atk)) {
+                    hand.splice(eq.used[0], 1); const f = foe[eq.k];
+                    foe = foe.map((x, k) => k === eq.k ? { ...f, atk: eq.atk, eq: (f.eq || 0) + eq.up } : x);
+                } else if (sum && foe.length < 5) {
+                    for (const i of sum.used.slice().sort((a, b) => b - a)) hand.splice(i, 1);
+                    // A monster that beats none of mine goes down in defense (seen often from Meadow Mage, 3 November 2026):
+                    // it is fought on its DEF and killing it does no damage.
+                    const id = sum.id, weak = mine.length && !mine.some(m => sum.atk > m.atk);
+                    foe.push(weak ? { id, atk: def(id, l), pos: 'def' } : { id, atk: sum.atk });
+                }
             }
             let lp = st.lp;
             for (const f of foe.slice().sort((a, b) => b.atk - a.atk)) {
@@ -244,23 +297,27 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         function plan(st0, horizon = 6) {
             let best = null, partial = null;
             const go = (st, steps) => {
-                let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe);
-                // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play or no room.
-                if (!st.played && st.mine.length < 5 && opts.length > 1) opts = opts.filter(Boolean);
+                let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe, st.mine);
+                // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play.
+                if (!st.played && opts.length > 1) opts = opts.filter(Boolean);
                 for (const p of opts) {
-                    let hand = st.hand.slice(), mine = st.mine.slice(), fusions = st.fusions;
+                    let hand = st.hand.slice(), mine = st.mine.slice(), foe = st.foe, fusions = st.fusions, magic = st.magic, l = st.land ?? land;
                     if (p) {
-                        if (mine.length >= 5) continue;
                         for (const i of p.used) hand[i] = null;
-                        mine.push({ id: p.id, atk: p.atk, star: p.star, done: false, fresh: true });
-                        fusions += p.used.length - 1;
+                        if (p.field) { l = p.field; magic++; mine = reland(mine, l); foe = reland(foe, l); }
+                        else if (p.raigeki) { magic++; foe = []; }
+                        else {
+                            const mon = { id: p.id, atk: p.atk, star: p.star, done: false, fresh: true };
+                            if (p.onto != null) mine[p.onto] = { ...mon, slot: st.mine[p.onto].slot }; else mine.push(mon);
+                            fusions += p.used.length - (p.fused ? 0 : 1);
+                        }
                     }
-                    const a = st.turn > 1 ? attack(mine, st.foe) : { dmg: 0, eff: 0, out: [], foeLeft: st.foe };
+                    const a = st.turn > 1 ? attack(mine, foe) : { dmg: 0, eff: 0, out: [], foeLeft: foe };
                     const foeLp = st.foeLp - a.dmg, eff = st.eff + a.eff;
-                    const step = { turn: st.turn, play: p && { ...p, cards: p.used.map(i => st.hand[i]) }, attacks: a.out };
+                    const step = { turn: st.turn, play: p && { ...p, cards: p.used.map(i => st.hand[i]), ...(p.onto != null && { over: st.mine[p.onto] }) }, attacks: a.out };
                     const line = [...steps, step];
                     if (foeLp <= 0) {
-                        const fin = { turn: st.turn, eff, fusions, used: st.used, lp: st.lp, magic: st.magic, equips: st.equips, down: st.down };
+                        const fin = { turn: st.turn, eff, fusions, used: st.used, lp: st.lp, magic, equips: st.equips, down: st.down };
                         const s = score(fin);
                         if (!best || s > best.score || (s === best.score && st.turn < best.win)) best = { score: s, rank: rank(s), win: st.turn, steps: line, final: fin };
                         continue;
@@ -271,7 +328,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
                         if (!partial || key[0] < partial.key[0] || (key[0] === partial.key[0] && key[1] < partial.key[1])) partial = { key, steps: line, foeLp };
                         continue;
                     }
-                    const next = foeTurn({ ...st, mine, foe: a.foeLeft, foeLp });
+                    const next = foeTurn({ ...st, mine, foe: a.foeLeft, foeLp, land: l, magic });
                     if (next.lp <= 0) continue;
                     hand = hand.filter(Boolean); const deck = st.myDeck.slice(); let used = st.used;
                     while (hand.length < 5 && deck.length) { hand.push(deck.shift()); used++; }
@@ -284,7 +341,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         }
         return { plan, plays, attack, foeTurn, atk, def, edge };
     }
-    const api = { create, score, rank, tables: T, FIELDS, CYCLES };
+    const api = { create, score, rank, tables: T, FIELDS, RAIGEKI, CYCLES };
     if (typeof module !== 'undefined') module.exports = api;
     else root.FMPlanner = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -457,7 +514,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         };
         return {
             land: c.land, turn: c.turn, hand: handNow(s), myDeck: c.deckMe.slice(c.used),
-            mine: s.mine.map(m => mon(m, m && !!(m.f & 0x40))).filter(Boolean), foe: s.foe.map((f, i) => mon(f, false, true, i)).filter(Boolean),
+            mine: s.mine.map((m, i) => mon(m, m && !!(m.f & 0x40), false, i)).filter(Boolean), foe: s.foe.map((f, i) => mon(f, false, true, i)).filter(Boolean),
             foeHand: s.foeHand.filter(Boolean).map(f => f.id), foeDeck: c.deckFoe.slice(c.foeDrawn),
             lp: s.lp, foeLp: s.foeLp, used: c.used, fusions: c.fusions, eff: c.eff, magic: c.magic, equips: c.equips, traps: c.traps,
             played: s.mine.some(m => m && (m.f & 0x04))
@@ -529,10 +586,13 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
         const parts = [];
         if (st.play) {
             const order = st.play.used.map(i => i + 1).join(' → ');
-            const what = st.play.used.length > 1 ? `Fuse ${order}` : `Play ${order}`;
+            // My row: slot 0 is on the left.
+            const mySlot = m => m && m.slot != null ? ` <span class="muted">(${['1st', '2nd', '3rd', '4th', '5th'][m.slot]} from left)</span>` : '';
+            const what = st.play.field ? `Play ${order} (field)` : st.play.raigeki ? `Play ${order} (clears the foe's field)` : st.play.fused ? `Fuse ${order} onto ${esc(name(st.play.over.id))}${mySlot(st.play.over)}`
+                : st.play.over ? `Play ${order} over ${esc(name(st.play.over.id))}${mySlot(st.play.over)}` : st.play.used.length > 1 ? `Fuse ${order}` : `Play ${order}`;
             const star = st.play.star ? ` · star <b>${esc(st.play.star)}</b>` : '';
-            parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))} ${st.play.atk}${star}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
-                : `${esc(name(st.play.id))} ${st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}`);
+            parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${star}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
+                : `${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}`);
         } else parts.push(now ? (played ? '<b>Card played</b>' : '<b>Nothing to play</b>') : 'no card');
         if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} → ${a.to ? esc(name(a.to.id)) + where(a.to) : 'direct'}`).join(', '));
         else if (now) parts.push(played || st.turn > 1 ? '<b>End the turn</b> (Enter)' : 'Nothing to attack with');
