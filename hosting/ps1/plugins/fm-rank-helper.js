@@ -547,13 +547,14 @@ window.__fmCore = function () {
                 // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play.
                 if (!st.played && opts.length > 1) opts = opts.filter(Boolean);
                 for (const p of opts) {
-                    let hand = st.hand.slice(), mine = st.mine.slice(), foe = st.foe, fusions = st.fusions, magic = st.magic, l = st.land ?? land;
+                    let hand = st.hand.slice(), mine = st.mine.slice(), foe = st.foe, fusions = st.fusions, magic = st.magic, l = st.land ?? land, mon = null;
                     if (p) {
                         for (const i of p.used) hand[i] = null;
-                        if (p.field) { l = p.field; magic++; mine = reland(mine, l); foe = reland(foe, l); }
+                        // My monsters keep their ATK in atk, even in defense.
+                        if (p.field) { l = p.field; magic++; mine = mine.map(m => ({ ...m, atk: atk(m.id, l) + (m.eq || 0) })); foe = reland(foe, l); }
                         else if (p.raigeki) { magic++; foe = []; }
                         else {
-                            const mon = { id: p.id, atk: p.atk, star: p.star, done: false, fresh: true, down: true };
+                            mon = { id: p.id, atk: p.atk, star: p.star, done: false, fresh: true, down: true };
                             if (p.onto != null) mine[p.onto] = { ...mon, slot: st.mine[p.onto].slot }; else mine.push(mon);
                             fusions += p.used.length - (p.fused ? 0 : 1);
                         }
@@ -577,6 +578,12 @@ window.__fmCore = function () {
                     }
                     // Attacking turns a monster face-up.
                     mine = mine.filter(m => !a.lost.includes(m)).map(m => a.out.some(o => o.from === m) ? { ...m, down: false, pos: undefined } : m);
+                    // A new monster that did not attack goes to defense when a foe monster I can see would beat its ATK
+                    // (the foe's own defenders switch to attack, walls stay put). In defense it costs me no LP.
+                    if (mine.includes(mon) && a.foeLeft.some(f => !WALLS.has(f.id) && atk(f.id, l) + (f.eq || 0) + edge(f.star, mon.star) > mon.atk + edge(mon.star, f.star))) {
+                        mine = mine.map(m => m === mon ? { ...m, pos: 'def' } : m);
+                        step.play.pos = 'def';
+                    }
                     const st2 = { ...st, mine, foe: a.foeLeft, foeLp, land: l, magic, foeBack: a.back, pinned: Math.max(0, (st.pinned || 0) - 1) };
                     hand = hand.filter(Boolean); const deck = st.myDeck.slice(); let used = st.used;
                     while (hand.length < 5 && deck.length) { hand.push(deck.shift()); used++; }
@@ -642,6 +649,12 @@ window.__fmCore = function () {
                     if (foeLp <= 0) { best = st.turn; break; }
                     if (st.turn >= last) continue;
                     mine = mine.filter(m => !a.lost.includes(m)).map(m => a.out.some(o => o.from === m) ? { ...m, down: false, pos: undefined } : m);
+                    // A new monster that did not attack goes to defense when a foe monster I can see would beat its ATK
+                    // (the foe's own defenders switch to attack, walls stay put). In defense it costs me no LP.
+                    if (mine.includes(mon) && a.foeLeft.some(f => !WALLS.has(f.id) && atk(f.id, l) + (f.eq || 0) + edge(f.star, mon.star) > mon.atk + edge(mon.star, f.star))) {
+                        mine = mine.map(m => m === mon ? { ...m, pos: 'def' } : m);
+                        step.play.pos = 'def';
+                    }
                     const st2 = { ...st, mine, foe: a.foeLeft, foeLp, land: l, foeBack: a.back, pinned: Math.max(0, (st.pinned || 0) - 1) };
                     hand = hand.filter(Boolean); const deck = st.myDeck.slice();
                     // An empty deck when I must draw loses the duel.
@@ -931,8 +944,10 @@ window.__fmCore();
             const what = st.play.field ? `Play ${order} (field)` : st.play.raigeki ? `Play ${order} (clears the foe's field)` : st.play.fused ? `Fuse ${order} onto ${esc(name(st.play.over.id))}${mySlot(st.play.over)}`
                 : st.play.over ? `Play ${order} over ${esc(name(st.play.over.id))}${mySlot(st.play.over)}` : st.play.used.length > 1 ? `Fuse ${order}` : `Play ${order}`;
             const star = st.play.star ? ` · star <b>${esc(st.play.star)}</b>` : '';
-            parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${star}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
-                : `${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}`);
+            const mon = !st.play.field && !st.play.raigeki;
+            const pos = !mon ? '' : now ? (st.play.pos === 'def' ? ' · <b>defense</b>' : ' · <b>attack</b>') : st.play.pos === 'def' ? ' (def)' : '';
+            parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${star}${pos}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
+                : `${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}${pos}`);
         } else parts.push(now ? (played ? '<b>Card played</b>' : '<b>Nothing to play</b>') : 'no card');
         if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} → ${a.to ? esc(name(a.to.id)) + where(a.to) : 'direct'}${a.trap ? ` <span class="muted">(dies to ${esc(name(a.trap))})</span>` : ''}`).join(', '));
         else if (now) parts.push(played || st.turn > 1 ? '<b>End the turn</b> (Enter)' : 'Nothing to attack with');
