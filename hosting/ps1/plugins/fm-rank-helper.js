@@ -800,10 +800,11 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = `<style>
         :host { all: initial; }
-        .box { width: 300px; max-height: 85vh; overflow: auto; background: rgba(15,18,24,.92); color: #e8e8e8;
+        .box { width: 370px; max-height: 85vh; overflow: auto; background: rgba(15,18,24,.92); color: #e8e8e8;
             font: 12px/1.45 system-ui, -apple-system, sans-serif; border: 1px solid #3a3f47; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
         .head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid #2a2f36; cursor: move; user-select: none; }
-        .title { font-weight: 650; flex: 1; }
+        .title { font-weight: 650; flex: 1; white-space: nowrap; }
+        select.foe { flex: 0 1 auto; min-width: 0; max-width: 190px; text-overflow: ellipsis; }
         select, button { font: inherit; color: inherit; background: #252a31; border: 1px solid #3a3f47; border-radius: 6px; margin: 0; }
         select { -webkit-appearance: none; appearance: none; height: 24px; padding: 0 22px 0 8px; cursor: pointer;
             background: #252a31 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b8bcc4' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 8px center; }
@@ -828,7 +829,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     </style>
     <div class="box"><div class="head"><span class="title">FM rank <span class="hrank"></span></span>
         <select title="Field in play" aria-label="Field in play"></select>
-        <select class="foe" title="Foe (read from the game; pick one to override)" aria-label="Foe"></select>
+        <select class="foe" title="Foe: the first entry is read from the game; pick another to override" aria-label="Foe"></select>
         <button class="icon" data-act="min" title="Minimize" aria-label="Minimize">–</button>
         <button class="icon" data-act="close" title="Close" aria-label="Close">×</button></div>
         <div class="body"></div></div>`;
@@ -839,7 +840,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     const pref = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem('fm-rank-' + k)); localStorage.setItem('fm-rank-' + k, JSON.stringify(v)); } catch { return null; } };
     // The foe's AI settings come from its duelist ID, read from RAM; "Auto" uses that, the rest override it.
     const foePick = root.querySelector('select.foe');
-    foePick.innerHTML = '<option value="0">Foe: auto</option>' + Object.entries(FMPlanner.FOES).map(([n, f]) => `<option value="${n}">${f.name}</option>`).join('');
+    foePick.innerHTML = '<option value="0">Auto</option>' + Object.entries(FMPlanner.FOES).map(([n, f]) => `<option value="${n}">${f.name}</option>`).join('');
     let foeOverride = 0;
     foePick.onchange = () => { foeOverride = +foePick.value; last = ''; };
     const foeIdOf = s => foeOverride || (FMPlanner.FOES[s.foeId] ? s.foeId : 0);
@@ -884,7 +885,7 @@ window.__fmData = {"cards":[{"id":1,"name":"Blue-eyes White Dragon","type":"Drag
     function draw(s) {
         const st = state(s), now = FMPlanner.score({ ...st, turn: c.turn, down: 0 });
         fieldPick.value = c.land;
-        if (foePick.options) foePick.options[0].textContent = 'Foe: auto (' + (FMPlanner.FOES[s.foeId]?.name || 'unknown') + ')';
+        if (foePick.options) foePick.options[0].textContent = FMPlanner.FOES[s.foeId]?.name || 'Unknown foe';
         hrank.className = 'hrank ' + (plan && !plan.partial ? plan.rank[0] : 'D');
         hrank.textContent = plan && !plan.partial ? `${plan.rank.replace(' POW', '')} · T${plan.win}` : 'no win';
         const played = s.mine.some(m => m && m.f & 0x04);
