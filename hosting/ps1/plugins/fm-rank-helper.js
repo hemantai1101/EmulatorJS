@@ -11,7 +11,7 @@ window.__fmCore = function () {
 (function (root) {
     'use strict';
     const cycles = [['Sun', 'Moon', 'Venus', 'Mercury'], ['Mars', 'Jupiter', 'Saturn', 'Uranus', 'Pluto', 'Neptune']];
-    const symbols = { Sun: '☉', Moon: '☾', Venus: '♀', Mercury: '☿', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '⛢', Pluto: '♇', Neptune: '♆' };
+    const symbols = { Sun: '\u2609', Moon: '\u263e', Venus: '\u2640', Mercury: '\u263f', Mars: '\u2642', Jupiter: '\u2643', Saturn: '\u2644', Uranus: '\u26e2', Pluto: '\u2647', Neptune: '\u2646' };
     const terrain = {
         None: [[], []], Forest: [['Beast', 'Beast-Warrior', 'Insect', 'Plant'], []],
         Wasteland: [['Zombie', 'Dinosaur', 'Rock'], []], Mountain: [['Dragon', 'Winged Beast', 'Thunder'], []],
@@ -224,7 +224,7 @@ window.__fmCore = function () {
     };
     // Unknown foe: hand only, plain settings.
     const FOE0 = { name: 'Unknown', win: 5, sees: false, lp: 1000, a: 2, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [70, 15, 15] };
-    // Magic and trap effects (the game's effect groups: notes/research/the-game.md §5.5 and §5.7 in the same project).
+    // Magic and trap effects (the game's effect groups: notes/research/the-game.md \u00a75.5 and \u00a75.7 in the same project).
     const BURN = { 343: 50, 344: 100, 345: 200, 346: 500, 347: 1000 }, HEAL = { 338: 200, 339: 500, 340: 1000, 341: 2000, 342: 5000 };
     // Dark Hole clears both sides; Swords stops my attacks for my next 3 turns; Stop Defense flips one of my defenders to attack;
     // Dark-piercing Light turns my monsters face-up; Harpie's Feather Duster clears my back row; Cursebreaker undoes penalties.
@@ -925,8 +925,8 @@ window.__fmCore();
     </style>
     <div class="box"><div class="head"><span class="title">FM rank <span class="hrank"></span></span>
         <span class="info" title="Field and foe, read from the game"></span><span class="grow"></span>
-        <button class="icon" data-act="min" title="Minimize" aria-label="Minimize">–</button>
-        <button class="icon" data-act="close" title="Close" aria-label="Close">×</button></div>
+        <button class="icon" data-act="min" title="Minimize" aria-label="Minimize">\u2013</button>
+        <button class="icon" data-act="close" title="Close" aria-label="Close">\u00d7</button></div>
         <div class="body"></div></div>`;
     document.body.appendChild(host);
     const box = root.querySelector('.box'), hrank = root.querySelector('.hrank'), body = root.querySelector('.body'), info = root.querySelector('.info');
@@ -934,7 +934,7 @@ window.__fmCore();
     // The foe's AI settings come from its duelist ID, read from RAM.
     const foeIdOf = s => FMPlanner.FOES[s.foeId] ? s.foeId : 0;
     const minBtn = root.querySelector('[data-act=min]');
-    const setMin = on => { box.classList.toggle('min', on); minBtn.textContent = on ? '+' : '–'; minBtn.title = on ? 'Expand' : 'Minimize'; pref('min', on); };
+    const setMin = on => { box.classList.toggle('min', on); minBtn.textContent = on ? '+' : '\u2013'; minBtn.title = on ? 'Expand' : 'Minimize'; pref('min', on); };
     setMin(!!pref('min'));
     minBtn.onclick = () => setMin(!box.classList.contains('min'));
     root.querySelector('[data-act=close]').onclick = () => api.stop();
@@ -955,20 +955,20 @@ window.__fmCore();
     function stepText(st, now, played) {
         const parts = [];
         if (st.play) {
-            const order = st.play.used.map(i => i + 1).join(' → ');
+            const order = st.play.used.map(i => i + 1).join(' \u2192 ');
             // My row: slot 0 is on the left.
             const mySlot = m => m && m.slot != null ? ` <span class="muted">(${['1st', '2nd', '3rd', '4th', '5th'][m.slot]} from left)</span>` : '';
             const what = st.play.field ? `Play ${order} (field)` : st.play.raigeki ? `Play ${order} (clears the foe's field)` : st.play.fused ? `Fuse ${order} onto ${esc(name(st.play.over.id))}${mySlot(st.play.over)}`
                 : st.play.over ? `Play ${order} over ${esc(name(st.play.over.id))}${mySlot(st.play.over)}` : st.play.used.length > 1 ? `Fuse ${order}` : `Play ${order}`;
-            const star = st.play.star ? ` · star <b>${esc(st.play.star)}</b>` : '';
+            const star = st.play.star ? ` \u00b7 star <b>${esc(st.play.star)}</b>` : '';
             const mon = !st.play.field && !st.play.raigeki;
-            const pos = !mon ? '' : now ? (st.play.pos === 'def' ? ' · <b>defense</b>' : ' · <b>attack</b>') : st.play.pos === 'def' ? ' (def)' : '';
-            parts.push(now ? `<b>${what}</b> → ${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${star}${pos}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
+            const pos = !mon ? '' : now ? (st.play.pos === 'def' ? ' \u00b7 <b>defense</b>' : ' \u00b7 <b>attack</b>') : st.play.pos === 'def' ? ' (def)' : '';
+            parts.push(now ? `<b>${what}</b> \u2192 ${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${star}${pos}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
                 : `${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}${pos}`);
         } else parts.push(now ? (played ? '<b>Card played</b>' : '<b>Nothing to play</b>') : 'no card');
-        if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} → ${a.to ? esc(name(a.to.id)) + where(a.to) : 'direct'}${a.trap ? ` <span class="muted">(dies to ${esc(name(a.trap))})</span>` : ''}`).join(', '));
+        if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} \u2192 ${a.to ? esc(name(a.to.id)) + where(a.to) : 'direct'}${a.trap ? ` <span class="muted">(dies to ${esc(name(a.trap))})</span>` : ''}`).join(', '));
         else if (now) parts.push(played || st.turn > 1 ? '<b>End the turn</b> (Enter)' : 'Nothing to attack with');
-        return parts.join(now ? '<br>' : ' · ');
+        return parts.join(now ? '<br>' : ' \u00b7 ');
     }
     // The foe's row faces me, so its slot 0 is the card on my far right.
     const where = t => t.slot == null ? '' : ` <span class="muted">(${['1st', '2nd', '3rd', '4th', '5th'][t.slot]} from right, ${t.pos === 'def' ? 'defense / face-down' : 'attack'})</span>`;
@@ -1020,28 +1020,28 @@ window.__fmCore();
         // A win in the plan's range settles it.
         if (plan && !plan.partial) return `<b class="S">yes</b>, by turn ${plan.win}`;
         if (worker === false && !win) return `<button class="link" data-act="win" title="Search up to turn 20 (the game stands still for a few seconds)">check</button>`;
-        if (!win) return 'checking…';
+        if (!win) return 'checking\u2026';
         const r = win.r;
         if (r.timeout) return 'too long to tell';
         if (r.win < Infinity) return `<b class="S">yes</b>, by turn ${r.win}`;
-        return `<b class="B">no win found</b> by turn 20${win.done ? ' (a hint, not proof)' : ' · checking wider…'}`;
+        return `<b class="B">no win found</b> by turn 20${win.done ? ' (a hint, not proof)' : ' \u00b7 checking wider\u2026'}`;
     }
     function draw(s) {
         const st = state(s), now = FMPlanner.score({ ...st, turn: c.turn });
-        info.textContent = `${c.land === 'None' ? 'No field' : c.land} · ${FMPlanner.FOES[s.foeId]?.name || 'Unknown foe'}`;
+        info.textContent = `${c.land === 'None' ? 'No field' : c.land} \u00b7 ${FMPlanner.FOES[s.foeId]?.name || 'Unknown foe'}`;
         hrank.className = 'hrank ' + (plan && !plan.partial ? plan.rank[0] : 'D');
-        hrank.textContent = plan && !plan.partial ? `${plan.rank.replace(' POW', '')} · T${plan.win}` : 'no win';
+        hrank.textContent = plan && !plan.partial ? `${plan.rank.replace(' POW', '')} \u00b7 T${plan.win}` : 'no win';
         const played = s.mine.some(m => m && m.f & 0x04);
         let h = '';
         if (plan && plan.partial) {
-            h += `<div class="rank">${badge('—')}<span>No win in range. Best line leaves the foe ${plan.foeLp} LP.</span></div>`;
+            h += `<div class="rank">${badge('\u2014')}<span>No win in range. Best line leaves the foe ${plan.foeLp} LP.</span></div>`;
             const [first, ...rest] = plan.steps;
             h += `<div class="now">${stepText(first, true, played)}</div>`;
             if (rest.length) h += `<details><summary>Next turns (a guess)</summary>${rest.map(r => `T${r.turn}: ${stepText(r)}`).join('<br>')}</details>`;
         } else if (!plan) {
-            h += `<div class="rank">${badge('—')}<span>${c.turn === 1 ? 'No win in 6 turns.' : 'No winning line in range.'}</span></div>`;
+            h += `<div class="rank">${badge('\u2014')}<span>${c.turn === 1 ? 'No win in 6 turns.' : 'No winning line in range.'}</span></div>`;
         } else {
-            h += `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} · win on turn ${plan.win}</span></div>`;
+            h += `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} \u00b7 win on turn ${plan.win}</span></div>`;
             if (c.turn === 1 && plan.score < 90) h += '<div class="warn">No S line. Reload if you want S.</div>';
             const [first, ...rest] = plan.steps;
             h += `<div class="now">${stepText(first, true, played)}</div>`;
@@ -1051,8 +1051,8 @@ window.__fmCore();
         if (c.mine) h += `<div class="stats">Winnable: ${winText()}</div>`;
         if (c.turn === 1 && !(plan && !plan.partial) && win && win.done && win.r.win === Infinity) h += '<div class="warn">No win found. Reset for a new deal.</div>';
         h += foeCards(s);
-        h += `<div class="stats">Turn ${c.turn}${c.mine ? '' : ' (foe)'} · cards ${c.used} · fusions ${c.fusions} · kills ${c.eff} · magic ${c.magic + c.equips} · LP ${s.lp} / ${s.foeLp}`;
-        if (c.turn > 1) h += ` · win now: ${FMPlanner.rank(now).replace(' POW', '')} ${now}`;
+        h += `<div class="stats">Turn ${c.turn}${c.mine ? '' : ' (foe)'} \u00b7 cards ${c.used} \u00b7 fusions ${c.fusions} \u00b7 kills ${c.eff} \u00b7 magic ${c.magic + c.equips} \u00b7 LP ${s.lp} / ${s.foeLp}`;
+        if (c.turn > 1) h += ` \u00b7 win now: ${FMPlanner.rank(now).replace(' POW', '')} ${now}`;
         h += '</div>';
         say(h);
         const wb = body.querySelector('[data-act=win]');
@@ -1072,7 +1072,7 @@ window.__fmCore();
     function tile(e, tag, star) {
         if (!e) return '<div class="card empty"></div>';
         const pic = imgBase ? `<img src="${imgBase}${e.id}.jpg" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'#${e.id}'}))">` : `<div class="noimg">#${e.id}</div>`;
-        return `<div class="card" data-id="${e.id}"${star ? ` data-star="${esc(star)}"` : ''}>${pic}${tag ? `<span class="tag">${tag}</span>` : ''}<div class="cn">${esc(name(e.id))}</div><div class="cs">${stats(e.id)}</div>${star ? `<div class="st">★ ${esc(star)}</div>` : ''}</div>`;
+        return `<div class="card" data-id="${e.id}"${star ? ` data-star="${esc(star)}"` : ''}>${pic}${tag ? `<span class="tag">${tag}</span>` : ''}<div class="cn">${esc(name(e.id))}</div><div class="cs">${stats(e.id)}</div>${star ? `<div class="st">\u2605 ${esc(star)}</div>` : ''}</div>`;
     }
     // Card effects, in my own short words: data.json has no effect text. The ones the planner models (play/planner.js) are
     // traced from the game; the rest are marked "not checked". "The other side" is the side facing whoever plays it.
@@ -1114,8 +1114,8 @@ window.__fmCore();
         if (!el) { tip.style.display = 'none'; return; }
         const id = +el.dataset.id, d = C(id);
         const star = el.dataset.star;
-        const info = !engine.monster(id) ? esc(effect(id)) : `${esc(d.type)} · ${d.atk}/${d.def} printed · ${esc(d.stars.join(' / '))}`
-            + (star ? `<br>Star in play: <b>${esc(star)}</b> · beats ${esc(starNext(star, 1))} · loses to ${esc(starNext(star, -1))}` : '');
+        const info = !engine.monster(id) ? esc(effect(id)) : `${esc(d.type)} \u00b7 ${d.atk}/${d.def} printed \u00b7 ${esc(d.stars.join(' / '))}`
+            + (star ? `<br>Star in play: <b>${esc(star)}</b> \u00b7 beats ${esc(starNext(star, 1))} \u00b7 loses to ${esc(starNext(star, -1))}` : '');
         tip.innerHTML = `<b>${esc(name(id))}</b><br>${info}`;
         const r = el.getBoundingClientRect();
         tip.style.display = 'block';
@@ -1138,7 +1138,7 @@ window.__fmCore();
     }
     // The foe's turn: nothing here is yours to act on, so keep the panel still until your turn starts.
     function drawFoe(s) {
-        let h = plan && !plan.partial ? `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} · win on turn ${plan.win}</span></div>` : '';
+        let h = plan && !plan.partial ? `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} \u00b7 win on turn ${plan.win}</span></div>` : '';
         h += `<div class="now muted">Foe's turn. The plan updates when your turn starts.</div>`;
         h += foeCards(s);
         h += `<div class="stats">Turn ${c.turn} next${c.ram ? '' : '<button class="link" data-act="turn" title="Use if your turn has started and this still says foe">my turn</button>'}</div>`;
