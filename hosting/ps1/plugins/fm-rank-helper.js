@@ -392,7 +392,8 @@ window.__fmCore = function () {
                 else if (foe.length < 5) foe.push(m);
                 else foe[foe.reduce((w, f, i) => pw(f.id) < pw(foe[w].id) ? i : w, 0)] = m;
             };
-            const single = () => { let b = -1; pool.forEach((id, i) => { if (isMon(id) && (b < 0 || pw(id) > pw(pool[b]))) b = i; }); return b; };
+            // Its strongest monster by the higher of ATK/DEF among the first n window cards (the first on a tie).
+            const single = (n = pool.length) => { let b = -1; pool.slice(0, n).forEach((id, i) => { if (isMon(id) && (b < 0 || pw(id) > pw(pool[b]))) b = i; }); return b; };
             const styleA = () => {
                 const i = single(), f = fusion(P.a, foe.map((_, k) => k));
                 if (f && (i < 0 || f.pw > pw(pool[i]))) place(f.id, f.used, f.onto);
@@ -427,7 +428,10 @@ window.__fmCore = function () {
                 if (i >= 0) place(pool[i], [i]);
                 else if (f && f.pw >= myBest) place(f.id, f.used, f.onto);
                 else if (r != null) set(r);
-                else styleA();
+                // Nothing for my best: the strongest single monster in its hand (not the deck window), no fusion. 5 November 2026:
+                // Rex Raptor set Dharma Cannon and then Dig Beak, though Dharma Cannon + Phantom Dewan made Disk Magician; Yami Bakura
+                // set Catapult Turtle from its hand with a Labyrinth Wall in its window.
+                else { const j = single(hand.length); if (j >= 0) place(pool[j], [j]); }
             } else {
                 const strong = !vis().length || Math.min(...foe.map(f => pw(f.id))) >= myBest;
                 const odds = strong ? P.strong : P.weak;
@@ -570,13 +574,15 @@ window.__fmCore = function () {
                 let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe, st.mine);
                 // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play.
                 if (!st.played && opts.length > 1) opts = opts.filter(Boolean);
-                // A new monster goes down face-up (up) or face-down. Face-down costs a face-down play in the rank, and the foe
+                // A new single monster goes down face-up (up) or face-down. Face-down costs a face-down play in the rank, and the foe
                 // cannot see it (six bosses can), which changes what it plays. Face-up first, so a tie keeps it face-up.
                 const sees = (FOES[st.foeId] || FOE0).sees;
-                opts = opts.flatMap(p => !p || p.field || p.raigeki ? [p] : sees ? [{ ...p, up: true }] : [{ ...p, up: true }, { ...p, up: false }]);
+                // A fusion lands face-up (5 November 2026: two hand fusions did, with no key for the face), so only a single card can go down.
+                opts = opts.flatMap(p => !p || p.field || p.raigeki ? [p] : sees || p.used.length > 1 || p.fused ? [{ ...p, up: true }] : [{ ...p, up: true }, { ...p, up: false }]);
                 for (const p of opts) {
                     let hand = st.hand.slice(), mine = st.mine.slice(), foe = st.foe, fusions = st.fusions, magic = st.magic, l = st.land ?? land, mon = null;
-                    const down = (st.down || 0) + (p && p.up === false ? 1 : 0);
+                    // A fusion onto one of my monsters counts as a face-down play too (seen twice on 5 November 2026).
+                    const down = (st.down || 0) + (p && (p.up === false || p.fused) ? 1 : 0);
                     if (p) {
                         for (const i of p.used) hand[i] = null;
                         // My monsters keep their ATK in atk, even in defense.
@@ -801,7 +807,8 @@ window.__fmCore();
             const g = fresh(s); if (!startNew) guess(g, s);
             // After a page reload the counters come from storage. They are used only for this duel, and not if an older save state was loaded.
             const prior = !startNew && (old || pref('counters'));
-            const mine = prior && prior.deckMe && prior.deckMe.slice(6).join() === s.myDeck.slice(6).join() && (prior === old || prior.turn <= g.turn + 1);
+            // The game overwrites the front of both deck orders as the duel goes on (14 entries by turn 5), so match on the last 20.
+            const mine = prior && prior.deckMe && prior.deckMe.slice(-20).join() === s.myDeck.slice(-20).join() && (prior === old || prior.turn <= g.turn + 1);
             if (mine) { c = prior; c.used = Math.max(c.used, g.used); c.foeDrawn = Math.max(c.foeDrawn, g.foeDrawn); }
             else c = g;
             Object.assign(c, { start: ids(s.hand), gone: [], pend: [], landed: [], act: false, partial: false, land: landOf(s) });
@@ -901,9 +908,10 @@ window.__fmCore();
             return { id: e.id, slot, atk: Math.max(0, (shown === 'def' ? P.def(e.id, c.land) : P.atk(e.id, c.land)) + eq), eq, done, pos, down: !foe && !!(e.f & 0x10), star: C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] };
         };
         return {
-            land: c.land, turn: c.turn, hand: handNow(s), myDeck: c.deckMe.slice(c.used),
+            land: c.land, turn: c.turn, hand: handNow(s), myDeck: c.deckMe.slice(c.used).filter(id => C(id)),
             mine: s.mine.map((m, i) => mon(m, m && !!(m.f & 0x40), false, i)).filter(Boolean), foe: s.foe.map((f, i) => mon(f, false, true, i)).filter(Boolean),
-            foeHand: s.foeHand.filter(Boolean).map(f => f.id), foeDeck: c.deckFoe.slice(c.foeDrawn),
+            // A card the foe played stays in its hand slot with flag 0x10 (0xb0) until it draws again.
+            foeHand: s.foeHand.filter(f => f && !(f.f & 0x10)).map(f => f.id), foeDeck: c.deckFoe.slice(c.foeDrawn).filter(id => C(id)),
             lp: s.lp, foeLp: s.foeLp, used: c.used, down: c.down || 0, fusions: c.fusions, eff: c.eff, magic: c.magic, equips: c.equips, traps: c.traps,
             played: s.mine.some(m => m && (m.f & 0x04)), foeId: foeIdOf(s),
             foeBack: s.foeBack.filter(Boolean).map(f => f.id), myBack: s.myBack.filter(Boolean).map(f => f.id),
@@ -1190,7 +1198,8 @@ window.__fmCore();
             track(s);
             if (c) { const { log, ...keep } = c, json = JSON.stringify(keep); if (json !== saved) { saved = json; pref('counters', keep); } }
             const duel = c && s.hand.some(Boolean) && s.foeLp > 0 && s.lp > 0;
-            const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn + JSON.stringify([s.foe, s.foeBack]) : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land, s.foeBack, s.myBack, s.swords, s.rank]);
+            const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn + JSON.stringify([s.foe, s.foeBack]) : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land, s.foeBack, s.myBack, s.swords, s.rank,
+                [c.used, c.fusions, c.eff, c.magic, c.equips, c.traps, c.down]]);
             if (sig === last) { seen = null; return; }
             // A new state must hold for a few ticks before it is drawn, so the fight zoom cannot flicker the panel.
             if (last) { if (sig !== seen) { seen = sig; steady = 1; return; } if (++steady < SETTLE) return; }
