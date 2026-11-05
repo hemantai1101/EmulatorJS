@@ -723,7 +723,7 @@ window.__fmCore();
     const landOf = s => LANDS[s.terrain] || 'None';
     // ramLand: the last field byte seen. The field menu overrides the land until the game changes it.
     let ramLand = null;
-    let c = null, prev = null, last = '', plan = null, range = null, seen = null, steady = 0, saved = '';
+    let c = null, prev = null, last = '', plan = null, seen = null, steady = 0, saved = '';
     const SETTLE = 3;
     const fresh = s => ({ sig: s.myDeck.join(), deckMe: s.myDeck.slice(), deckFoe: s.foeDeck.slice(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: landOf(s) });
     const same = (a, b) => (a && a.id) === (b && b.id);
@@ -898,6 +898,19 @@ window.__fmCore();
         .stats { color: #9aa0a8; font-size: 11px; margin-top: 6px; }
         .link { padding: 1px 6px; font-size: 11px; cursor: pointer; margin-left: 4px; }
         .muted { color: #9aa0a8; }
+        .foecards { margin: 8px 0 4px; }
+        .lbl { color: #9aa0a8; font-size: 11px; margin: 6px 0 3px; }
+        .row { display: flex; gap: 4px; }
+        .card { position: relative; width: 62px; flex: 0 0 62px; background: #1c2129; border: 1px solid #2f353e; border-radius: 6px; padding: 3px; box-sizing: border-box; }
+        .card.empty { background: none; border-style: dashed; min-height: 40px; }
+        .card img, .noimg { display: block; width: 54px; height: 54px; border-radius: 4px; object-fit: cover; background: #2a2f36; }
+        .noimg { color: #9aa0a8; font-size: 10px; text-align: center; line-height: 54px; }
+        .cn { font-size: 10px; line-height: 1.2; color: #e8e8e8; margin-top: 3px; height: 2.4em; overflow: hidden; overflow-wrap: anywhere; }
+        .cs { font-size: 10px; color: #facc15; }
+        .st { font-size: 10px; color: #93c5fd; white-space: nowrap; overflow: hidden; }
+        .tip { display: none; position: fixed; z-index: 1; max-width: 240px; background: #0b0e13; color: #e8e8e8; border: 1px solid #4b5563; border-radius: 6px; padding: 5px 7px; font: 12px/1.4 system-ui, sans-serif; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+        .card[data-id] { cursor: help; }
+        .tag { position: absolute; top: 5px; left: 5px; font-size: 9px; font-weight: 700; background: rgba(0,0,0,.75); color: #93c5fd; padding: 0 3px; border-radius: 3px; }
     </style>
     <div class="box"><div class="head"><span class="title">FM rank <span class="hrank"></span></span>
         <select title="Field in play" aria-label="Field in play"></select>
@@ -1034,12 +1047,7 @@ window.__fmCore();
         // With the likeliest foe dice. On turn 1 a "no" means: reset for a new deal.
         if (c.mine) h += `<div class="stats">Winnable: ${winText()}</div>`;
         if (c.turn === 1 && !(plan && !plan.partial) && win && win.done && win.r.win === Infinity) h += '<div class="warn">No win found. Reset for a new deal.</div>';
-        // Best and worst rank over the foe's dice (my moves always my best). It takes a second or two, so only on a click.
-        // Out of time: best is at least the likely rank, worst at most.
-        const rk = (r, cap) => r && r.timeout ? (plan && !plan.partial ? `${cap} ${plan.rank.replace(' POW', '')} (too long to finish)` : 'too long to finish')
-            : r && !r.partial ? `${r.rank.replace(' POW', '')} (T${r.win})` : 'no win';
-        if (c.mine) h += range ? `<div class="stats">Dice luck: best ${rk(range.best, '≥')} · worst ${rk(range.worst, '≤')}</div>`
-            : `<div class="stats"><button class="link" data-act="range" title="Best and worst rank over the foe's dice">best / worst</button></div>`;
+        h += foeCards(s);
         h += `<div class="stats">Turn ${c.turn}${c.mine ? '' : ' (foe)'} · cards ${c.used} · fusions ${c.fusions} · kills ${c.eff} · magic ${c.magic + c.equips} · LP ${s.lp} / ${s.foeLp}`;
         if (c.turn > 1) h += ` · win now: ${FMPlanner.rank(now).replace(' POW', '')} ${now}`;
         h += `<button class="link" data-act="turn" title="Use if the turn count is behind">turn +1</button></div>`;
@@ -1047,21 +1055,94 @@ window.__fmCore();
         body.querySelector('[data-act=turn]').onclick = () => { c.adj = (c.adj || 0) + 1; c.turn++; c.mine = true; last = ''; };
         const wb = body.querySelector('[data-act=win]');
         if (wb) wb.onclick = () => { win = { key: winKey, r: P.winTurn(st, 20, 1, 2, Date.now() + 4000), done: true }; draw(s); };
-        const rb = body.querySelector('[data-act=range]');
-        if (rb) rb.onclick = () => {
-            const n = Math.max(6, c.turn + 2);
-            // Each gets 4 seconds: the game stands still while it thinks.
-            range = { best: P.plan(st, n, 'best', Date.now() + 4000), worst: P.plan(st, n, 'worst', Date.now() + 4000) };
-            draw(s);
-        };
+        keepOpen();
+    }
+    // The foe's cards the game holds in RAM: its hand, its monsters (face-down too) and its set magic/traps, with pictures.
+    // Pictures come from fm-images/ beside the plugin file (the player serves them); a missing one shows its card number.
+    // Pasted into the console there is no script URL, so try the player's plugin folder on this site.
+    const imgBase = (() => { try { return new URL(document.currentScript?.src ? 'fm-images/' : 'plugins/fm-images/', document.currentScript?.src || location.href).href; } catch { return null; } })();
+    const stats = id => { const d = C(id); return engine.monster(id) ? `${P.atk(id, c.land)}/${P.def(id, c.land)}` : esc(d?.type || ''); };
+    // A monster on the field shows the guardian star it was played with (flag 0x02: its second star).
+    const starOf = e => engine.monster(e.id) ? C(e.id)?.stars?.[e.f & 0x02 ? 1 : 0] : null;
+    // In each cycle a star beats the next one (Sun > Moon > Venus > Mercury > Sun) and loses to the one before.
+    const starNext = (s, k) => { const cy = FMPlanner.CYCLES.find(c => c.includes(s)); return cy && cy[(cy.indexOf(s) + k + cy.length) % cy.length]; };
+    function tile(e, tag, star) {
+        if (!e) return '<div class="card empty"></div>';
+        const pic = imgBase ? `<img src="${imgBase}${e.id}.jpg" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'#${e.id}'}))">` : `<div class="noimg">#${e.id}</div>`;
+        return `<div class="card" data-id="${e.id}"${star ? ` data-star="${esc(star)}"` : ''}>${pic}${tag ? `<span class="tag">${tag}</span>` : ''}<div class="cn">${esc(name(e.id))}</div><div class="cs">${stats(e.id)}</div>${star ? `<div class="st">★ ${esc(star)}</div>` : ''}</div>`;
+    }
+    // Card effects, in my own short words: data.json has no effect text. The ones the planner models (play/planner.js) are
+    // traced from the game; the rest are marked "not checked". "The other side" is the side facing whoever plays it.
+    const FIELD = t => `Field: ${t} +500 ATK/DEF.`;
+    const EFFECTS = {
+        320: 'Turns one of the other side\'s defense monsters to attack.',
+        329: 'Destroys all Dragons on the other side.',
+        330: FIELD('Beast, Beast-Warrior, Insect, Plant'), 331: FIELD('Zombie, Dinosaur, Rock'), 332: FIELD('Dragon, Winged Beast, Thunder'),
+        333: FIELD('Warrior, Beast-Warrior') + ' (Meadow)', 334: FIELD('Aqua, Fish, Sea Serpent, Thunder') + ' Machine, Pyro -500. (Sea)',
+        335: FIELD('Spellcaster, Fiend') + ' Fairy -500.',
+        336: 'Destroys every monster on both sides.', 337: 'Destroys every monster on the other side.',
+        338: 'Heals 200 LP.', 339: 'Heals 500 LP.', 340: 'Heals 1000 LP.', 341: 'Heals 2000 LP.', 342: 'Heals 5000 LP.',
+        343: '50 damage.', 344: '100 damage.', 345: '200 damage.', 346: '500 damage.', 347: '1000 damage.',
+        348: 'The other side cannot attack for its next 3 turns.',
+        349: 'All monsters on the other side lose 500 ATK/DEF for good.', 669: 'All monsters on the other side lose 1000 ATK/DEF for good.',
+        350: 'Flips the other side\'s face-down monsters face-up.',
+        653: 'Destroys all Warriors on the other side.', 656: 'Destroys all Zombies on the other side.', 660: 'Destroys all Machines on the other side.',
+        662: 'Destroys all Insects on the other side.', 663: 'Destroys all Rocks on the other side.', 664: 'Destroys all Fish on the other side.',
+        655: 'Removes the ATK/DEF penalties on its owner\'s monsters.',
+        661: 'Destroys every monster with 1500+ ATK on the other side.',
+        672: 'Destroys all set magic and traps on the other side.',
+        681: 'Trap: destroys an attacker with 500 ATK or less.', 682: 'Trap: destroys an attacker with 1000 ATK or less.',
+        683: 'Trap: destroys an attacker with 1500 ATK or less.', 684: 'Trap: destroys an attacker with 2000 ATK or less.',
+        685: 'Trap: destroys an attacker with 3000 ATK or less.', 686: 'Trap: destroys any attacker.',
+        690: 'Trap: taken instead of another trap; the attack goes on. (Not fully checked.)'
+    };
+    function effect(id) {
+        const t = C(id)?.type;
+        if (EFFECTS[id]) return EFFECTS[id];
+        if (t === 'Equip') return `Equip: ${id === 657 ? '+1000' : '+500'} ATK/DEF to a monster it fits.`;
+        if (t === 'Ritual') return 'Ritual: makes a ritual monster when its owner has the right monsters on the field.';
+        if (t === 'Trap' || t === 'Magic') return `${t}: effect not checked.`;
+        return '';
+    }
+    // Hover a card for its details. The tip is fixed to the window, so the box's scroll edge cannot cut it off.
+    const tip = document.createElement('div'); tip.className = 'tip'; box.appendChild(tip);
+    body.addEventListener('pointerover', e => {
+        const el = e.target.closest('.card[data-id]');
+        if (!el) { tip.style.display = 'none'; return; }
+        const id = +el.dataset.id, d = C(id);
+        const star = el.dataset.star;
+        const info = !engine.monster(id) ? esc(effect(id)) : `${esc(d.type)} · ${d.atk}/${d.def} printed · ${esc(d.stars.join(' / '))}`
+            + (star ? `<br>Star in play: <b>${esc(star)}</b> · beats ${esc(starNext(star, 1))} · loses to ${esc(starNext(star, -1))}` : '');
+        tip.innerHTML = `<b>${esc(name(id))}</b><br>${info}`;
+        const r = el.getBoundingClientRect();
+        tip.style.display = 'block';
+        tip.style.left = Math.max(4, Math.min(r.left, innerWidth - tip.offsetWidth - 4)) + 'px';
+        tip.style.top = (r.bottom + 4 + tip.offsetHeight > innerHeight ? r.top - tip.offsetHeight - 4 : r.bottom + 4) + 'px';
+    });
+    body.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+    function foeCards(s) {
+        // The foe's rows face me, so its slot 0 is on my far right: show them reversed to match the screen.
+        const row = (label, cards) => `<div class="lbl">${label}</div><div class="row">${cards.join('')}</div>`;
+        const mon = s.foe.slice().reverse().map(e => tile(e, e && e.f & 0x18 ? 'DEF' : '', e && starOf(e)));
+        const back = s.foeBack.slice().reverse().map(e => tile(e, e ? 'SET' : ''));
+        const hand = s.foeHand.filter(Boolean).map(e => tile(e));
+        return `<details class="foecards" ${pref('foeOpen') === false ? '' : 'open'}><summary>Foe's cards</summary>`
+            + row('Hand', hand.length ? hand : ['<span class="muted">empty</span>']) + row('Monsters', mon) + row('Magic / trap', back) + '</details>';
+    }
+    // The foe card box stays open or shut across redraws.
+    function keepOpen() {
+        const d = body.querySelector('.foecards');
+        if (d) d.ontoggle = () => pref('foeOpen', d.open);
     }
     // The foe's turn: nothing here is yours to act on, so keep the panel still until your turn starts.
-    function drawFoe() {
+    function drawFoe(s) {
         let h = plan && !plan.partial ? `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} · win on turn ${plan.win}</span></div>` : '';
         h += `<div class="now muted">Foe's turn. The plan updates when your turn starts.</div>`;
+        h += foeCards(s);
         h += `<div class="stats">Turn ${c.turn} next<button class="link" data-act="turn" title="Use if your turn has started and this still says foe">my turn</button></div>`;
         say(h);
         body.querySelector('[data-act=turn]').onclick = () => { c.mine = true; last = ''; };
+        keepOpen();
     }
     function tick() {
         try {
@@ -1072,13 +1153,13 @@ window.__fmCore();
             track(s);
             if (c) { const { log, ...keep } = c, json = JSON.stringify(keep); if (json !== saved) { saved = json; pref('counters', keep); } }
             const duel = c && s.hand.some(Boolean) && s.foeLp > 0 && s.lp > 0;
-            const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land, s.foeBack, s.myBack, s.swords]);
+            const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn + JSON.stringify([s.foe, s.foeHand, s.foeBack]) : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land, s.foeBack, s.myBack, s.swords]);
             if (sig === last) { seen = null; return; }
             // A new state must hold for a few ticks before it is drawn, so the fight zoom cannot flicker the panel.
             if (last) { if (sig !== seen) { seen = sig; steady = 1; return; } if (++steady < SETTLE) return; }
             seen = null; last = sig;
             if (!duel) { say('<span class="muted">Waiting for a duel to start.</span>'); return; }
-            if (!c.mine) { drawFoe(); return; }
+            if (!c.mine) { drawFoe(s); return; }
             // Cards have left my hand but the monster has not landed yet (fusing, picking a star):
             // the hand is half empty, so keep the last plan until the play finishes.
             // The game sets the played flag (0x04) on my monsters as soon as the slot prompt opens, before the monster lands.
@@ -1086,7 +1167,7 @@ window.__fmCore();
             // During the fight scene my monsters read as empty: hold the panel until they are back.
             if (plan && c.blank) return;
             if (plan && (c.pend.length || (s.mine.some(m => m && m.f & 0x04) && !c.act))) return;
-            if (c.mine && s.hand.some(Boolean)) { const st = state(s); plan = P.plan(st, Math.max(6, c.turn + 2)); range = null; if (!plan || plan.partial) ask(st); }
+            if (c.mine && s.hand.some(Boolean)) { const st = state(s); plan = P.plan(st, Math.max(6, c.turn + 2)); if (!plan || plan.partial) ask(st); }
             shown = s; draw(s);
         } catch (e) { body.textContent = 'Error: ' + e.message; }
     }
