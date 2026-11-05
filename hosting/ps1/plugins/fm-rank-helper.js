@@ -769,6 +769,9 @@ window.__fmCore();
     let ramLand = null;
     let c = null, prev = null, last = '', plan = null, seen = null, steady = 0, saved = '';
     const SETTLE = 3;
+    // The game writes a played monster to its slot as the summon or fusion animation starts. Keep the last plan up for this long
+    // after a landing, so the next step does not show mid-animation.
+    const LAND_HOLD = 5000;
     const fresh = s => ({ sig: s.myDeck.join(), deckMe: s.myDeck.slice(), deckFoe: s.foeDeck.slice(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: landOf(s) });
     const same = (a, b) => (a && a.id) === (b && b.id);
     // Joined mid-duel: guess the counters from the deck orders. A deck is drawn in order, so the hand tells how far in it is.
@@ -839,6 +842,7 @@ window.__fmCore();
             // hand for it (or a hand card of that id, or a fusion of the hand), and happens once per card per turn.
             if (!(c.pend.length || (!p && (c.start.includes(m.id) || line))) || c.landed.includes(m.id)) return;
             c.landed.push(m.id);
+            c.landedAt = Date.now();
             const used = line ? line.order.map(j => c.start[j]) : c.pend.length ? c.pend.slice() : [m.id];
             c.fusions += p ? used.length : used.length - 1;
             // Materials still listed in RAM are phantoms until the refill.
@@ -1203,6 +1207,8 @@ window.__fmCore();
             if (sig === last) { seen = null; return; }
             // A new state must hold for a few ticks before it is drawn, so the fight zoom cannot flicker the panel.
             if (last) { if (sig !== seen) { seen = sig; steady = 1; return; } if (++steady < SETTLE) return; }
+            // Still inside the animation of a monster that just landed: wait (last is not set, so it draws once the hold ends).
+            if (plan && c && c.mine && c.landedAt && Date.now() - c.landedAt < LAND_HOLD) return;
             seen = null; last = sig;
             if (!duel) { plan = null; info.textContent = ''; hrank.className = 'hrank'; hrank.textContent = ''; say('<span class="muted">Waiting for a duel to start.</span>'); return; }
             if (!c.mine) { drawFoe(s); return; }
