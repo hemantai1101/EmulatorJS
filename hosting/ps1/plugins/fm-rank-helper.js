@@ -1204,7 +1204,7 @@ window.__fmCore();
             // A new state must hold for a few ticks before it is drawn, so the fight zoom cannot flicker the panel.
             if (last) { if (sig !== seen) { seen = sig; steady = 1; return; } if (++steady < SETTLE) return; }
             seen = null; last = sig;
-            if (!duel) { say('<span class="muted">Waiting for a duel to start.</span>'); return; }
+            if (!duel) { plan = null; info.textContent = ''; hrank.className = 'hrank'; hrank.textContent = ''; say('<span class="muted">Waiting for a duel to start.</span>'); return; }
             if (!c.mine) { drawFoe(s); return; }
             // Cards have left my hand but the monster has not landed yet (fusing, picking a star):
             // the hand is half empty, so keep the last plan until the play finishes.
