@@ -715,20 +715,25 @@ window.__fmCore();
             // Slots 10-14 and 25-29: the magic/trap rows. +0x19 of each side's record (0xE9FF0 + side * 0x20): Swords turns left.
             myBack: g(10, 5), foeBack: g(25, 5), swords: heap()[B + 0xEA009],
             // 0x9B364: the field in play (gDuel_bTerrain): 0 none, then field card id - 329 (1 Forest ... 6 Yami).
-            terrain: heap()[B + 0x9B364] };
+            terrain: heap()[B + 0x9B364],
+            // My side record (0xE9FF0, DuelSideState in the decompiled game) holds the game's own rank counters: +1 turns taken,
+            // +2 effective attacks, +4 face-down plays, +5 magic, +6 traps, +8 fusions, +9 equips, +0x18 cards drawn.
+            // 0x9B1D5 is whose turn it is: 0 me, 1 the foe. turns_taken goes up as each of my turns starts.
+            rank: (o => { const h = heap(); return { turns: h[o + 1], eff: h[o + 2], down: h[o + 4], magic: h[o + 5], traps: h[o + 6], fusions: h[o + 8], equips: h[o + 9], used: h[o + 0x18] }; })(B + 0xE9FF0),
+            side: heap()[B + 0x9B1D5] };
     }
 
     // Rank counters for the duel in progress. They start fresh when a new shuffle shows up.
     const LANDS = ['None', 'Forest', 'Wasteland', 'Mountain', 'Meadow', 'Sea', 'Yami'];
     const landOf = s => LANDS[s.terrain] || 'None';
-    // ramLand: the last field byte seen. The field menu overrides the land until the game changes it.
+    // ramLand: the last field byte seen.
     let ramLand = null;
     let c = null, prev = null, last = '', plan = null, seen = null, steady = 0, saved = '';
     const SETTLE = 3;
     const fresh = s => ({ sig: s.myDeck.join(), deckMe: s.myDeck.slice(), deckFoe: s.foeDeck.slice(), turn: 1, used: 5, foeDrawn: 0, fusions: 0, eff: 0, magic: 0, equips: 0, traps: 0, mine: true, left: [], land: landOf(s) });
     const same = (a, b) => (a && a.id) === (b && b.id);
     // Joined mid-duel: guess the counters from the deck orders. A deck is drawn in order, so the hand tells how far in it is.
-    // Fused cards leave the hand, so these are lower bounds; the field box and "turn +1" fix a miss.
+    // Fused cards leave the hand, so these are lower bounds. The game's own counters (read in track) replace them when present.
     const drawnCount = (deck, ids) => {
         ids = ids.filter(id => deck.includes(id));
         for (let n = 5; n <= deck.length; n++) {
@@ -833,6 +838,14 @@ window.__fmCore();
             const n = drawnCount(c.deckFoe, ids(s.foeHand));
             if (n > c.foeDrawn) c.foeDrawn = n;
         }
+        // The game's own counters win over the guesses above when they look like a duel in progress.
+        // On the foe's turn my count is still my last turn, so the turn shown is the next one.
+        const r = s.rank;
+        c.ram = r.turns >= 1 && r.turns <= 99 && r.used >= 5 && r.used <= 40 && (s.side === 0 || s.side === 1);
+        if (c.ram) {
+            c.mine = s.side === 0;
+            Object.assign(c, { turn: r.turns + (c.mine ? 0 : 1), used: r.used, fusions: r.fusions, eff: r.eff, magic: r.magic, equips: r.equips, traps: r.traps, down: r.down });
+        }
         prev = s;
     }
 
@@ -858,7 +871,7 @@ window.__fmCore();
             land: c.land, turn: c.turn, hand: handNow(s), myDeck: c.deckMe.slice(c.used),
             mine: s.mine.map((m, i) => mon(m, m && !!(m.f & 0x40), false, i)).filter(Boolean), foe: s.foe.map((f, i) => mon(f, false, true, i)).filter(Boolean),
             foeHand: s.foeHand.filter(Boolean).map(f => f.id), foeDeck: c.deckFoe.slice(c.foeDrawn),
-            lp: s.lp, foeLp: s.foeLp, used: c.used, fusions: c.fusions, eff: c.eff, magic: c.magic, equips: c.equips, traps: c.traps,
+            lp: s.lp, foeLp: s.foeLp, used: c.used, down: c.down || 0, fusions: c.fusions, eff: c.eff, magic: c.magic, equips: c.equips, traps: c.traps,
             played: s.mine.some(m => m && (m.f & 0x04)), foeId: foeIdOf(s),
             foeBack: s.foeBack.filter(Boolean).map(f => f.id), myBack: s.myBack.filter(Boolean).map(f => f.id),
             // Swords sets 4 and each of my draws takes one off, so on my turn the count is my locked turns left (this one too).
@@ -875,12 +888,10 @@ window.__fmCore();
         .box { width: 370px; max-height: 85vh; overflow: auto; background: rgba(15,18,24,.92); color: #e8e8e8;
             font: 12px/1.45 system-ui, -apple-system, sans-serif; border: 1px solid #3a3f47; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
         .head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid #2a2f36; cursor: move; user-select: none; }
-        .title { font-weight: 650; flex: 1; white-space: nowrap; }
-        select.foe { flex: 0 1 auto; min-width: 0; max-width: 190px; text-overflow: ellipsis; }
-        select, button { font: inherit; color: inherit; background: #252a31; border: 1px solid #3a3f47; border-radius: 6px; margin: 0; }
-        select { -webkit-appearance: none; appearance: none; height: 24px; padding: 0 22px 0 8px; cursor: pointer;
-            background: #252a31 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b8bcc4' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 8px center; }
-        select:hover { background-color: #313741; }
+        .title { font-weight: 650; white-space: nowrap; }
+        .grow { flex: 1; }
+        .info { color: #9aa0a8; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        button { font: inherit; color: inherit; background: #252a31; border: 1px solid #3a3f47; border-radius: 6px; margin: 0; }
         .icon { width: 24px; height: 24px; padding: 0; line-height: 1; cursor: pointer; }
         .icon:hover, .link:hover { background: #313741; }
         .body { padding: 8px 10px 10px; }
@@ -913,22 +924,15 @@ window.__fmCore();
         .tag { position: absolute; top: 5px; left: 5px; font-size: 9px; font-weight: 700; background: rgba(0,0,0,.75); color: #93c5fd; padding: 0 3px; border-radius: 3px; }
     </style>
     <div class="box"><div class="head"><span class="title">FM rank <span class="hrank"></span></span>
-        <select title="Field in play" aria-label="Field in play"></select>
-        <select class="foe" title="Foe: the first entry is read from the game; pick another to override" aria-label="Foe"></select>
+        <span class="info" title="Field and foe, read from the game"></span><span class="grow"></span>
         <button class="icon" data-act="min" title="Minimize" aria-label="Minimize">–</button>
         <button class="icon" data-act="close" title="Close" aria-label="Close">×</button></div>
         <div class="body"></div></div>`;
     document.body.appendChild(host);
-    const box = root.querySelector('.box'), hrank = root.querySelector('.hrank'), body = root.querySelector('.body'), fieldPick = root.querySelector('select');
-    fieldPick.innerHTML = Object.keys(FMFusion.terrain).map(t => `<option>${t}</option>`).join('');
-    fieldPick.onchange = () => { if (c) { c.land = fieldPick.value; last = ''; } };
+    const box = root.querySelector('.box'), hrank = root.querySelector('.hrank'), body = root.querySelector('.body'), info = root.querySelector('.info');
     const pref = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem('fm-rank-' + k)); localStorage.setItem('fm-rank-' + k, JSON.stringify(v)); } catch { return null; } };
-    // The foe's AI settings come from its duelist ID, read from RAM; "Auto" uses that, the rest override it.
-    const foePick = root.querySelector('select.foe');
-    foePick.innerHTML = '<option value="0">Auto</option>' + Object.entries(FMPlanner.FOES).map(([n, f]) => `<option value="${n}">${f.name}</option>`).join('');
-    let foeOverride = 0;
-    foePick.onchange = () => { foeOverride = +foePick.value; last = ''; };
-    const foeIdOf = s => foeOverride || (FMPlanner.FOES[s.foeId] ? s.foeId : 0);
+    // The foe's AI settings come from its duelist ID, read from RAM.
+    const foeIdOf = s => FMPlanner.FOES[s.foeId] ? s.foeId : 0;
     const minBtn = root.querySelector('[data-act=min]');
     const setMin = on => { box.classList.toggle('min', on); minBtn.textContent = on ? '+' : '–'; minBtn.title = on ? 'Expand' : 'Minimize'; pref('min', on); };
     setMin(!!pref('min'));
@@ -938,7 +942,7 @@ window.__fmCore();
     if (pos) { host.style.left = pos[0] + 'px'; host.style.top = pos[1] + 'px'; }
     // Drag by the header.
     root.querySelector('.head').addEventListener('pointerdown', e => {
-        if (e.target.closest('button, select')) return;
+        if (e.target.closest('button')) return;
         const x = e.clientX - host.offsetLeft, y = e.clientY - host.offsetTop, head = e.currentTarget;
         head.setPointerCapture(e.pointerId);
         const move = m => { host.style.left = Math.max(0, m.clientX - x) + 'px'; host.style.top = Math.max(0, m.clientY - y) + 'px'; };
@@ -1023,9 +1027,8 @@ window.__fmCore();
         return `<b class="B">no win found</b> by turn 20${win.done ? ' (a hint, not proof)' : ' · checking wider…'}`;
     }
     function draw(s) {
-        const st = state(s), now = FMPlanner.score({ ...st, turn: c.turn, down: 0 });
-        fieldPick.value = c.land;
-        if (foePick.options) foePick.options[0].textContent = FMPlanner.FOES[s.foeId]?.name || 'Unknown foe';
+        const st = state(s), now = FMPlanner.score({ ...st, turn: c.turn });
+        info.textContent = `${c.land === 'None' ? 'No field' : c.land} · ${FMPlanner.FOES[s.foeId]?.name || 'Unknown foe'}`;
         hrank.className = 'hrank ' + (plan && !plan.partial ? plan.rank[0] : 'D');
         hrank.textContent = plan && !plan.partial ? `${plan.rank.replace(' POW', '')} · T${plan.win}` : 'no win';
         const played = s.mine.some(m => m && m.f & 0x04);
@@ -1050,14 +1053,14 @@ window.__fmCore();
         h += foeCards(s);
         h += `<div class="stats">Turn ${c.turn}${c.mine ? '' : ' (foe)'} · cards ${c.used} · fusions ${c.fusions} · kills ${c.eff} · magic ${c.magic + c.equips} · LP ${s.lp} / ${s.foeLp}`;
         if (c.turn > 1) h += ` · win now: ${FMPlanner.rank(now).replace(' POW', '')} ${now}`;
-        h += `<button class="link" data-act="turn" title="Use if the turn count is behind">turn +1</button></div>`;
+        h += '</div>';
         say(h);
-        body.querySelector('[data-act=turn]').onclick = () => { c.adj = (c.adj || 0) + 1; c.turn++; c.mine = true; last = ''; };
         const wb = body.querySelector('[data-act=win]');
         if (wb) wb.onclick = () => { win = { key: winKey, r: P.winTurn(st, 20, 1, 2, Date.now() + 4000), done: true }; draw(s); };
         keepOpen();
     }
-    // The foe's cards the game holds in RAM: its hand, its monsters (face-down too) and its set magic/traps, with pictures.
+    // The foe's cards on the field from RAM: its monsters (face-down too) and its set magic/traps, with pictures.
+    // Not its hand: it plays from a window of its deck beyond the hand, so the hand says little.
     // Pictures come from fm-images/ beside the plugin file (the player serves them); a missing one shows its card number.
     // Pasted into the console there is no script URL, so try the player's plugin folder on this site.
     const imgBase = (() => { try { return new URL(document.currentScript?.src ? 'fm-images/' : 'plugins/fm-images/', document.currentScript?.src || location.href).href; } catch { return null; } })();
@@ -1125,9 +1128,8 @@ window.__fmCore();
         const row = (label, cards) => `<div class="lbl">${label}</div><div class="row">${cards.join('')}</div>`;
         const mon = s.foe.slice().reverse().map(e => tile(e, e && e.f & 0x18 ? 'DEF' : '', e && starOf(e)));
         const back = s.foeBack.slice().reverse().map(e => tile(e, e ? 'SET' : ''));
-        const hand = s.foeHand.filter(Boolean).map(e => tile(e));
         return `<details class="foecards" ${pref('foeOpen') === false ? '' : 'open'}><summary>Foe's cards</summary>`
-            + row('Hand', hand.length ? hand : ['<span class="muted">empty</span>']) + row('Monsters', mon) + row('Magic / trap', back) + '</details>';
+            + row('Monsters', mon) + row('Magic / trap', back) + '</details>';
     }
     // The foe card box stays open or shut across redraws.
     function keepOpen() {
@@ -1139,9 +1141,10 @@ window.__fmCore();
         let h = plan && !plan.partial ? `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} · win on turn ${plan.win}</span></div>` : '';
         h += `<div class="now muted">Foe's turn. The plan updates when your turn starts.</div>`;
         h += foeCards(s);
-        h += `<div class="stats">Turn ${c.turn} next<button class="link" data-act="turn" title="Use if your turn has started and this still says foe">my turn</button></div>`;
+        h += `<div class="stats">Turn ${c.turn} next${c.ram ? '' : '<button class="link" data-act="turn" title="Use if your turn has started and this still says foe">my turn</button>'}</div>`;
         say(h);
-        body.querySelector('[data-act=turn]').onclick = () => { c.mine = true; last = ''; };
+        const mt = body.querySelector('[data-act=turn]');
+        if (mt) mt.onclick = () => { c.mine = true; last = ''; };
         keepOpen();
     }
     function tick() {
@@ -1153,7 +1156,7 @@ window.__fmCore();
             track(s);
             if (c) { const { log, ...keep } = c, json = JSON.stringify(keep); if (json !== saved) { saved = json; pref('counters', keep); } }
             const duel = c && s.hand.some(Boolean) && s.foeLp > 0 && s.lp > 0;
-            const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn + JSON.stringify([s.foe, s.foeHand, s.foeBack]) : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land, s.foeBack, s.myBack, s.swords]);
+            const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn + JSON.stringify([s.foe, s.foeBack]) : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land, s.foeBack, s.myBack, s.swords, s.rank]);
             if (sig === last) { seen = null; return; }
             // A new state must hold for a few ticks before it is drawn, so the fight zoom cannot flicker the panel.
             if (last) { if (sig !== seen) { seen = sig; steady = 1; return; } if (++steady < SETTLE) return; }
