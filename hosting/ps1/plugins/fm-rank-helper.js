@@ -283,7 +283,9 @@ window.__fmCore = function () {
         // Breaking a defense monster costs it nothing in LP and is not an effective attack.
         // back: the foe's set magic and traps. A trap that fires destroys my attacker; the next one that wins tries the target.
         // Returns lost (my monsters the traps took) and back (what is left set).
-        function attack(mine, foe, back = []) {
+        // lp: the foe's LP. Equal power in attack position destroys both monsters, so when trading my equals for the foe
+        // monsters still standing clears its field and the rest of mine then reach its LP, the trade is made (a lethal line only).
+        function attack(mine, foe, back = [], lp = Infinity) {
             const left = mine.filter(m => !m.done).sort((a, b) => a.atk - b.atk), out = [], lost = [];
             let dmg = 0, eff = 0;
             back = back.slice();
@@ -305,7 +307,16 @@ window.__fmCore = function () {
                     break;
                 }
             }
-            const foeLeft = foe.filter(f => out.some(o => o.to === f && !o.trap) ? false : true);
+            let foeLeft = foe.filter(f => out.some(o => o.to === f && !o.trap) ? false : true);
+            if (foeLeft.length && foeLeft.every(f => f.pos !== 'def')) {
+                const pool = left.slice(), pairs = [];
+                for (const f of foeLeft) { const i = pool.findIndex(m => vs(m, f) === vs(f, m)); if (i < 0) break; pairs.push([pool.splice(i, 1)[0], f]); }
+                const back2 = back.filter(id => id !== FAKE_TRAP);
+                if (pairs.length === foeLeft.length && !back2.length && pool.reduce((s, m) => s + m.atk, 0) >= lp) {
+                    for (const [m, f] of pairs) { left.splice(left.indexOf(m), 1); lost.push(m); out.push({ from: m, to: f, trade: true }); }
+                    foeLeft = [];
+                }
+            }
             if (!foeLeft.length) for (const m of left) { if (trapped(m, null)) continue; dmg += m.atk; out.push({ from: m, to: null }); }
             return { dmg, eff, out, foeLeft, lost, back };
         }
@@ -560,7 +571,7 @@ window.__fmCore = function () {
                         }
                     }
                     // No attacks on turn 1 or under Swords of Revealing Light (st.pinned: my turns still locked).
-                    const a = st.turn > 1 && !st.pinned ? attack(mine, foe, st.foeBack) : { dmg: 0, eff: 0, out: [], foeLeft: foe, lost: [], back: st.foeBack };
+                    const a = st.turn > 1 && !st.pinned ? attack(mine, foe, st.foeBack, st.foeLp) : { dmg: 0, eff: 0, out: [], foeLeft: foe, lost: [], back: st.foeBack };
                     const foeLp = st.foeLp - a.dmg, eff = st.eff + a.eff;
                     const step = { turn: st.turn, play: p && { ...p, cards: p.used.map(i => st.hand[i]), ...(p.onto != null && { over: st.mine[p.onto] }) }, attacks: a.out };
                     const line = [...steps, step];
@@ -644,7 +655,7 @@ window.__fmCore = function () {
                             if (p.onto != null) mine[p.onto] = { ...m, slot: st.mine[p.onto].slot }; else mine.push(m);
                         }
                     }
-                    const a = st.turn > 1 && !st.pinned ? attack(mine, foe, st.foeBack) : { dmg: 0, out: [], foeLeft: foe, lost: [], back: st.foeBack };
+                    const a = st.turn > 1 && !st.pinned ? attack(mine, foe, st.foeBack, st.foeLp) : { dmg: 0, out: [], foeLeft: foe, lost: [], back: st.foeBack };
                     const foeLp = st.foeLp - a.dmg;
                     if (foeLp <= 0) { best = st.turn; break; }
                     if (st.turn >= last) continue;
@@ -966,7 +977,7 @@ window.__fmCore();
             parts.push(now ? `<b>${what}</b> \u2192 ${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${star}${pos}<br><span class="muted">${esc(st.play.cards.map(name).join(' + '))}</span>`
                 : `${esc(name(st.play.id))}${st.play.field || st.play.raigeki ? '' : ' ' + st.play.atk}${st.play.star ? ' (' + esc(st.play.star) + ')' : ''}${pos}`);
         } else parts.push(now ? (played ? '<b>Card played</b>' : '<b>Nothing to play</b>') : 'no card');
-        if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} \u2192 ${a.to ? esc(name(a.to.id)) + where(a.to) : 'direct'}${a.trap ? ` <span class="muted">(dies to ${esc(name(a.trap))})</span>` : ''}`).join(', '));
+        if (st.attacks.length) parts.push((now ? 'Attack: ' : '') + st.attacks.map(a => `${esc(name(a.from.id))} \u2192 ${a.to ? esc(name(a.to.id)) + where(a.to) : 'direct'}${a.trap ? ` <span class="muted">(dies to ${esc(name(a.trap))})</span>` : a.trade ? ' <span class="muted">(same power: both die)</span>' : ''}`).join(', '));
         else if (now) parts.push(played || st.turn > 1 ? '<b>End the turn</b> (Enter)' : 'Nothing to attack with');
         return parts.join(now ? '<br>' : ' \u00b7 ');
     }
@@ -1035,17 +1046,15 @@ window.__fmCore();
         let h = '';
         if (plan && plan.partial) {
             h += `<div class="rank">${badge('\u2014')}<span>No win in range. Best line leaves the foe ${plan.foeLp} LP.</span></div>`;
-            const [first, ...rest] = plan.steps;
+            const first = plan.steps[0];
             h += `<div class="now">${stepText(first, true, played)}</div>`;
-            if (rest.length) h += `<details><summary>Next turns (a guess)</summary>${rest.map(r => `T${r.turn}: ${stepText(r)}`).join('<br>')}</details>`;
         } else if (!plan) {
             h += `<div class="rank">${badge('\u2014')}<span>${c.turn === 1 ? 'No win in 6 turns.' : 'No winning line in range.'}</span></div>`;
         } else {
             h += `<div class="rank">${badge(plan.rank)}<span>score ${plan.score} \u00b7 win on turn ${plan.win}</span></div>`;
             if (c.turn === 1 && plan.score < 90) h += '<div class="warn">No S line. Reload if you want S.</div>';
-            const [first, ...rest] = plan.steps;
+            const first = plan.steps[0];
             h += `<div class="now">${stepText(first, true, played)}</div>`;
-            if (rest.length) h += `<details><summary>Next turns (a guess)</summary>${rest.map(r => `T${r.turn}: ${stepText(r)}`).join('<br>')}</details>`;
         }
         // With the likeliest foe dice. On turn 1 a "no" means: reset for a new deal.
         if (c.mine) h += `<div class="stats">Winnable: ${winText()}</div>`;
@@ -1175,6 +1184,6 @@ window.__fmCore();
         } catch (e) { body.textContent = 'Error: ' + e.message; }
     }
     const timer = setInterval(tick, 400);
-    const api = window.__fmOverlay = { stop() { clearInterval(timer); if (worker) worker.terminate(); host.remove(); delete window.__fmOverlay; }, counters: () => c, plan: () => plan, tick };
+    const api = window.__fmOverlay = { stop() { clearInterval(timer); if (worker) worker.terminate(); host.remove(); delete window.__fmOverlay; }, counters: () => c, plan: () => plan, state: () => shown && state(shown), tick };
     tick();
 })();
