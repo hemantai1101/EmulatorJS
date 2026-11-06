@@ -182,53 +182,53 @@ window.__fmCore = function () {
     // duster = % to hold a burn or heal it could use (and to use Harpie's Feather Duster),
     // strong/weak = A/B/C odds when its weakest monster does / does not match my best, home = the field card a Mage restores.
     const FOES = {
-        1: { name: 'Simon Muran', win: 5, sees: false, lp: 2000, a: 1, b: 1, duster: 25, blind: 50, strong: [40, 30, 30], weak: [30, 30, 40] },
-        2: { name: 'Teana', win: 5, sees: false, lp: 3000, a: 1, b: 2, duster: 25, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
-        3: { name: 'Jono', win: 5, sees: false, lp: 1000, a: 2, b: 1, duster: 25, blind: 75, strong: [70, 15, 15], weak: [70, 15, 15] },
-        4: { name: 'Villager 1', win: 5, sees: false, lp: 2000, a: 2, b: 2, duster: 25, blind: 50, strong: [15, 15, 70], weak: [20, 20, 60] },
-        5: { name: 'Villager 2', win: 5, sees: false, lp: 3000, a: 3, b: 1, duster: 25, blind: 75, strong: [70, 15, 15], weak: [30, 10, 60] },
-        6: { name: 'Villager 3', win: 5, sees: false, lp: 1000, a: 1, b: 3, duster: 25, blind: 25, strong: [30, 60, 10], weak: [40, 30, 30] },
-        7: { name: 'Seto', win: 10, sees: false, lp: 2000, a: 3, b: 3, duster: 50, blind: 50, strong: [70, 15, 15], weak: [30, 40, 30] },
-        8: { name: 'Heishin', win: 20, sees: true, lp: 2000, a: 2, b: 2, duster: 75, blind: 50, strong: [30, 40, 30], weak: [20, 60, 20] },
-        9: { name: 'Rex Raptor', win: 8, sees: false, lp: 1000, a: 3, b: 2, duster: 25, blind: 75, strong: [70, 15, 15], weak: [70, 15, 15] },
-        10: { name: 'Weevil Underwood', win: 8, sees: false, lp: 1000, a: 2, b: 3, duster: 25, blind: 50, strong: [30, 60, 10], weak: [30, 30, 40] },
-        11: { name: 'Mai Valentine', win: 10, sees: false, lp: 2000, a: 3, b: 3, duster: 75, blind: 25, strong: [15, 15, 70], weak: [20, 60, 20] },
-        12: { name: 'Bandit Keith', win: 12, sees: false, lp: 2000, a: 2, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [40, 30, 30] },
-        13: { name: 'Shadi', win: 12, sees: false, lp: 3000, a: 2, b: 2, duster: 50, blind: 25, strong: [30, 30, 40], weak: [20, 60, 20] },
-        14: { name: 'Yami Bakura', win: 14, sees: false, lp: 2000, a: 3, b: 3, duster: 75, blind: 25, strong: [15, 15, 70], weak: [30, 40, 30] },
-        15: { name: 'Pegasus', win: 16, sees: true, lp: 2000, a: 3, b: 3, duster: 75, blind: 0, strong: [30, 30, 40], weak: [20, 20, 60] },
-        16: { name: 'Isis', win: 16, sees: false, lp: 2000, a: 3, b: 3, duster: 75, blind: 25, strong: [30, 40, 30], weak: [10, 60, 30] },
-        17: { name: 'Kaiba', win: 16, sees: false, lp: 2000, a: 3, b: 3, duster: 75, blind: 50, strong: [70, 15, 15], weak: [30, 60, 10] },
-        18: { name: 'Mage Soldier', win: 12, sees: false, lp: 1000, a: 1, b: 1, duster: 25, blind: 75, strong: [40, 30, 30], weak: [30, 30, 40] },
-        19: { name: 'Jono 2nd', win: 10, sees: false, lp: 1000, a: 1, b: 2, duster: 25, blind: 75, strong: [30, 60, 10], weak: [20, 60, 20] },
-        20: { name: 'Teana 2nd', win: 10, sees: false, lp: 3000, a: 2, b: 1, duster: 25, blind: 25, strong: [70, 15, 15], weak: [70, 15, 15] },
-        21: { name: 'Ocean Mage', win: 14, sees: false, lp: 1000, a: 2, b: 2, duster: 50, blind: 50, strong: [30, 40, 30], weak: [40, 30, 30], home: 334 },
-        22: { name: 'High Mage Secmeton', win: 16, sees: false, lp: 2000, a: 2, b: 3, duster: 50, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
-        23: { name: 'Forest Mage', win: 14, sees: false, lp: 1000, a: 2, b: 2, duster: 50, blind: 50, strong: [15, 15, 70], weak: [30, 40, 30], home: 330 },
-        24: { name: 'High Mage Anubisius', win: 16, sees: false, lp: 2000, a: 3, b: 3, duster: 50, blind: 25, strong: [30, 30, 40], weak: [20, 60, 20] },
-        25: { name: 'Mountain Mage', win: 14, sees: false, lp: 1000, a: 3, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [30, 10, 60], home: 332 },
-        26: { name: 'High Mage Atenza', win: 16, sees: false, lp: 2000, a: 3, b: 3, duster: 50, blind: 25, strong: [15, 15, 70], weak: [10, 60, 30] },
-        27: { name: 'Desert Mage', win: 14, sees: false, lp: 1000, a: 2, b: 2, duster: 50, blind: 50, strong: [15, 15, 70], weak: [30, 30, 40], home: 331 },
-        28: { name: 'High Mage Martis', win: 16, sees: false, lp: 2000, a: 2, b: 3, duster: 50, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
-        29: { name: 'Meadow Mage', win: 14, sees: false, lp: 1000, a: 3, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [40, 30, 30], home: 333 },
-        30: { name: 'High Mage Kepura', win: 16, sees: false, lp: 2000, a: 3, b: 3, duster: 50, blind: 25, strong: [40, 30, 30], weak: [20, 60, 20] },
-        31: { name: 'Labyrinth Mage', win: 16, sees: false, lp: 2000, a: 3, b: 3, duster: 75, blind: 75, strong: [70, 15, 15], weak: [30, 10, 60] },
-        32: { name: 'Seto 2nd', win: 18, sees: false, lp: 1000, a: 1, b: 2, duster: 50, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
-        33: { name: 'Guardian Sebek', win: 20, sees: false, lp: 1000, a: 2, b: 2, duster: 50, blind: 50, strong: [15, 15, 70], weak: [20, 20, 60] },
-        34: { name: 'Guardian Neku', win: 20, sees: false, lp: 3000, a: 2, b: 1, duster: 50, blind: 75, strong: [70, 15, 15], weak: [70, 15, 15], home: 335 },
-        35: { name: 'Heishin 2nd', win: 20, sees: true, lp: 2000, a: 2, b: 2, duster: 75, blind: 0, strong: [30, 40, 30], weak: [30, 40, 30] },
-        36: { name: 'Seto 3rd', win: 20, sees: true, lp: 2000, a: 2, b: 2, duster: 75, blind: 0, strong: [30, 30, 40], weak: [20, 60, 20] },
-        37: { name: 'DarkNite', win: 20, sees: true, lp: 2000, a: 2, b: 2, duster: 50, blind: 0, strong: [15, 15, 70], weak: [20, 20, 60] },
-        38: { name: 'Nitemare', win: 20, sees: true, lp: 1000, a: 2, b: 2, duster: 75, blind: 0, strong: [70, 15, 15], weak: [30, 60, 10] },
-        39: { name: 'Duel Master K', win: 15, sees: false, lp: 2000, a: 3, b: 3, duster: 50, blind: 25, strong: [30, 40, 30], weak: [20, 60, 20] },
+        1: { name: 'Simon Muran', win: 5, sees: false, lp: 2000, low: 10, a: 1, b: 1, duster: 25, blind: 50, strong: [40, 30, 30], weak: [30, 30, 40] },
+        2: { name: 'Teana', win: 5, sees: false, lp: 3000, low: 20, a: 1, b: 2, duster: 25, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
+        3: { name: 'Jono', win: 5, sees: false, lp: 1000, low: 5, a: 2, b: 1, duster: 25, blind: 75, strong: [70, 15, 15], weak: [70, 15, 15] },
+        4: { name: 'Villager 1', win: 5, sees: false, lp: 2000, low: 10, a: 2, b: 2, duster: 25, blind: 50, strong: [15, 15, 70], weak: [20, 20, 60] },
+        5: { name: 'Villager 2', win: 5, sees: false, lp: 3000, low: 20, a: 3, b: 1, duster: 25, blind: 75, strong: [70, 15, 15], weak: [30, 10, 60] },
+        6: { name: 'Villager 3', win: 5, sees: false, lp: 1000, low: 5, a: 1, b: 3, duster: 25, blind: 25, strong: [30, 60, 10], weak: [40, 30, 30] },
+        7: { name: 'Seto', win: 10, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 50, blind: 50, strong: [70, 15, 15], weak: [30, 40, 30] },
+        8: { name: 'Heishin', win: 20, sees: true, lp: 2000, low: 10, a: 2, b: 2, duster: 75, blind: 50, strong: [30, 40, 30], weak: [20, 60, 20] },
+        9: { name: 'Rex Raptor', win: 8, sees: false, lp: 1000, low: 5, a: 3, b: 2, duster: 25, blind: 75, strong: [70, 15, 15], weak: [70, 15, 15] },
+        10: { name: 'Weevil Underwood', win: 8, sees: false, lp: 1000, low: 5, a: 2, b: 3, duster: 25, blind: 50, strong: [30, 60, 10], weak: [30, 30, 40] },
+        11: { name: 'Mai Valentine', win: 10, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 75, blind: 25, strong: [15, 15, 70], weak: [20, 60, 20] },
+        12: { name: 'Bandit Keith', win: 12, sees: false, lp: 2000, low: 10, a: 2, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [40, 30, 30] },
+        13: { name: 'Shadi', win: 12, sees: false, lp: 3000, low: 20, a: 2, b: 2, duster: 50, blind: 25, strong: [30, 30, 40], weak: [20, 60, 20] },
+        14: { name: 'Yami Bakura', win: 14, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 75, blind: 25, strong: [15, 15, 70], weak: [30, 40, 30] },
+        15: { name: 'Pegasus', win: 16, sees: true, lp: 2000, low: 10, a: 3, b: 3, duster: 75, blind: 0, strong: [30, 30, 40], weak: [20, 20, 60] },
+        16: { name: 'Isis', win: 16, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 75, blind: 25, strong: [30, 40, 30], weak: [10, 60, 30] },
+        17: { name: 'Kaiba', win: 16, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 75, blind: 50, strong: [70, 15, 15], weak: [30, 60, 10] },
+        18: { name: 'Mage Soldier', win: 12, sees: false, lp: 1000, low: 5, a: 1, b: 1, duster: 25, blind: 75, strong: [40, 30, 30], weak: [30, 30, 40] },
+        19: { name: 'Jono 2nd', win: 10, sees: false, lp: 1000, low: 5, a: 1, b: 2, duster: 25, blind: 75, strong: [30, 60, 10], weak: [20, 60, 20] },
+        20: { name: 'Teana 2nd', win: 10, sees: false, lp: 3000, low: 20, a: 2, b: 1, duster: 25, blind: 25, strong: [70, 15, 15], weak: [70, 15, 15] },
+        21: { name: 'Ocean Mage', win: 14, sees: false, lp: 1000, low: 5, a: 2, b: 2, duster: 50, blind: 50, strong: [30, 40, 30], weak: [40, 30, 30], home: 334 },
+        22: { name: 'High Mage Secmeton', win: 16, sees: false, lp: 2000, low: 10, a: 2, b: 3, duster: 50, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
+        23: { name: 'Forest Mage', win: 14, sees: false, lp: 1000, low: 5, a: 2, b: 2, duster: 50, blind: 50, strong: [15, 15, 70], weak: [30, 40, 30], home: 330 },
+        24: { name: 'High Mage Anubisius', win: 16, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 50, blind: 25, strong: [30, 30, 40], weak: [20, 60, 20] },
+        25: { name: 'Mountain Mage', win: 14, sees: false, lp: 1000, low: 5, a: 3, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [30, 10, 60], home: 332 },
+        26: { name: 'High Mage Atenza', win: 16, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 50, blind: 25, strong: [15, 15, 70], weak: [10, 60, 30] },
+        27: { name: 'Desert Mage', win: 14, sees: false, lp: 1000, low: 5, a: 2, b: 2, duster: 50, blind: 50, strong: [15, 15, 70], weak: [30, 30, 40], home: 331 },
+        28: { name: 'High Mage Martis', win: 16, sees: false, lp: 2000, low: 10, a: 2, b: 3, duster: 50, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
+        29: { name: 'Meadow Mage', win: 14, sees: false, lp: 1000, low: 5, a: 3, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [40, 30, 30], home: 333 },
+        30: { name: 'High Mage Kepura', win: 16, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 50, blind: 25, strong: [40, 30, 30], weak: [20, 60, 20] },
+        31: { name: 'Labyrinth Mage', win: 16, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 75, blind: 75, strong: [70, 15, 15], weak: [30, 10, 60] },
+        32: { name: 'Seto 2nd', win: 18, sees: false, lp: 1000, low: 5, a: 1, b: 2, duster: 50, blind: 25, strong: [30, 60, 10], weak: [20, 60, 20] },
+        33: { name: 'Guardian Sebek', win: 20, sees: false, lp: 1000, low: 5, a: 2, b: 2, duster: 50, blind: 50, strong: [15, 15, 70], weak: [20, 20, 60] },
+        34: { name: 'Guardian Neku', win: 20, sees: false, lp: 3000, low: 20, a: 2, b: 1, duster: 50, blind: 75, strong: [70, 15, 15], weak: [70, 15, 15], home: 335 },
+        35: { name: 'Heishin 2nd', win: 20, sees: true, lp: 2000, low: 10, a: 2, b: 2, duster: 75, blind: 0, strong: [30, 40, 30], weak: [30, 40, 30] },
+        36: { name: 'Seto 3rd', win: 20, sees: true, lp: 2000, low: 10, a: 2, b: 2, duster: 75, blind: 0, strong: [30, 30, 40], weak: [20, 60, 20] },
+        37: { name: 'DarkNite', win: 20, sees: true, lp: 2000, low: 10, a: 2, b: 2, duster: 50, blind: 0, strong: [15, 15, 70], weak: [20, 20, 60] },
+        38: { name: 'Nitemare', win: 20, sees: true, lp: 1000, low: 5, a: 2, b: 2, duster: 75, blind: 0, strong: [70, 15, 15], weak: [30, 60, 10] },
+        39: { name: 'Duel Master K', win: 15, sees: false, lp: 2000, low: 10, a: 3, b: 3, duster: 50, blind: 25, strong: [30, 40, 30], weak: [20, 60, 20] },
     };
     // Unknown foe: hand only, plain settings.
-    const FOE0 = { name: 'Unknown', win: 5, sees: false, lp: 1000, a: 2, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [70, 15, 15] };
+    const FOE0 = { name: 'Unknown', win: 5, sees: false, lp: 1000, low: 10, a: 2, b: 2, duster: 50, blind: 50, strong: [70, 15, 15], weak: [70, 15, 15] };
     // Magic and trap effects (the game's effect groups: notes/research/the-game.md \u00a75.5 and \u00a75.7 in the same project).
     const BURN = { 343: 50, 344: 100, 345: 200, 346: 500, 347: 1000 }, HEAL = { 338: 200, 339: 500, 340: 1000, 341: 2000, 342: 5000 };
     // Dark Hole clears both sides; Swords stops my attacks for my next 3 turns; Stop Defense flips one of my defenders to attack;
-    // Dark-piercing Light turns my monsters face-up; Harpie's Feather Duster clears my back row; Cursebreaker undoes penalties.
-    const DARK_HOLE = 336, SWORDS = 348, STOP_DEFENSE = 320, DARK_LIGHT = 350, DUSTER = 672, CURSEBREAKER = 655;
+    // Dark-piercing Light turns my monsters face-up; Harpie's Feather Duster clears my back row.
+    const DARK_HOLE = 336, SWORDS = 348, STOP_DEFENSE = 320, DARK_LIGHT = 350, DUSTER = 672;
     // Removal: all my monsters of a type; Crush Card all with ATK 1500 or more.
     const REMOVAL = { 653: 'Warrior', 656: 'Zombie', 660: 'Machine', 662: 'Insect', 663: 'Rock', 664: 'Fish', 329: 'Dragon' }, CRUSH = 661;
     // Spellbinding Circle and Shadow Spell lower all my monsters' ATK and DEF for good (the "timer" is only the animation).
@@ -239,6 +239,10 @@ window.__fmCore = function () {
 
     // land is the default field when a state does not name one.
     function create(engine, land = 'None') {
+        // The foe's snapshot of its hand and deck (func_80027DF8) holds PRINTED ATK/DEF, no land: its FindStrongest over the
+        // window and the window cards' own scores in FindBestCombo rank by these. Field cards get Duel_CalcCardStats (land,
+        // equips), and CalcCardPower / fusion results add the land.
+        const printed = id => { const c = engine.cards.get(id); return Math.max(c?.atk || 0, c?.def || 0); };
         const atk = (id, l = land) => engine.stats(id, l).atk;
         const def = (id, l = land) => engine.stats(id, l).def;
         // A foe monster in defense (or face-down) is fought on its DEF: a foe is {id, atk, pos}, and atk holds that number.
@@ -248,14 +252,14 @@ window.__fmCore = function () {
         const vs = (a, b) => a.atk + edge(a.star, b.star);
         // The star to give a new monster: the one that beats the most foe monsters, the first star on a tie. It counts the foe
         // monsters on the field and the one the foe will most likely play next: its strongest window monster by the higher of
-        // ATK/DEF (the first on a tie), on its first star (the foe always takes star 0). Its other window cards stay in the deck
+        // ATK/DEF as printed (the first on a tie; see printed), on its first star (the foe always takes star 0). Its other window cards stay in the deck
         // or hand, so they do not count. 6 November 2026: Pluto was picked against Gaia, and Empress Judge (Uranus) came out of
         // Kepura's window and beat it 3100 to 2800.
         function pickStar(id, atkv, foe, l = land, next = []) {
             const stars = engine.cards.get(id)?.stars || [];
             if (stars.length < 2) return stars[0];
             let b = null;
-            for (const n of next) if (isMon(n) && (b == null || Math.max(atk(n, l), def(n, l)) > Math.max(atk(b, l), def(b, l)))) b = n;
+            for (const n of next) if (isMon(n) && (b == null || printed(n) > printed(b))) b = n;
             const all = b == null ? foe : [...foe, { id: b, atk: atk(b, l), star: engine.cards.get(b)?.stars?.[0] }];
             const wins = star => all.filter(f => atkv + edge(star, f.star) > f.atk + edge(f.star, star)).length;
             return wins(stars[1]) > wins(stars[0]) ? stars[1] : stars[0];
@@ -334,17 +338,15 @@ window.__fmCore = function () {
             if (!foeLeft.length) for (const m of left) { if (trapped(m, null)) continue; dmg += m.atk; out.push({ from: m, to: null }); }
             return { dmg, eff, out, foeLeft, lost, back };
         }
-        // Foe turn, after the game's AI (Unchiga/Yu-Gi-Oh-Forbidden-Memories-Recompiled, notes/ai-hard-mode-research.md).
-        // st.foeId picks the duelist's settings (FOES). Where the game rolls dice, this takes the likeliest outcome.
+        // Foe turn, ported from the game's AI programs: the hand program at 0x801A8000 and the field program at 0x801A9800 (one
+        // program each for all 39 duelists), decoded from a PS1 RAM dump on 6 November 2026 with the opcode table and native
+        // searches of Unchiga/Yu-Gi-Oh-Forbidden-Memories-Recompiled (src/game/ai_script_*.c, ai_fusion.c, notes/ai-hard-mode-research.md).
+        // Offsets below are into those programs. st.foeId picks the duelist's settings (FOES).
         // It draws to 5 and picks from its hand plus its next deck cards (the window); a deck card it uses swaps into its hand.
-        // Hand step, one play: a burn card that finishes me; a Mage's home field card; then, when its field is not stronger
-        // than mine (the higher of ATK/DEF), its strongest window monster if it meets my best (any monster when its field is
-        // empty); else style A while 33+ cards are left in its deck, else removal, traps, Raigeki or Dark Hole, else style A.
-        // Ahead, it rolls a style: A its best monster or
-        // fusion, B a fusion onto its weakest monster, C a trap, equip or magic first. Below its LP threshold it takes B.
-        // Field step: walls go to defense, then it attacks, then the monsters that did not attack go to defense (but KEEP).
-        // It cannot see my face-down monsters (six bosses can) and hits them blind with its strongest monster.
-        // Other magic and traps have no modeled effect: data.json has no card effects.
+        // Hand step, one play: a burn card that finishes me; a Mage's home field card; then behind (its best is not stronger
+        // than mine) or ahead, each with its own rules below. Field step, one action at a time, each one rereading the board:
+        // its back row in a fixed order, walls to defense, a lethal attack, kills, blind hits, direct attacks, then defense.
+        // Its new monsters (and set cards) go down face-down, on their first star. Rituals and traps have no modeled effect.
         // choose(odds) settles a dice roll: odds are percentages, it returns the index taken. The default takes the likeliest
         // (the first on a tie); foeOutcomes walks them all.
         const likeliest = ps => ps.indexOf(Math.max(...ps));
@@ -355,21 +357,38 @@ window.__fmCore = function () {
             const lives = r => r.mine.some(m => m.id === mon.id && m.star === mon.star);
             return down.lp > up.lp || (down.lp === up.lp && lives(down) && !lives(up));
         }
+        // Strategy A, own monster alone best (0x0BFE): a field card for its type from the window, first choice then second;
+        // a found card on the land it already has ends the search.
+        const TYPE_FIELD = { Dragon: [332], Spellcaster: [335], Zombie: [331], Warrior: [333], 'Beast-Warrior': [333, 330], Beast: [330],
+            'Winged Beast': [332], Fiend: [335], Insect: [330], Dinosaur: [331], Fish: [334], 'Sea Serpent': [334], Thunder: [332, 334],
+            Aqua: [334], Rock: [331], Plant: [330] };
+        // Field step field cards (0x061E): up = types the land raises, down = types it lowers.
+        const LAND_TYPES = { Forest: { up: ['Beast-Warrior', 'Beast', 'Insect', 'Plant'] }, Wasteland: { up: ['Zombie', 'Dinosaur', 'Rock'] },
+            Mountain: { up: ['Dragon', 'Winged Beast', 'Thunder'] }, Meadow: { up: ['Warrior', 'Beast-Warrior'] },
+            Sea: { up: ['Fish', 'Sea Serpent', 'Thunder', 'Aqua'], down: ['Machine', 'Pyro'] }, Yami: { up: ['Spellcaster', 'Fiend'], down: ['Fairy'] } };
+        // Field step back-row order (0x005E-0x083C): one family at a time, the first card of the first family it holds.
+        const BACK_ORDER = [DUSTER, 343, 344, 345, 346, 347, 338, 339, 340, 341, 342, 'Equip', 'Ritual', DARK_LIGHT, SWORDS, STOP_DEFENSE,
+            329, 653, 656, 660, 662, 663, 664, 349, 669, CRUSH, RAIGEKI, 330, 331, 332, 333, 334, 335, DARK_HOLE];
         function foeTurn(st, choose = likeliest) {
             const P = FOES[st.foeId] || FOE0;
             const hand = st.foeHand.slice(), deck = st.foeDeck.slice();
             while (hand.length < 5 && deck.length) hand.push(deck.shift());
-            let foe = st.foe.slice(), mine = st.mine.slice(), l = st.land ?? land, lp = st.lp, foeLp = st.foeLp ?? 8000;
+            // Monsters in slot order (searches walk the slots; the first wins a tie).
+            const bySlot = list => list.map((m, i) => m.slot == null ? { ...m, slot: i } : m).sort((a, b) => a.slot - b.slot);
+            let foe = bySlot(st.foe), mine = bySlot(st.mine), l = st.land ?? land, lp = st.lp, foeLp = st.foeLp ?? 8000;
             let back = (st.foeBack || []).slice(), myBack = (st.myBack || []).slice(), pinned = st.pinned || 0;
+            // CalcCardPower: card stats plus the land, no equips. pw is the higher of ATK/DEF.
             const pw = id => Math.max(atk(id, l), def(id, l));
             const type = id => engine.cards.get(id)?.type;
             const pool = [...hand, ...deck.slice(0, Math.max(0, P.win - hand.length))];
             const find = test => pool.findIndex(test);
-            // Its board comparisons only count my monsters it can see: a face-down one looks like an empty slot (six bosses
-            // see them). Seen 5 November 2026: Anubisius met a face-down Curse of Dragon with a fusion, as on an empty field.
+            // The snapshot stats its strongest/weakest searches rank by: with equips and penalties.
+            const sa = m => Math.max(0, atk(m.id, l) + (m.eq || 0)), sd = m => Math.max(0, def(m.id, l) + (m.eq || 0)), sp = m => Math.max(sa(m), sd(m));
+            const strongest = (list, v = sp) => list.reduce((b, m) => b == null || v(m) > v(b) ? m : b, null);
+            const weakest = (list, v = sp) => list.reduce((b, m) => b == null || v(m) < v(b) ? m : b, null);
+            // It cannot see my face-down monsters (hide flag mem[14]; six bosses can). Seen 5 November 2026: Anubisius met a
+            // face-down Curse of Dragon with a fusion, as on an empty field.
             const seen = m => !m.down || P.sees, vis = () => mine.filter(seen);
-            const myBest = Math.max(0, ...vis().map(m => pw(m.id)));
-            const foeBest = Math.max(0, ...foe.map(f => pw(f.id)));
             const relandAll = () => { foe = reland(foe, l); mine = reland(mine, l); };
             // Use window cards: a deck card swaps places with the first hand card the play does not use.
             const take = used => {
@@ -381,154 +400,261 @@ window.__fmCore = function () {
                 }
                 for (const i of used.filter(i => i < hand.length).sort((a, b) => b - a)) hand.splice(i, 1);
             };
-            // Its best fusion by the higher of ATK/DEF: window cards alone (depth 2+, up to depth cards),
-            // or one of its monsters (seeds: indexes in foe) with up to max(1, depth - 1) window cards.
-            const fusion = (depth, seeds, alone = true) => {
-                let b = null;
-                const keep = (id, used, onto) => { if (!b || pw(id) > b.pw) b = { id, pw: pw(id), used, onto }; };
-                const mons = pool.map((_, i) => i).filter(i => isMon(pool[i]));
-                const walk = (cur, used, n, k) => {
-                    for (const i of mons) {
-                        if (used.includes(i)) continue;
-                        const r = engine.fuse(cur, pool[i]);
-                        if (!r.success) continue;
-                        keep(r.result, [...used, i], k);
-                        if (n > 1) walk(r.result, [...used, i], n - 1, k);
-                    }
-                };
-                if (alone && depth >= 2) for (const i of mons) walk(pool[i], [i], depth - 1);
-                for (const k of seeds) walk(foe[k].id, [], Math.max(1, depth - 1), k);
-                return b;
-            };
+            // Placement (0x13EF): the first empty zone, else over its weakest monster; onto: a fusion onto that monster.
             const place = (id, used, onto) => {
                 take(used);
                 const m = { id, atk: atk(id, l), star: engine.cards.get(id)?.stars?.[0] };
-                if (onto != null) foe[onto] = m;
-                else if (foe.length < 5) foe.push(m);
-                else foe[foe.reduce((w, f, i) => pw(f.id) < pw(foe[w].id) ? i : w, 0)] = m;
+                const free = [0, 1, 2, 3, 4].find(s => !foe.some(f => f.slot === s));
+                if (onto != null) foe = foe.map(f => f === onto ? { ...m, slot: f.slot } : f);
+                else if (free != null) foe = bySlot([...foe, { ...m, slot: free }]);
+                else { const w = weakest(foe); foe = foe.map(f => f === w ? { ...m, slot: f.slot } : f); }
             };
-            // Its strongest monster by the higher of ATK/DEF among the first n window cards (the first on a tie).
-            const single = (n = pool.length) => { let b = -1; pool.slice(0, n).forEach((id, i) => { if (isMon(id) && (b < 0 || pw(id) > pw(pool[b]))) b = i; }); return b; };
-            const styleA = () => {
-                const i = single(), f = fusion(P.a, foe.map((_, k) => k));
-                if (f && (i < 0 || f.pw > pw(pool[i]))) place(f.id, f.used, f.onto);
-                else if (i >= 0) place(pool[i], [i]);
+            // Ai_CompleteFusion: fuse cur with each unused window card, keep the best by base ATK or DEF plus the land (a tie
+            // goes to the shorter path), and go deeper while depth < lim - 1. Equip steps are left out: they never make a
+            // better or shorter result. S = {best, depth, combo, seed}; path holds window indexes from path[from].
+            const complete = (cur, depth, lim, used, path, S, from) => {
+                pool.forEach((id, i) => {
+                    if (used[i]) return;
+                    const r = engine.fuse(cur, id);
+                    if (!r.success) return;
+                    path[depth] = i;
+                    for (const s of [atk(r.result, l), def(r.result, l)]) if (s > S.best || (s === S.best && depth < S.depth)) {
+                        S.best = s; S.depth = depth; S.combo = { ...S.seed, id: r.result, cards: path.slice(from, depth + 1) };
+                    }
+                    if (depth < lim - 1) { used[i] = 1; complete(r.result, depth + 1, lim, used, path, S, from); used[i] = 0; }
+                });
             };
-            // A field card counts when it lifts the foe's side more than mine.
-            const lift = x => foe.reduce((t, f) => t + power(f.id, f.pos, x) - power(f.id, f.pos, l), 0) - mine.reduce((t, m) => t + atk(m.id, x) - atk(m.id, l), 0);
-            // A magic, trap or equip card from the window goes to its back row; the field step decides when to use it.
-            // An equip on its first monster it fits (not the best one): +500, Megamorph +1000. False when none fits.
+            // FindBestCombo (strategy A): its monsters as they stand, then each window card, by snapshot stats; a monster seeds a
+            // fusion when lim >= 2, a window card only when lim >= 3. A monster in field slot k blocks window card k for its
+            // fusions (the game marks fusion_used[k], a hand index). Returns null (nothing), {onto, cards: []} (own monster
+            // alone), {onto, cards} (fusion onto it) or {hand: true, cards} (from the window).
+            const bestCombo = lim => {
+                const used = pool.map(() => 0), path = [], S = { best: 0, depth: 0, combo: null };
+                for (const f of foe) {
+                    for (const s of [sa(f), sd(f)]) if (s > S.best) { S.best = s; S.depth = 0; S.combo = { onto: f, id: f.id, cards: [] }; }
+                    if (lim >= 2) { const q = f.slot, was = used[q]; if (q < used.length) used[q] = 1; S.seed = { onto: f }; complete(f.id, 1, lim, used, path, S, 1); if (q < used.length) used[q] = was; }
+                }
+                pool.forEach((id, i) => {
+                    for (const s of [engine.cards.get(id)?.atk || 0, engine.cards.get(id)?.def || 0]) if (s > S.best) { S.best = s; S.depth = 0; S.combo = { hand: true, id, cards: [i] }; }
+                    if (lim >= 3) { used[i] = 1; path[0] = i; S.seed = { hand: true }; complete(id, 1, lim, used, path, S, 0); used[i] = 0; }
+                });
+                return S.combo;
+            };
+            // EvaluateFusion (strategy B): improve card id with window cards. Only a best result that took 2+ cards counts
+            // (best depth != 0): one card onto it is never a success.
+            const evalFusion = (id, lim) => {
+                const S = { best: pw(id), depth: 0, combo: null, seed: {} };
+                complete(id, 0, lim, pool.map(() => 0), [], S, 0);
+                return S.depth ? S.combo : null;
+            };
+            // Its strongest window card by the higher of ATK/DEF as printed (FindStrongest, the first on a tie), monsters only.
+            // Kepura on Meadow, 6 November 2026 (T3): Parrot Dragon (2000/1300, in hand) came down over Nekogal #2 (1900/2000,
+            // deck), though Nekogal is 2400 on Meadow.
+            const single = () => { let b = -1; pool.forEach((id, i) => { if (isMon(id) && (b < 0 || printed(id) > printed(pool[b]))) b = i; }); return b; };
+            const setField = id => { l = FIELDS[id]; relandAll(); };
+            // Effects of its magic, used at once.
+            const effect = id => {
+                if (BURN[id]) lp -= BURN[id];
+                else if (HEAL[id]) foeLp += HEAL[id];
+                else if (FIELDS[id]) setField(id);
+                else if (id === RAIGEKI) mine = [];
+                else if (id === DARK_HOLE) { mine = []; foe = []; }
+                else if (REMOVAL[id]) mine = mine.filter(m => type(m.id) !== REMOVAL[id]);
+                else if (id === CRUSH) mine = mine.filter(m => sa(m) < 1500);
+                else if (PENALTY[id]) mine = mine.map(m => ({ ...m, atk: Math.max(0, m.atk - PENALTY[id]), eq: (m.eq || 0) - PENALTY[id] }));
+                else if (id === SWORDS) pinned = 3;
+                else if (id === STOP_DEFENSE) { const k = mine.findIndex(m => m.pos === 'def'); if (k >= 0) mine[k] = { ...mine[k], pos: undefined, atk: sa(mine[k]), down: false }; }
+                else if (id === DARK_LIGHT) mine = mine.map(m => ({ ...m, down: false }));
+                else if (id === DUSTER) myBack = [];
+            };
+            // An equip on its first monster it fits (FindEquipTarget, slot order): +500, Megamorph +1000.
             const equip = id => {
-                const k = foe.findIndex(f => engine.canEquip(id, f.id)), up = id === 657 ? 1000 : 500;
-                if (k >= 0) foe[k] = { ...foe[k], atk: foe[k].atk + up, eq: (foe[k].eq || 0) + up };
-                return k >= 0;
+                const f = foe.find(f => engine.canEquip(id, f.id)), up = id === 657 ? 1000 : 500;
+                if (f) foe = foe.map(x => x === f ? { ...f, atk: f.atk + up, eq: (f.eq || 0) + up } : x);
+                return !!f;
             };
-            // With its back row full, an equip goes straight onto a monster instead (the game's notes, section 3).
-            const set = i => { const id = pool[i]; take([i]); if (back.length < 5) back.push(id); else if (type(id) === 'Equip') equip(id); };
-            // Hand step.
-            const behind = foe.length ? foeBest <= myBest : vis().length > 0;
-            const top = vis().sort((a, b) => pw(b.id) - pw(a.id))[0];
-            const burn = find(id => BURN[id] >= lp);
+            // A magic, trap or equip from the window (0x1420): set in an empty back-row zone. With the row full, an equip goes
+            // onto its first monster it fits, a trap over a random zone, and any other card is used at once (assumed: the game
+            // gives it no zone).
+            const set = i => {
+                const id = pool[i];
+                take([i]);
+                if (back.length < 5) back.push(id);
+                else if (type(id) === 'Equip') equip(id);
+                else if (type(id) === 'Trap') back[choose([20, 20, 20, 20, 20])] = id;
+                else effect(id);
+            };
+            // Strategy A (0x0BA5). Depth a, but 1 when its deck has no more than its low-deck count (0x0BB5).
+            const styleA = () => {
+                const c = bestCombo((deck.length > P.low ? P.a : 1) + 1);
+                if (!c) return styleC();
+                if (c.hand) return place(c.id, c.cards);
+                if (c.cards.length) return place(c.id, c.cards, c.onto);
+                for (const fid of TYPE_FIELD[type(c.onto.id)] || []) {
+                    const j = find(id => id === fid);
+                    if (j < 0) continue;
+                    if (FIELDS[fid] !== l) { take([j]); setField(fid); return; }
+                    break;
+                }
+                // 0x0F68: its strongest window monster, else a random card from its hand to the back row.
+                const s = single();
+                if (s >= 0) place(pool[s], [s]);
+                else if (hand.length) set(choose(hand.map(() => 100 / hand.length)));
+            };
+            // Strategy B (0x0FDB): a fusion onto its weakest monster, depth b - 1 (0 when its deck is low); on failure that card
+            // id is left out and the next weakest is tried, then strategy A.
+            const styleB = () => {
+                const lim = (deck.length > P.low ? P.b - 1 : 0) + 1, skip = new Set();
+                for (;;) {
+                    const w = weakest(foe.filter(f => !skip.has(f.id)));
+                    if (!w) return styleA();
+                    const c = evalFusion(w.id, lim);
+                    if (c) return place(c.id, c.cards, w);
+                    skip.add(w.id);
+                }
+            };
+            // Strategy C (0x1042): the first trap, equip, magic or ritual in the window, else its strongest window card.
+            const styleC = () => {
+                const s = ['Trap', 'Equip', 'Magic', 'Ritual'].map(t => find(id => type(id) === t)).find(i => i >= 0);
+                if (s != null) return set(s);
+                const i = single();
+                if (i >= 0) place(pool[i], [i]);
+            };
+            // Hand step. Board check (0x024C): its strongest monster and my strongest one it can see, by snapshot stats, compared
+            // by power. mem[9] (my best's power) and mem[11] (my best card) are set only when both sides have a monster.
+            const fTop = strongest(foe), mTop = strongest(vis()), both = fTop && mTop;
+            const bar = both ? pw(mTop.id) : 0, top = both ? mTop : null;
+            const behind = !fTop ? !!mTop : both && pw(fTop.id) <= bar;
+            // A burn card that finishes me, only when my back row is empty (0x005E), Sparks first.
+            const burn = myBack.length ? -1 : [343, 344, 345, 346, 347].filter(id => BURN[id] >= lp).map(id => find(x => x === id)).find(i => i >= 0) ?? -1;
             const home = P.home && FIELDS[P.home] !== l ? find(id => id === P.home) : -1;
             if (burn >= 0) { take([burn]); lp = 0; }
-            else if (home >= 0) { take([home]); l = FIELDS[P.home]; relandAll(); }
+            else if (home >= 0) { take([home]); setField(P.home); }
             else if (behind) {
-                // Hand program 0x10E0 (read from PS1 RAM, 6 November 2026): it takes the strongest window card by the higher of
-                // ATK/DEF (FindStrongest, the first on a tie) and plays it (star 0) when its power is at least mem[9]; it never looks
-                // for a weaker one. mem[9] is my best monster's power, but the board check (0x024C) only sets it when the foe has a
-                // monster: with an empty foe field it is still 0 from AiScript_Init, so its strongest window monster always comes
-                // down, even when it loses to mine. Kepura on Meadow with an empty field played Empress Judge (2600) against my
-                // Twin-headed Thunder Dragon (2800) on Pluto and on Moon; the field step then attacks (Pluto, star edge) or goes to
-                // defense (Moon). Giltia (2350) in hand and Gaia (2600) at deck spot 9: it played Gaia.
-                const bar = foe.length ? myBest : 0, s = single(), i = s >= 0 && pw(pool[s]) >= bar ? s : -1;
-                // The fail path (0x113E): with 33+ deck cards left it goes straight to style A (best monster or fusion, no check
-                // against my best). Else its answers, in the game's order, then style A. mem[11] (my best card, for removal and
-                // Crush Card) is also only set when the foe has a monster; with none it reads card 0, so those are left out.
-                const answers = [id => REMOVAL[id] && id !== 329 && foe.length && top && type(top.id) === REMOVAL[id], id => id === 349, id => id === 669,
-                    id => id === CRUSH && foe.length && top && engine.cards.get(top.id).atk >= 1500, id => id === RAIGEKI,
+                // Behind (0x10E0, 6 November 2026): its strongest window card, played when its power is at least mem[9]. With an
+                // empty foe field mem[9] is still 0 from AiScript_Init, so its strongest window monster always comes down, even
+                // when it loses to mine. Kepura on Meadow with an empty field played Empress Judge (2600) against my Twin-headed
+                // Thunder Dragon (2800) on Pluto and on Moon; the field step then attacked (Pluto, star edge) or went to defense
+                // (Moon). Giltia (2350) in hand and Gaia (2600) at deck spot 9: it played Gaia.
+                const s = single(), i = s >= 0 && pw(pool[s]) >= bar ? s : -1;
+                // The fail path (0x113E): with 33+ deck cards left, strategy A. Else its answers in the game's order, then
+                // strategy A. Removal and Crush Card read mem[11], so they need a foe monster (with none it reads card 0).
+                const answers = [id => REMOVAL[id] && top && type(top.id) === REMOVAL[id], id => id === 349, id => id === 669,
+                    id => id === CRUSH && top && atk(top.id, l) >= 1500, id => id === RAIGEKI,
                     ...[686, 685, 684, 683, 682, 681, 690].map(t => id => id === t), id => id === SWORDS && !pinned,
                     id => id === DARK_HOLE && foe.length < mine.length];
-                const r = deck.length >= 33 ? null : answers.map(find).find(j => j >= 0);
+                const r = i >= 0 || deck.length >= 33 ? null : answers.map(find).find(j => j >= 0);
                 if (i >= 0) place(pool[i], [i]);
                 else if (r != null) set(r);
                 else styleA();
             } else {
-                const strong = !vis().length || Math.min(...foe.map(f => pw(f.id))) >= myBest;
-                const odds = strong ? P.strong : P.weak;
-                const style = foeLp < P.lp ? 1 : choose(odds);
-                if (style === 1) {
-                    const k = foe.reduce((w, f, i) => pw(f.id) < pw(foe[w].id) ? i : w, 0);
-                    const f = foe.length ? fusion(P.b - 1, [k], false) : null;
-                    if (f) place(f.id, f.used, f.onto); else styleA();
-                } else if (style === 2) {
-                    const s = [id => type(id) === 'Trap', id => type(id) === 'Equip', id => type(id) === 'Magic'].map(find).find(i => i >= 0);
-                    if (s != null) set(s);
-                    else { const i = single(); if (i >= 0) place(pool[i], [i]); }
-                } else styleA();
+                // Ahead: Harpie's Feather Duster first when my back row has cards, at its duster chance (0x0299).
+                const du = myBack.length ? find(id => id === DUSTER) : -1;
+                if (du >= 0 && choose([P.duster, 100 - P.duster]) === 0) { take([du]); myBack = []; }
+                else {
+                    // Below its LP threshold strategy B; else a roll (0x02DE), "strong" when its weakest monster meets mem[9].
+                    const w = weakest(foe), odds = !w || pw(w.id) >= bar ? P.strong : P.weak;
+                    const style = foeLp < P.lp ? 1 : choose(odds);
+                    if (style === 1) styleB(); else if (style === 2) styleC(); else styleA();
+                }
             }
-            // Field step: its set magic first, each when its rule says so ("threat": my best monster matches its best).
-            // Traps stay set for my attacks.
-            for (const id of back.slice()) {
-                const mb = Math.max(0, ...vis().map(m => pw(m.id))), fb = Math.max(0, ...foe.map(f => pw(f.id))), threat = vis().length && mb >= fb;
-                let use = true;
-                if (BURN[id] || HEAL[id]) {
-                    // It holds them while its LP is not below mine; otherwise uses them when above its threshold or my back row
-                    // is empty, else holds with its "duster" chance.
-                    use = foeLp < lp && (foeLp > P.lp || !myBack.length || choose([P.duster, 100 - P.duster]) === 1);
-                    if (use && BURN[id]) lp -= BURN[id];
-                    if (use && HEAL[id]) foeLp += HEAL[id];
-                } else if (FIELDS[id]) {
-                    use = FIELDS[id] !== l && threat && lift(FIELDS[id]) > 0;
-                    if (use) { l = FIELDS[id]; relandAll(); }
-                } else if (type(id) === 'Equip') use = equip(id);
-                else if (id === RAIGEKI) { use = threat && mine.length >= foe.length; if (use) mine = []; }
-                else if (id === DARK_HOLE) { use = threat && mine.length > foe.length; if (use) { mine = []; foe = []; } }
-                else if (REMOVAL[id]) { use = threat && mine.some(m => type(m.id) === REMOVAL[id]); if (use) mine = mine.filter(m => type(m.id) !== REMOVAL[id]); }
-                else if (id === CRUSH) { use = threat && mine.some(m => m.atk >= 1500); if (use) mine = mine.filter(m => m.atk < 1500); }
-                else if (PENALTY[id]) {
-                    use = threat;
-                    if (use) mine = mine.map(m => ({ ...m, atk: Math.max(0, m.atk - PENALTY[id]), eq: (m.eq || 0) - PENALTY[id] }));
-                } else if (id === SWORDS) { use = !pinned && (!foe.length || mb > fb); if (use) pinned = 3; }
-                else if (id === STOP_DEFENSE) {
-                    const k = mine.findIndex(m => m.pos === 'def');
-                    use = k >= 0;
-                    if (use) mine[k] = { ...mine[k], pos: undefined, down: false };
-                } else if (id === DARK_LIGHT) {
-                    use = mine.length > foe.length && mine.every(m => m.down);
-                    if (use) mine = mine.map(m => ({ ...m, down: false }));
-                } else if (id === DUSTER) { use = myBack.length > 0 && choose([P.duster, 100 - P.duster]) === 0; if (use) myBack = []; }
-                else if (id === CURSEBREAKER) {
-                    use = foe.some(f => (f.eq || 0) < 0);
-                    if (use) foe = foe.map(f => (f.eq || 0) < 0 ? { ...f, atk: f.atk - f.eq, eq: 0 } : f);
-                } else use = false; // traps and rituals wait
-                if (use) back.splice(back.indexOf(id), 1);
+            // Field step, back row (0x005E). Threat (0x0874): my strongest monster it can see, when it is at least as strong
+            // as its strongest one (or it has none).
+            const threat = () => { const f = strongest(foe), m = strongest(vis()); return m && (!f || pw(m.id) >= pw(f.id)) ? m : null; };
+            // Stop Defense (0x0306): its monsters, by ATK, pair off against mine it can see; each of its must win (0x0394).
+            const stopper = () => {
+                const a = foe.slice().sort((x, y) => sa(y) - sa(x)), b = vis().sort((x, y) => sa(y) - sa(x));
+                return b.length > 0 && b.every((m, i) => a[i] && sa(a[i]) > sa(m));
+            };
+            const rule = id => {
+                const t = threat(), f = strongest(foe), m = strongest(vis());
+                if (id === DUSTER) return myBack.length > 0 && choose([P.duster, 100 - P.duster]) === 0;
+                // Burn and heal: hold while its LP is not below mine; use above its threshold or with my back row empty; else
+                // hold at its duster chance.
+                if (BURN[id] || HEAL[id]) return foeLp < lp && (foeLp > P.lp || !myBack.length || choose([P.duster, 100 - P.duster]) === 1);
+                if (type(id) === 'Equip') return equip(id);
+                if (id === DARK_LIGHT) return mine.length > foe.length && mine.every(x => x.down);
+                // Swords: my monster beats its best, or it has none while I have one.
+                if (id === SWORDS) return !pinned && !!m && (!f || pw(m.id) > pw(f.id));
+                if (id === STOP_DEFENSE) {
+                    const a = strongest(foe, sa), w = weakest(vis(), sa);
+                    if (!a || !w) return false;
+                    if (atk(a.id, l) - atk(w.id, l) >= lp) return true;
+                    return mine.length <= foe.length && stopper();
+                }
+                // Removal: my strongest monster's type must match (0x044C).
+                if (REMOVAL[id]) return !!t && type(t.id) === REMOVAL[id];
+                if (PENALTY[id]) return !!t;
+                if (id === CRUSH) return !!t && atk(t.id, l) >= 1500;
+                if (id === RAIGEKI) return !!t && mine.length >= foe.length;
+                // Field cards: a fixed type rule on the two strongest monsters, not the whole board.
+                if (FIELDS[id]) {
+                    const lt = LAND_TYPES[FIELDS[id]], at = f && type(f.id), pt = type(t?.id), down = lt.down || [];
+                    if (!t || at === pt || FIELDS[id] === l || lt.up.includes(pt) || down.includes(at)) return false;
+                    return down.includes(pt) || lt.up.includes(at);
+                }
+                if (id === DARK_HOLE) return !!t && mine.length > foe.length;
+                return false;
+            };
+            const held = new Set();
+            for (;;) {
+                let k = -1;
+                for (const x of BACK_ORDER) {
+                    k = back.findIndex((id, i) => !held.has(i) && (x === 'Equip' || x === 'Ritual' ? type(id) === x : id === x));
+                    if (k >= 0) break;
+                }
+                if (k < 0) break;
+                const id = back[k];
+                if (type(id) === 'Ritual' || !rule(id)) { held.add(k); continue; }
+                back.splice(k, 1);
+                held.forEach(i => { if (i > k) { held.delete(i); held.add(i - 1); } });
+                if (type(id) !== 'Equip') effect(id);
             }
-            // Field step: walls to defense; any other monster may attack (from defense it switches to attack).
-            foe = foe.map(f => WALLS.has(f.id) ? { ...f, pos: 'def', atk: def(f.id, l) + (f.eq || 0) }
-                : f.pos === 'def' ? { ...f, pos: undefined, atk: atk(f.id, l) + (f.eq || 0) } : f);
-            const ready = foe.filter(f => f.pos !== 'def'), hit = new Set();
+            // Walls to defense (0x08F4); they are used for the turn.
+            const used = new Set();
+            foe = foe.map(f => WALLS.has(f.id) ? { ...f, pos: 'def', atk: sd(f) } : f);
+            foe.forEach(f => { if (WALLS.has(f.id)) used.add(f.slot); });
             // Its attacker f on my monster m: the loser is destroyed, a tie destroys both; damage only on attack position.
             const fight = (f, m) => {
-                hit.add(f); ready.splice(ready.indexOf(f), 1);
-                const mDef = m.pos === 'def', mv = (mDef ? def(m.id, l) + (m.eq || 0) : m.atk) + edge(m.star, f.star), fv = vs(f, m);
+                used.add(f.slot);
+                const fa = { ...f, pos: undefined, atk: sa(f) };
+                const mDef = m.pos === 'def', mv = (mDef ? sd(m) : sa(m)) + edge(m.star, f.star), fv = vs(fa, m);
+                foe = foe.map(x => x === f ? fa : x);
                 if (fv >= mv) mine = mine.filter(x => x !== m); else mine = mine.map(x => x === m ? { ...x, down: false } : x);
-                if (fv <= mv) foe = foe.filter(x => x !== f);
+                if (fv <= mv) foe = foe.filter(x => x !== fa);
                 if (fv > mv && !mDef) lp -= fv - mv;
                 if (fv < mv && !mDef) foeLp -= mv - fv;
             };
-            // Strongest visible attack-position monster of mine first, hit by its weakest monster that strictly wins; then defense.
-            for (const pos of ['atk', 'def']) for (const m of mine.filter(m => seen(m) && (m.pos === 'def') === (pos === 'def')).sort((a, b) => b.atk - a.atk)) {
-                const mv = (pos === 'def' ? def(m.id, l) + (m.eq || 0) : m.atk);
-                const f = ready.filter(f => vs(f, m) - mv - edge(m.star, f.star) > 0).sort((a, b) => a.atk - b.atk)[0];
-                if (f) fight(f, m);
+            const direct = f => { used.add(f.slot); foe = foe.map(x => x === f ? { ...f, pos: undefined, atk: sa(f) } : x); lp -= sa(f); };
+            // FindKiller: its unused monster with the lowest ATK that strictly wins, stars counted.
+            const killer = (ready, m, v) => weakest(ready.filter(f => sa(f) + edge(f.star, m.star) - v(m) - edge(m.star, f.star) > 0), sa);
+            // One action at a time; each one rereads the board, so blind rolls come again after every action (0x0AD0).
+            while (lp > 0) {
+                const ready = foe.filter(f => !used.has(f.slot)), a = strongest(ready, sa);
+                if (!a) break;
+                // Lethal (0x0AE3): its strongest attacker on my weakest attack-position monster, by ATK with the land (no
+                // equips or stars), or straight at me with an empty field.
+                const t = weakest(vis().filter(m => m.pos !== 'def'), sa);
+                if (t ? atk(a.id, l) - atk(t.id, l) >= lp : !mine.length && atk(a.id, l) >= lp) { if (t) fight(a, t); else direct(a); continue; }
+                // Kills (0x0B63, 0x0BA3): my attack-position monsters it can see by ATK, strongest first, then defense ones by DEF.
+                let hit = null;
+                for (const [d, v] of [[false, sa], [true, sd]]) {
+                    for (const m of vis().filter(m => (m.pos === 'def') === d).sort((x, y) => v(y) - v(x))) {
+                        const f = killer(ready, m, v);
+                        if (f) { hit = [f, m]; break; }
+                    }
+                    if (hit) break;
+                }
+                if (hit) { fight(...hit); continue; }
+                // Blind hits (0x0BE3): each face-down monster of mine in turn, at its blind chance, with its strongest attacker.
+                const blind = mine.find(m => m.down && choose([P.blind, 100 - P.blind]) === 0);
+                if (blind) { fight(a, blind); continue; }
+                // 0x0C33: an empty field takes a direct attack from its strongest; else it ends its monsters' turn, strongest first:
+                // to defense, but KEEP stay as they are (0x0C7F).
+                if (!mine.length) { direct(a); continue; }
+                used.add(a.slot);
+                if (!KEEP.has(a.id) && a.pos !== 'def') foe = foe.map(x => x === a ? { ...a, pos: 'def', atk: sd(a) } : x);
             }
-            // Face-down ones: a blind hit with its strongest monster, a roll at its blind-attack chance.
-            for (const m of mine.filter(m => !seen(m))) {
-                const f = ready.slice().sort((a, b) => b.atk - a.atk)[0];
-                if (f && choose([P.blind, 100 - P.blind]) === 0) fight(f, m);
-            }
-            if (!mine.length) for (const f of ready.slice()) { lp -= f.atk; hit.add(f); ready.splice(ready.indexOf(f), 1); }
-            foe = foe.map(f => f.pos === 'def' || hit.has(f) || KEEP.has(f.id) ? f : { ...f, atk: def(f.id, l) + (f.eq || 0), pos: 'def' });
             return { ...st, foeHand: hand, foeDeck: deck, foe, mine: mine.map(m => ({ ...m, done: false })), lp, foeLp, land: l, foeBack: back, myBack, pinned };
         }
         // Every different result of a foe turn, one per set of dice outcomes (equal results merged).
