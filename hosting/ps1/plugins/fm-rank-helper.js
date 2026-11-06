@@ -246,17 +246,28 @@ window.__fmCore = function () {
         const isMon = id => engine.monster(id);
         // Strength in a fight: a is attacking b (either may have no known star).
         const vs = (a, b) => a.atk + edge(a.star, b.star);
-        // The star to give a new monster: the one that beats the most foe monsters it can see, the first star on a tie.
-        function pickStar(id, atkv, foe) {
+        // The star to give a new monster: the one that beats the most foe monsters, the first star on a tie. It counts the foe
+        // monsters on the field and the one the foe will most likely play next: its strongest window monster by the higher of
+        // ATK/DEF (the first on a tie), on its first star (the foe always takes star 0). Its other window cards stay in the deck
+        // or hand, so they do not count. 6 November 2026: Pluto was picked against Gaia, and Empress Judge (Uranus) came out of
+        // Kepura's window and beat it 3100 to 2800.
+        function pickStar(id, atkv, foe, l = land, next = []) {
             const stars = engine.cards.get(id)?.stars || [];
-            const wins = star => foe.filter(f => atkv + edge(star, f.star) > f.atk + edge(f.star, star)).length;
-            return stars.length > 1 && wins(stars[1]) > wins(stars[0]) ? stars[1] : stars[0];
+            if (stars.length < 2) return stars[0];
+            let b = null;
+            for (const n of next) if (isMon(n) && (b == null || Math.max(atk(n, l), def(n, l)) > Math.max(atk(b, l), def(b, l)))) b = n;
+            const all = b == null ? foe : [...foe, { id: b, atk: atk(b, l), star: engine.cards.get(b)?.stars?.[0] }];
+            const wins = star => all.filter(f => atkv + edge(star, f.star) > f.atk + edge(f.star, star)).length;
+            return wins(stars[1]) > wins(stars[0]) ? stars[1] : stars[0];
         }
+        // The foe's pick window for its next turn: its hand plus its next deck cards, as foeTurn draws them.
+        const foeWindow = st => [...(st.foeHand || []), ...(st.foeDeck || [])].slice(0, Math.max((FOES[st.foeId] || FOE0).win, (st.foeHand || []).length));
         // This turn's plays: nothing, the best single monster, the best fusion for each card count,
         // the best fusion of one hand card onto each of my monsters, and each field card that changes the land.
         // A play is {id, atk, star, used: [hand indexes in pick order]}, plus onto: the index in mine it replaces
         // (a fusion onto that monster, or with a full field the weakest monster it is set over), or field: the land it sets.
-        function plays(hand, l = land, foe = [], mine = []) {
+        // next: the foe's window card ids (foeWindow), for the star pick.
+        function plays(hand, l = land, foe = [], mine = [], next = []) {
             const best = {}, out = [];
             const add = (id, used) => { const a = atk(id, l), k = used.length; if (!best[k] || a > best[k].atk) best[k] = { id, atk: a, used }; };
             hand.forEach((id, i) => { if (id && isMon(id)) add(id, [i]); });
@@ -273,8 +284,11 @@ window.__fmCore = function () {
             for (const i of idx) if (FIELDS[hand[i]] && FIELDS[hand[i]] !== l) out.push({ id: hand[i], atk: 0, used: [i], field: FIELDS[hand[i]] });
             const r = idx.find(i => hand[i] === RAIGEKI);
             if (r != null && foe.length) out.push({ id: RAIGEKI, atk: 0, used: [r], raigeki: true });
+            // Dark Hole clears every monster on both sides; it plays at once like Raigeki (hole marks that mine go too).
+            const h = idx.find(i => hand[i] === DARK_HOLE);
+            if (h != null && foe.length) out.push({ id: DARK_HOLE, atk: 0, used: [h], raigeki: true, hole: true });
             // Strongest first, "nothing" last: on a tie the plan puts a card down instead of waiting.
-            return [...out.sort((a, b) => b.atk - a.atk).map(p => p.field ? p : { ...p, star: pickStar(p.id, p.atk, foe) }), null];
+            return [...out.sort((a, b) => b.atk - a.atk).map(p => p.field ? p : { ...p, star: pickStar(p.id, p.atk, foe, l, next) }), null];
         }
         // My monsters and the foe's on a new land.
         const reland = (list, l) => list.map(m => ({ ...m, atk: power(m.id, m.pos, l) + (m.eq || 0) }));
@@ -324,8 +338,9 @@ window.__fmCore = function () {
         // st.foeId picks the duelist's settings (FOES). Where the game rolls dice, this takes the likeliest outcome.
         // It draws to 5 and picks from its hand plus its next deck cards (the window); a deck card it uses swaps into its hand.
         // Hand step, one play: a burn card that finishes me; a Mage's home field card; then, when its field is not stronger
-        // than mine (the higher of ATK/DEF), the first window monster that matches my best, a fusion that does (while 33+
-        // cards are left in its deck), Raigeki or Dark Hole, else style A. Ahead, it rolls a style: A its best monster or
+        // than mine (the higher of ATK/DEF), its strongest window monster if it meets my best (any monster when its field is
+        // empty); else style A while 33+ cards are left in its deck, else removal, traps, Raigeki or Dark Hole, else style A.
+        // Ahead, it rolls a style: A its best monster or
         // fusion, B a fusion onto its weakest monster, C a trap, equip or magic first. Below its LP threshold it takes B.
         // Field step: walls go to defense, then it attacks, then the monsters that did not attack go to defense (but KEEP).
         // It cannot see my face-down monsters (six bosses can) and hits them blind with its strongest monster.
@@ -418,20 +433,25 @@ window.__fmCore = function () {
             if (burn >= 0) { take([burn]); lp = 0; }
             else if (home >= 0) { take([home]); l = FIELDS[P.home]; relandAll(); }
             else if (behind) {
-                const i = find(id => isMon(id) && pw(id) >= myBest), f = deck.length >= 33 ? fusion(P.a, foe.map((_, k) => k)) : null;
-                // Its answers when it has no monster for mine, in the game's order.
-                const answers = [id => REMOVAL[id] && id !== 329 && top && type(top.id) === REMOVAL[id], id => id === 349, id => id === 669,
-                    id => id === CRUSH && top && engine.cards.get(top.id).atk >= 1500, id => id === RAIGEKI,
+                // Hand program 0x10E0 (read from PS1 RAM, 6 November 2026): it takes the strongest window card by the higher of
+                // ATK/DEF (FindStrongest, the first on a tie) and plays it (star 0) when its power is at least mem[9]; it never looks
+                // for a weaker one. mem[9] is my best monster's power, but the board check (0x024C) only sets it when the foe has a
+                // monster: with an empty foe field it is still 0 from AiScript_Init, so its strongest window monster always comes
+                // down, even when it loses to mine. Kepura on Meadow with an empty field played Empress Judge (2600) against my
+                // Twin-headed Thunder Dragon (2800) on Pluto and on Moon; the field step then attacks (Pluto, star edge) or goes to
+                // defense (Moon). Giltia (2350) in hand and Gaia (2600) at deck spot 9: it played Gaia.
+                const bar = foe.length ? myBest : 0, s = single(), i = s >= 0 && pw(pool[s]) >= bar ? s : -1;
+                // The fail path (0x113E): with 33+ deck cards left it goes straight to style A (best monster or fusion, no check
+                // against my best). Else its answers, in the game's order, then style A. mem[11] (my best card, for removal and
+                // Crush Card) is also only set when the foe has a monster; with none it reads card 0, so those are left out.
+                const answers = [id => REMOVAL[id] && id !== 329 && foe.length && top && type(top.id) === REMOVAL[id], id => id === 349, id => id === 669,
+                    id => id === CRUSH && foe.length && top && engine.cards.get(top.id).atk >= 1500, id => id === RAIGEKI,
                     ...[686, 685, 684, 683, 682, 681, 690].map(t => id => id === t), id => id === SWORDS && !pinned,
                     id => id === DARK_HOLE && foe.length < mine.length];
-                const r = answers.map(find).find(j => j >= 0);
+                const r = deck.length >= 33 ? null : answers.map(find).find(j => j >= 0);
                 if (i >= 0) place(pool[i], [i]);
-                else if (f && f.pw >= myBest) place(f.id, f.used, f.onto);
                 else if (r != null) set(r);
-                // Nothing for my best: the strongest single monster in its hand (not the deck window), no fusion. 5 November 2026:
-                // Rex Raptor set Dharma Cannon and then Dig Beak, though Dharma Cannon + Phantom Dewan made Disk Magician; Yami Bakura
-                // set Catapult Turtle from its hand with a Labyrinth Wall in its window.
-                else { const j = single(hand.length); if (j >= 0) place(pool[j], [j]); }
+                else styleA();
             } else {
                 const strong = !vis().length || Math.min(...foe.map(f => pw(f.id))) >= myBest;
                 const odds = strong ? P.strong : P.weak;
@@ -571,7 +591,7 @@ window.__fmCore = function () {
             };
             const turn = (st, steps, floor) => {
                 let best = null;
-                let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe, st.mine);
+                let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe, st.mine, foeWindow(st));
                 // The game wants a card down before you attack, so every turn puts a card down unless there is nothing to play.
                 if (!st.played && opts.length > 1) opts = opts.filter(Boolean);
                 // A new single monster goes down face-up (up) or face-down. Face-down costs a face-down play in the rank, and the foe
@@ -587,7 +607,7 @@ window.__fmCore = function () {
                         for (const i of p.used) hand[i] = null;
                         // My monsters keep their ATK in atk, even in defense.
                         if (p.field) { l = p.field; magic++; mine = mine.map(m => ({ ...m, atk: atk(m.id, l) + (m.eq || 0) })); foe = reland(foe, l); }
-                        else if (p.raigeki) { magic++; foe = []; }
+                        else if (p.raigeki) { magic++; foe = []; if (p.hole) mine = []; }
                         else {
                             mon = { id: p.id, atk: p.atk, star: p.star, done: false, fresh: true, down: !p.up };
                             if (p.onto != null) mine[p.onto] = mon = { ...mon, slot: st.mine[p.onto].slot }; else mine.push(mon);
@@ -667,7 +687,7 @@ window.__fmCore = function () {
                 const hit = memo.get(key);
                 if (hit) { if (hit.v <= lim) return hit.v; if (hit.lim >= lim) return Infinity; }
                 let best = Infinity;
-                let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe, st.mine);
+                let opts = st.played ? [null] : plays(st.hand, st.land ?? land, st.foe, st.mine, foeWindow(st));
                 if (!st.played && opts.length > 1) opts = opts.filter(Boolean);
                 if (st.turn > st0.turn + exact) opts = opts.slice(0, k);
                 for (const p of opts) {
@@ -677,7 +697,7 @@ window.__fmCore = function () {
                     if (p) {
                         for (const i of p.used) hand[i] = null;
                         if (p.field) { l = p.field; mine = reland(mine, l); foe = reland(foe, l); }
-                        else if (p.raigeki) foe = [];
+                        else if (p.raigeki) { foe = []; if (p.hole) mine = []; }
                         else {
                             nm = { id: p.id, atk: p.atk, star: p.star, done: false, down: true };
                             if (p.onto != null) mine[p.onto] = nm = { ...nm, slot: st.mine[p.onto].slot }; else mine.push(nm);
@@ -759,6 +779,8 @@ window.__fmCore();
             // +2 effective attacks, +4 face-down plays, +5 magic, +6 traps, +8 fusions, +9 equips, +0x18 cards drawn.
             // 0x9B1D5 is whose turn it is: 0 me, 1 the foe. turns_taken counts my finished turns: 0 on my turn 1, 1 on my turn 2 (RAM dumps, 5 November 2026).
             rank: (o => { const h = heap(); return { turns: h[o + 1], eff: h[o + 2], down: h[o + 4], magic: h[o + 5], traps: h[o + 6], fusions: h[o + 8], equips: h[o + 9], used: h[o + 0x18] }; })(B + 0xE9FF0),
+            // The foe's record (0xEA010) +0x18: the cards it has drawn. Its hand can hold cards from deeper in its deck, so this beats guessing from the hand.
+            foeUsed: heap()[B + 0xEA010 + 0x18],
             side: heap()[B + 0x9B1D5] };
     }
 
@@ -791,7 +813,7 @@ window.__fmCore();
     function guess(c, s) {
         const mine = s.hand.filter(Boolean).map(h => h.id), foe = s.foeHand.filter(Boolean).map(h => h.id);
         c.used = drawnCount(s.myDeck, mine);
-        c.foeDrawn = foe.length ? drawnCount(s.foeDeck, foe) : 0;
+        c.foeDrawn = s.foeUsed >= 5 && s.foeUsed <= 40 ? s.foeUsed : foe.length ? drawnCount(s.foeDeck, foe) : 0;
         // The foe draws its first hand on its first turn, then one card a turn: it has drawn turn + 3 cards on my turn T.
         c.turn = Math.max(1, c.foeDrawn - 3);
         // Cards I drew that are no longer in my hand were played: magic by type, the rest went to the field.
@@ -816,7 +838,7 @@ window.__fmCore();
             const prior = !startNew && (old || pref('counters'));
             // The game overwrites the front of both deck orders as the duel goes on (14 entries by turn 5), so match on the last 20.
             const mine = prior && prior.deckMe && prior.deckMe.slice(-20).join() === s.myDeck.slice(-20).join() && (prior === old || prior.turn <= g.turn + 1);
-            if (mine) { c = prior; c.used = Math.max(c.used, g.used); c.foeDrawn = Math.max(c.foeDrawn, g.foeDrawn); }
+            if (mine) { c = prior; c.used = Math.max(c.used, g.used); c.foeDrawn = s.foeUsed >= 5 && s.foeUsed <= 40 ? s.foeUsed : Math.max(c.foeDrawn, g.foeDrawn); }
             else c = g;
             Object.assign(c, { start: ids(s.hand), gone: [], pend: [], landed: [], act: false, partial: false, land: landOf(s) });
             ramLand = s.terrain;
@@ -885,6 +907,17 @@ window.__fmCore();
             }
             const n = drawnCount(c.deckFoe, ids(s.foeHand));
             if (n > c.foeDrawn) c.foeDrawn = n;
+        }
+        if (s.foeUsed >= 5 && s.foeUsed <= 40) {
+            // A card the foe takes from its deck window swaps places with the card in the hand slot it lands in: that card goes
+            // back to the deck spot the new one left (the game's notes, section 2). A draw moves the counter; a swap does not.
+            if (prev.foeUsed === s.foeUsed) s.foeHand.forEach((h, k) => {
+                const p = prev.foeHand[k];
+                if (!h || !p || h.id === p.id || (p.f & 0x10) || ids(prev.foeHand).includes(h.id)) return;
+                const j = c.deckFoe.indexOf(h.id, s.foeUsed);
+                if (j >= 0) { c.deckFoe[j] = p.id; note('foe swap ' + h.id + ' for ' + p.id + ' at ' + (j + 1)); }
+            });
+            c.foeDrawn = s.foeUsed;
         }
         // The game's own counters win over the guesses above when they look like a duel in progress.
         // turns_taken counts my finished turns, so my turn (or, on the foe's turn, my next one) is one more.
@@ -1011,7 +1044,7 @@ window.__fmCore();
             const order = st.play.used.map(i => i + 1).join(' \u2192 ');
             // My row: slot 0 is on the left.
             const mySlot = m => m && m.slot != null ? ` <span class="muted">(${['1st', '2nd', '3rd', '4th', '5th'][m.slot]} from left)</span>` : '';
-            const what = st.play.field ? `Play ${order} (field)` : st.play.raigeki ? `Play ${order} (clears the foe's field)` : st.play.fused ? `Fuse ${order} onto ${esc(name(st.play.over.id))}${mySlot(st.play.over)}`
+            const what = st.play.field ? `Play ${order} (field)` : st.play.raigeki ? `Play ${order} (${st.play.hole ? 'clears both fields' : "clears the foe's field"})` : st.play.fused ? `Fuse ${order} onto ${esc(name(st.play.over.id))}${mySlot(st.play.over)}`
                 : st.play.over ? `Play ${order} over ${esc(name(st.play.over.id))}${mySlot(st.play.over)}` : st.play.used.length > 1 ? `Fuse ${order}` : `Play ${order}`;
             const star = st.play.star ? ` \u00b7 star <b>${esc(st.play.star)}</b>` : '';
             const mon = !st.play.field && !st.play.raigeki;
@@ -1211,7 +1244,7 @@ window.__fmCore();
             if (c) { const { log, ...keep } = c, json = JSON.stringify(keep); if (json !== saved) { saved = json; pref('counters', keep); } }
             const duel = c && s.hand.some(Boolean) && s.foeLp > 0 && s.lp > 0;
             const sig = !duel ? 'idle' : !c.mine ? 'foe' + c.turn + JSON.stringify([s.foe, s.foeBack]) : JSON.stringify([s.hand, s.mine, s.foe, s.foeHand, s.lp, s.foeLp, s.foeDeck, c.turn, c.land, s.foeBack, s.myBack, s.swords, s.rank,
-                [c.used, c.fusions, c.eff, c.magic, c.equips, c.traps, c.down]]);
+                [c.used, c.fusions, c.eff, c.magic, c.equips, c.traps, c.down, c.foeDrawn, c.deckFoe.join()]]);
             if (sig === last) { seen = null; return; }
             // A new state must hold for a few ticks before it is drawn, so the fight zoom cannot flicker the panel.
             if (last) { if (sig !== seen) { seen = sig; steady = 1; return; } if (++steady < SETTLE) return; }
