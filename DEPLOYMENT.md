@@ -39,6 +39,16 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00103-rcc`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. It adds a Tmrw line to the Harvest Moon plugin showing tomorrow's weather as an emoji (u16 at `0x8007AD02`). It replaces `ps1-player-00102-h2k`, which showed the weather as text. Script URLs are `plugins.js?v=20261110-hm-weather-icon` and `plugins/hm-stamina-bar.js?v=20261110-weather-icon`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. No game was played to check it.
+
+## Previous direct deployment
+
+On **10 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `bd4ace26-ba27-4284-9824-576122ad1fd4`. Ready revision `ps1-player-00101-dcw` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:5e159a3b501934050a3429f88414cbd635bfa7a3807dad873fa12c96a9703d5e` (tag `20261109163750`). This deployed the working checkout directly without a GitHub commit or release. It replaces `ps1-player-00100-tld`, which made both menu Pause/Play rows always show; that menu change is undone.
+
+The top-bar button next to Saves now always shows while a game runs. It shows a pause icon while playing and a play icon while paused, and a tap toggles. Pausing releases held buttons first. It is still hidden before the game is ready, after a failed restore and while the resume panel is open. Script URLs are `recovery.js?v=20261110-pause-toggle` and `menu.js?v=20261110-menu`. `make check` passed. Live index, `recovery.js` and `menu.js` matched the build, and both isolation headers were set. An in-app browser check confirmed the icon swap; no real game was started.
+
+## Previous direct deployment
+
 On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `089bf44d-3f50-435c-8f87-44742db54e9d`. Ready revision `ps1-player-00098-rs6` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:da364c0dd3a49b67d1d00fa71d964319c78f22fb636acf6fa84ba9069dd1cf6f` (tag `20261109153905`). This deployed the working checkout directly without a GitHub commit or release. It replaces `ps1-player-00097-84r`, which also accepted 100 at `0x8006C3FA` and made the Mine line blink.
 
 The Mine line now uses the game's own place number (a u16 behind the pointer at `0x800A0378`; mines are 55 and 67). `make check` passed. Live index, `plugins.js` and the plugin file matched the build. A separate muted Chrome tab with saving blocked started the user's newest save on mine floor 2; ten reads over five seconds all gave place 67 and Floor 2.

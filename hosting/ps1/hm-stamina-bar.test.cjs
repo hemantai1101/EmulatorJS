@@ -54,9 +54,25 @@ put16(girl(3), 2000); put16(girl(7), 2200); put16(girl(9), 2700); put16(girl(14)
 run();
 const s = window.__hmStamina.read();
 assert.deepEqual({ ...s, hearts: { ...s.hearts } },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, water: null });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, tomorrow: 'Sunny', water: null });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
+
+// Tomorrow's weather is the u16 at 0x7AD02; unknown values hide the line.
+assert.equal($('.sky').querySelector('.name').textContent, '☀️');
+assert.equal($('.sky').querySelector('.name').title, 'Sunny tomorrow');
+put16(0x7AD02, 1);
+run();
+assert.equal($('.sky').querySelector('.name').textContent, '🌧️');
+put16(0x7AD02, 4);
+run();
+assert.equal(window.__hmStamina.read().tomorrow, 'Blizzard');
+assert.equal($('.sky').querySelector('.name').textContent, '🌨️');
+put16(0x7AD02, 9);
+run();
+assert.equal(window.__hmStamina.read().tomorrow, null);
+assert.equal($('.sky').hidden, true, 'odd weather value is hidden');
+put16(0x7AD02, 0);
 
 // Mine floor: the place number sits behind the pointer at 0xA0378; 55 and 67 are mines.
 const put32 = (o, v) => { put16(o, v & 0xffff); put16(o + 2, v >>> 16); };
@@ -165,4 +181,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor, can water and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');

@@ -68,7 +68,11 @@
       emulator.play = play;
       emulator.pause = pause;
       function updateResumeButton() {
-        resume.hidden = !active || !ready || !emulator.paused || failedRecovery || !panel.hidden;
+        resume.hidden = !active || !ready || failedRecovery || !panel.hidden;
+        const label = emulator.paused ? 'Resume game' : 'Pause game';
+        resume.dataset.paused = String(!!emulator.paused);
+        resume.setAttribute('aria-label', label);
+        resume.title = label;
       }
 
       function releaseButtons() {
@@ -235,7 +239,13 @@
         }
       }
       resume.addEventListener('click', () => {
-        if (active && ready && emulator.paused && !failedRecovery) resumeEngine();
+        if (!active || !ready || failedRecovery) return;
+        if (emulator.paused) {
+          resumeEngine();
+        } else {
+          releaseButtons();
+          emulator.pause();
+        }
       });
       reload.addEventListener('click', () => location.reload());
       restore.addEventListener('click', () => {

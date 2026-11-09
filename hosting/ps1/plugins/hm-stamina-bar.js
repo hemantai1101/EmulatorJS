@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor, can water and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -34,6 +34,10 @@
     // The place number is a u16 behind the pointer at 0x800A0378. The hoe digs mine tiles only at places 55 and 67
     // (code at 0x800C64DC). The mine keeps its current floor, 0-based, at 0x8012D110.
     const PLACE_PTR = 0xA0378, MINES = [55, 67], MINE_FLOOR = 0x12D110;
+    // Weather is u16: today at 0x8007AD00, tomorrow at 0x8007AD02 (tomorrow became today in the user's saves).
+    // 0 sunny and 1 rain were seen in saves; 2-4 come from a public cheat list.
+    const WEATHER_TOMORROW = 0x7AD02, WEATHER = ['Sunny', 'Rain', 'Snow', 'Typhoon', 'Blizzard'];
+    const WEATHER_ICON = { Sunny: '☀️', Rain: '🌧️', Snow: '❄️', Typhoon: '🌀', Blizzard: '🌨️' };
     const OPEN_KEY = 'ps1-plugin-hm-hearts-open';
     // BIOS exception handler at 0x80, used to find where PS1 RAM sits in the emulator heap.
     const SIG = [0x00, 0x00, 0x1a, 0x3c, 0x80, 0x0c, 0x5a, 0x27, 0x08, 0x00, 0x40, 0x03];
@@ -55,6 +59,7 @@
         const ptr = u32(PLACE_PTR) - 0x80000000;
         s.place = ptr >= 0 && ptr < 0x200000 ? u16(ptr) : null;
         s.floor = MINES.includes(s.place) && u16(MINE_FLOOR) <= 9 ? u16(MINE_FLOOR) + 1 : null;
+        s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
             if (u16(slot) === CAN && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
@@ -78,6 +83,7 @@
         .wa .fill { background: #38bdf8; } .wa.empty .fill { background: #ef4444; }
         .tool { display: grid; grid-template-columns: 44px 1fr; gap: 6px; }
         .tool .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .icon { font-size: 14px; line-height: 1; }
         .num { text-align: right; font-variant-numeric: tabular-nums; }
         .wait { font-weight: 400; color: #aab3bf; }
         .toggle { font-weight: 400; color: #aab3bf; font-size: 10px; }
@@ -90,6 +96,7 @@
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
+        <div class="tool sky" hidden><span>Tmrw</span><span class="name icon"></span></div>
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="toggle" hidden></div>
@@ -97,7 +104,7 @@
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), sky = $('.sky'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -121,6 +128,7 @@
         last = s;
         wait.hidden = !!s; st.hidden = fa.hidden = tool.hidden = toggle.hidden = !s;
         floor.hidden = !s || s.floor === null;
+        sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
         wa.hidden = !s || s.water === null;
         if (!s) return;
@@ -133,6 +141,11 @@
         fa.classList.toggle('tired', s.fatigue >= FATIGUE_TIRED && s.fatigue < FATIGUE_HIGH);
         fa.classList.toggle('high', s.fatigue >= FATIGUE_HIGH);
         tool.querySelector('.name').textContent = toolName(s.held);
+        if (s.tomorrow !== null) {
+            const icon = sky.querySelector('.name');
+            icon.textContent = WEATHER_ICON[s.tomorrow];
+            icon.title = s.tomorrow + ' tomorrow';
+        }
         if (s.floor !== null) floor.querySelector('.name').textContent = 'Floor ' + s.floor;
         if (s.water !== null) {
             bar(wa, s.water, CAN_MAX);

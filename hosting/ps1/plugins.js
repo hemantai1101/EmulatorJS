@@ -14,8 +14,8 @@
       id: 'hm-stamina-bar',
       name: 'Harvest Moon stamina and hearts',
       src: 'plugins/hm-stamina-bar.js',
-      v: '20261109-floor3',
-      note: 'Shows stamina, fatigue, the held tool, the mine floor and watering can water for Harvest Moon: Back to Nature (US). Tap the box for the girls\' hearts.',
+      v: '20261110-weather-icon',
+      note: 'Shows stamina, fatigue, the held tool, the mine floor, tomorrow\'s weather and watering can water for Harvest Moon: Back to Nature (US). Tap the box for the girls\' hearts.',
       stop: () => root.__hmStamina?.stop()
     }
   ];

@@ -201,6 +201,7 @@
   }
   #game .ejs_virtualGamepad_open svg, #picture-zoom svg, #leave-fill svg, #resume-game svg, #game-saves svg { display: block; width: 20px; height: 20px; }
   #resume-game[hidden] { display: none; }
+  #resume-game:not([data-paused="true"]) .play-icon, #resume-game[data-paused="true"] .pause-icon { display: none; }
   #game-saves { position: relative; }
   #game-saves .auto-save-dot { position: absolute; top: 6px; right: 6px; margin: 0; }
   #picture-zoom { display: none; }
@@ -524,7 +525,7 @@
       <div class="play-title"><p class="eyebrow" id="player-label">Now loading</p><h1 id="game-title">Your game</h1></div>
       <div id="play-tools">
         <button id="save-now" type="button" aria-labelledby="save-now-label" title="Save state now" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 3h12l4 4v14H3V3h2Z M7 3v6h10V3 M7 21v-8h10v8"/></svg><span id="save-now-label" hidden>Save state now</span></button>
-        <button id="resume-game" type="button" aria-label="Resume game" title="Resume game" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4v16l12-8Z"/></svg></button>
+        <button id="resume-game" type="button" aria-label="Pause game" title="Pause game" hidden><svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4h4v16H7Zm6 0h4v16h-4Z"/></svg><svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4v16l12-8Z"/></svg></button>
         <button id="fill-window" type="button" aria-label="Fill screen" title="Fill screen — keep browser tabs" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 8h18"/></svg></button>
         <button id="fill-screen" type="button" aria-label="Fullscreen" title="Fullscreen" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
         <button id="settings-toggle" type="button" aria-label="Settings" title="Settings" aria-expanded="false" aria-controls="player-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m10 3-.5 3-2 .9L5 5.8 2.8 9.5l2.3 2v2L2.8 15.5 5 19.2l2.5-1.1 2 .9.5 3h4l.5-3 2-.9 2.5 1.1 2.2-3.7-2.3-2v-2l2.3-2L19 5.8l-2.5 1.1-2-.9-.5-3Z"/><circle cx="12" cy="12.5" r="3"/></svg></button>
@@ -609,10 +610,10 @@
   </footer>
 </main>
 <script src="recent-game.js"></script>
-<script src="recovery.js?v=20261109-inline-resume"></script>
+<script src="recovery.js?v=20261110-pause-toggle"></script>
 <script src="touch-controls.js?v=20261028-analog-status"></script>
-<script src="plugins.js?v=20261109-hm-floor3"></script>
-<script src="menu.js?v=20261109-autosave-dot"></script>
+<script src="plugins.js?v=20261110-hm-weather-icon"></script>
+<script src="menu.js?v=20261110-menu"></script>
 <script src="saves.js?v=20261109-single-saves"></script>
 <script src="state-cards.js?v=20261030"></script>
 <script>

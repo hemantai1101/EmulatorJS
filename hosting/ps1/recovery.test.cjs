@@ -35,7 +35,7 @@ function surface() {
     createElement() { return {}; },
     addEventListener(name, callback) { (handlers[name] ||= []).push(callback); },
     querySelector(id) {
-      if (!elements.has(id)) elements.set(id, { hidden: id === '#resume-panel', disabled: true, textContent: '', handlers: {}, value: '', children: [], replaceChildren() { this.children = []; }, append(child) { this.children.push(child); }, addEventListener(name, callback) { this.handlers[name] = callback; } });
+      if (!elements.has(id)) elements.set(id, { hidden: id === '#resume-panel', disabled: true, textContent: '', handlers: {}, dataset: {}, attributes: {}, setAttribute(name, value) { this.attributes[name] = value; }, value: '', children: [], replaceChildren() { this.children = []; }, append(child) { this.children.push(child); }, addEventListener(name, callback) { this.handlers[name] = callback; } });
       return elements.get(id);
     }
   };
@@ -80,15 +80,24 @@ function emulator() {
   const game = emulator();
   const originalPlay = game.play, originalPause = game.pause;
   const controller = await window.PS1Recovery.attach(game, 'test game');
-  assert.equal(document.querySelector('#resume-game').hidden, true, 'running game has no Resume button');
-  const callsWhilePlaying = game.calls.length;
-  document.querySelector('#resume-game').handlers.click();
-  assert.equal(game.calls.length, callsWhilePlaying, 'Resume cannot interrupt a running game');
-  game.pause();
-  assert.equal(document.querySelector('#resume-game').hidden, false, 'native pause shows Resume');
-  document.querySelector('#resume-game').handlers.click();
+  const toggle = document.querySelector('#resume-game');
+  assert.equal(toggle.hidden, false, 'running game shows the Pause button');
+  assert.equal(toggle.dataset.paused, 'false');
+  assert.equal(toggle.attributes['aria-label'], 'Pause game');
+  toggle.handlers.click();
+  assert.equal(game.paused, true, 'Pause button pauses a running game');
+  assert(game.calls.some(x => Array.isArray(x) && x.length === 3 && x[2] === 0), 'pausing releases held buttons');
+  assert.equal(toggle.hidden, false);
+  assert.equal(toggle.dataset.paused, 'true');
+  assert.equal(toggle.title, 'Resume game');
+  toggle.handlers.click();
   assert.equal(game.paused, false);
-  assert.equal(document.querySelector('#resume-game').hidden, true);
+  game.pause();
+  assert.equal(toggle.dataset.paused, 'true', 'native pause shows Resume');
+  toggle.handlers.click();
+  assert.equal(game.paused, false);
+  assert.equal(toggle.hidden, false);
+  assert.equal(toggle.dataset.paused, 'false');
   game.frame++;
 
   document.hidden = true;
@@ -108,11 +117,10 @@ function emulator() {
   assert(game.calls.includes('start scheduler'));
   assert.equal(game.paused, false);
   assert.equal(document.querySelector('#resume-panel').hidden, true);
-  assert.equal(document.querySelector('#resume-game').hidden, true);
+  assert.equal(toggle.dataset.paused, 'false');
   const runningCalls = game.calls.length;
   window.handlers.pageshow[0]();
-  document.querySelector('#resume-game').handlers.click();
-  assert.equal(game.calls.length, runningCalls, 'foreground and stale Resume clicks leave running play alone');
+  assert.equal(game.calls.length, runningCalls, 'foreground return leaves running play alone');
   document.hidden = true;
   document.handlers.visibilitychange[0]();
   document.hidden = false;
@@ -121,7 +129,7 @@ function emulator() {
   game.play();
   assert.equal(game.calls.filter(x => x === 'start scheduler').length, previousSchedulerStarts + 1, 'native Play also restarts the stopped scheduler');
   assert.equal(game.paused, false);
-  assert.equal(document.querySelector('#resume-game').hidden, true);
+  assert.equal(toggle.dataset.paused, 'false');
   assert.equal(document.querySelector('#resume-panel').hidden, true);
   const saveButton = document.querySelector('#save-now');
   assert.equal(saveButton.disabled, false);
