@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, can water and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, can water and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -16,9 +16,21 @@
         [50000, 'Yellow', '#facc15'], [60000, 'Orange', '#fb923c'], [Infinity, 'Red', '#ef4444']
     ];
     const heartOf = v => HEARTS.find(h => v < h[0]);
-    // Items are 6-byte slots: u16 id, then u16 value at +4. The held item is at 0x80071A84; carried tools start at 0x80070EC2.
+    // Items are 6-byte slots: u16 id, then u16 value at +4. The held item is at 0x80071A84; the 24 tool slots start at 0x80070EC2.
     // The basic watering can is item 21; its value is the water left, 100 when full (from the user's saves).
-    const HELD = 0x71A84, TOOL_SLOTS = 0x70EC2, TOOL_SLOT_COUNT = 8, CAN = 21, CAN_MAX = 100;
+    const HELD = 0x71A84, TOOL_SLOTS = 0x70EC2, TOOL_SLOT_COUNT = 24, CAN = 21, CAN_MAX = 100;
+    // Tool item numbers 1-57, from a public GameShark item list; they match the tools seen in the user's saves.
+    const TOOLS = [, 'Sickle', 'Copper Sickle', 'Silver Sickle', 'Golden Sickle', 'Mystrile Sickle',
+        'Hoe', 'Copper Hoe', 'Silver Hoe', 'Golden Hoe', 'Mystrile Hoe',
+        'Axe', 'Copper Axe', 'Silver Axe', 'Golden Axe', 'Mystrile Axe',
+        'Hammer', 'Copper Hammer', 'Silver Hammer', 'Golden Hammer', 'Mystrile Hammer',
+        'Watering Can', 'Copper Can', 'Silver Can', 'Golden Can', 'Mystrile Can',
+        'Milker', 'Clippers', 'Brush', 'Bell', 'Animal Medicine', 'Cow Miracle Potion', 'Sheep Miracle Potion', 'Blue Feather',
+        'Turnip Seeds', 'Potato Seeds', 'Cucumber Seeds', 'Strawberry Seeds', 'Cabbage Seeds', 'Tomato Seeds', 'Corn Seeds',
+        'Onion Seeds', 'Pumpkin Seeds', 'Pineapple Seeds', 'Eggplant Seeds', 'Carrot Seeds', 'Sweet Potato Seeds',
+        'Spinach Seeds', 'Green Pepper Seeds', 'Moondrop Seeds', 'Pink Cat Seeds', 'Magic Red Seeds', 'Toy Flower Seeds',
+        'Orange Cup Seeds', 'Grass Seeds', 'Ocarina', 'Fishing Rod', 'Fishing Pole'];
+    const toolName = id => id === 0 ? 'Nothing' : TOOLS[id] || 'Item ' + id;
     const OPEN_KEY = 'ps1-plugin-hm-hearts-open';
     // BIOS exception handler at 0x80, used to find where PS1 RAM sits in the emulator heap.
     const SIG = [0x00, 0x00, 0x1a, 0x3c, 0x80, 0x0c, 0x5a, 0x27, 0x08, 0x00, 0x40, 0x03];
@@ -35,6 +47,7 @@
         const ok = s.max >= 1 && s.max <= 999 && s.stamina <= 999 && s.fatigue <= 999;
         if (!ok) return null;
         s.hearts = Object.fromEntries(GIRLS.map(([name, n]) => [name, u16(affection(n))]));
+        s.held = u16(HELD);
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
             if (u16(slot) === CAN && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
@@ -56,6 +69,8 @@
         .st .fill { background: #4ade80; } .st.low .fill { background: #f59e0b; } .st.empty .fill { background: #ef4444; }
         .fa .fill { background: #a78bfa; } .fa.tired .fill { background: #f59e0b; } .fa.high .fill { background: #ef4444; }
         .wa .fill { background: #38bdf8; } .wa.empty .fill { background: #ef4444; }
+        .tool { display: grid; grid-template-columns: 44px 1fr; gap: 6px; }
+        .tool .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .num { text-align: right; font-variant-numeric: tabular-nums; }
         .wait { font-weight: 400; color: #aab3bf; }
         .toggle { font-weight: 400; color: #aab3bf; font-size: 10px; }
@@ -67,13 +82,14 @@
         <div class="wait">Waiting for Harvest Moon</div>
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+        <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="toggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -95,7 +111,7 @@
     }
     function show(s) {
         last = s;
-        wait.hidden = !!s; st.hidden = fa.hidden = toggle.hidden = !s;
+        wait.hidden = !!s; st.hidden = fa.hidden = tool.hidden = toggle.hidden = !s;
         hearts.hidden = !s || !open;
         wa.hidden = !s || s.water === null;
         if (!s) return;
@@ -107,6 +123,7 @@
         fa.querySelector('.num').textContent = s.fatigue + '/' + FATIGUE_MAX;
         fa.classList.toggle('tired', s.fatigue >= FATIGUE_TIRED && s.fatigue < FATIGUE_HIGH);
         fa.classList.toggle('high', s.fatigue >= FATIGUE_HIGH);
+        tool.querySelector('.name').textContent = toolName(s.held);
         if (s.water !== null) {
             bar(wa, s.water, CAN_MAX);
             wa.querySelector('.num').textContent = s.water + '/' + CAN_MAX;
@@ -141,6 +158,7 @@
     window.__hmStamina = {
         stop() { clearInterval(timer); host.remove(); delete window.__hmStamina; },
         read: () => { const H = heap(); return H && B !== null ? read(H, B) : null; },
-        heart: v => heartOf(v)[1]
+        heart: v => heartOf(v)[1],
+        toolName
     };
 })();

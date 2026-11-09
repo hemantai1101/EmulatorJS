@@ -39,6 +39,12 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `b410d444-71db-4630-920a-3eb1d99af8ff`. Ready revision `ps1-player-00093-xqn` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:d8c9093907b7e71311e36f39787984b1e4ab576e6475544348613ad094291c6a` (tag `20261109133803`). This deployed the working checkout directly without a GitHub commit or release.
+
+The Harvest Moon plugin adds a Holding line with the held tool's name and looks for the can in all 24 tool slots. Plugin and `plugins.js` URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab with saving blocked started the user's newest save and showed Stamina 110/110, Fatigue 0/100, Holding Watering Can and Water 98/100.
+
+## Previous direct deployment
+
 On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `aae0a40f-fca2-49fb-881c-588080a9677e`. Ready revision `ps1-player-00091-bqg` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:314d2422f68acfee82ecbe6403791e8b67134fb5411a2fcb0e34db916e9b5808` (tag `20261109133156`). This deployed the working checkout directly without a GitHub commit or release.
 
 The Harvest Moon plugin adds a Water line for the basic watering can. Plugin and `plugins.js` URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab with saving blocked started the user's newest save and showed Stamina 52/110, Fatigue 0/100 and Water 98/100.

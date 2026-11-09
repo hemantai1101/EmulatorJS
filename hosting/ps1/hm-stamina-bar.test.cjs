@@ -54,7 +54,8 @@ put16(girl(3), 2000); put16(girl(7), 2200); put16(girl(9), 2700); put16(girl(14)
 run();
 const s = window.__hmStamina.read();
 assert.deepEqual({ ...s, hearts: { ...s.hearts } },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, water: null });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, water: null });
+assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.wa').hidden, true, 'no can, no water line');
 
 // Water: the held can (item 21 at 0x71A84, value at +4), then a carried tool slot.
@@ -64,15 +65,26 @@ assert.equal(window.__hmStamina.read().water, 98);
 assert.equal($('.wa').hidden, false);
 assert.equal($('.wa').querySelector('.num').textContent, '98/100');
 assert.equal($('.wa').querySelector('.fill').style.width, '98%');
+assert.equal($('.tool').querySelector('.name').textContent, 'Watering Can');
 put16(0x71A84, 11); put16(0x71A88, 0); put16(0x70EC2 + 6 * 3, 21); put16(0x70EC2 + 6 * 3 + 4, 0);
 run();
 assert.equal(window.__hmStamina.read().water, 0, 'can in a tool slot, empty');
 assert($('.wa').classList.has('empty'));
+assert.equal($('.tool').querySelector('.name').textContent, 'Axe');
+put16(0x70EC2 + 6 * 23, 21); put16(0x70EC2 + 6 * 23 + 4, 40); put16(0x70EC2 + 6 * 3, 0);
+run();
+assert.equal(window.__hmStamina.read().water, 40, 'can in the last of 24 tool slots');
+put16(0x70EC2 + 6 * 23, 0);
 put16(0x70EC2 + 6 * 3, 0);
 run();
 assert.equal(window.__hmStamina.read().water, null, 'can put away');
 assert.equal($('.wa').hidden, true);
 assert.equal($('.wait').hidden, true);
+
+// Tool names follow the item list: 1 Sickle ... 57 Fishing Pole; unknown numbers show as Item n.
+const tn = window.__hmStamina.toolName;
+assert.deepEqual([0, 1, 6, 11, 16, 21, 25, 26, 34, 57, 58].map(tn),
+  ['Nothing', 'Sickle', 'Hoe', 'Axe', 'Hammer', 'Watering Can', 'Mystrile Can', 'Milker', 'Turnip Seeds', 'Fishing Pole', 'Item 58']);
 assert.equal($('.st').querySelector('.fill').style.width, '100%');
 assert.equal($('.st').querySelector('.num').textContent, '100/100');
 assert.equal($('.fa').querySelector('.fill').style.width, '18%');
@@ -130,4 +142,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, can water and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, can water and hearts, opens hearts on tap, and handles missing or odd RAM.');
