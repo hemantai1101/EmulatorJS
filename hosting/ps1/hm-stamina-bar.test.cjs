@@ -54,24 +54,31 @@ put16(girl(3), 2000); put16(girl(7), 2200); put16(girl(9), 2700); put16(girl(14)
 run();
 const s = window.__hmStamina.read();
 assert.deepEqual({ ...s, hearts: { ...s.hearts } },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, floor: null, water: null });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, water: null });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
-// Mine floor: place 120 at 0x6C3FA, 0-based floor at 0x12D110; other places hide it.
-put16(0x6C3FA, 120); put16(0x12D110, 1);
+// Mine floor: the place number sits behind the pointer at 0xA0378; 55 and 67 are mines.
+const put32 = (o, v) => { put16(o, v & 0xffff); put16(o + 2, v >>> 16); };
+put32(0xA0378, 0x8009F78C); put16(0x9F78C, 67); put16(0x12D110, 1);
 run();
 assert.equal(window.__hmStamina.read().floor, 2);
 assert.equal($('.floor').hidden, false);
 assert.equal($('.floor').querySelector('.name').textContent, 'Floor 2');
+put16(0x9F78C, 55);
+run();
+assert.equal(window.__hmStamina.read().floor, 2, '55 is a mine too');
 put16(0x12D110, 40);
 run();
 assert.equal(window.__hmStamina.read().floor, null, 'odd floor value is hidden');
-put16(0x12D110, 1); put16(0x6C3FA, 77);
+put16(0x12D110, 1); put16(0x9F78C, 19);
 run();
-assert.equal(window.__hmStamina.read().floor, null, 'town hides the floor');
+assert.equal(window.__hmStamina.read().floor, null, 'other places hide the floor');
 assert.equal($('.floor').hidden, true);
-put16(0x6C3FA, 0); put16(0x12D110, 0);
+put32(0xA0378, 0x12345678);
+run();
+assert.equal(window.__hmStamina.read().place, null, 'a bad pointer is ignored');
+put32(0xA0378, 0); put16(0x9F78C, 0); put16(0x12D110, 0);
 assert.equal($('.wa').hidden, true, 'no can, no water line');
 
 // Water: the held can (item 21 at 0x71A84, value at +4), then a carried tool slot.

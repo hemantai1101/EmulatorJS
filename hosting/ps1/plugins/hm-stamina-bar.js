@@ -31,9 +31,9 @@
         'Spinach Seeds', 'Green Pepper Seeds', 'Moondrop Seeds', 'Pink Cat Seeds', 'Magic Red Seeds', 'Toy Flower Seeds',
         'Orange Cup Seeds', 'Grass Seeds', 'Ocarina', 'Fishing Rod', 'Fishing Pole'];
     const toolName = id => id === 0 ? 'Nothing' : TOOLS[id] || 'Item ' + id;
-    // Place number at 0x8006C3FA: 120 in the mine, 77 in town, 90 in the library (from the user's saves).
-    // The mine keeps its current floor, 0-based, at 0x8012D110; it went 0 to 1 when the user took the stairs.
-    const PLACE = 0x6C3FA, MINE = 120, MINE_FLOOR = 0x12D110;
+    // The place number is a u16 behind the pointer at 0x800A0378. The hoe digs mine tiles only at places 55 and 67
+    // (code at 0x800C64DC). The mine keeps its current floor, 0-based, at 0x8012D110.
+    const PLACE_PTR = 0xA0378, MINES = [55, 67], MINE_FLOOR = 0x12D110;
     const OPEN_KEY = 'ps1-plugin-hm-hearts-open';
     // BIOS exception handler at 0x80, used to find where PS1 RAM sits in the emulator heap.
     const SIG = [0x00, 0x00, 0x1a, 0x3c, 0x80, 0x0c, 0x5a, 0x27, 0x08, 0x00, 0x40, 0x03];
@@ -46,12 +46,15 @@
     }
     function read(H, B) {
         const u16 = o => H[B + o] | (H[B + o + 1] << 8);
+        const u32 = o => (u16(o) | (u16(o + 2) << 16)) >>> 0;
         const s = { stamina: u16(STAMINA), max: u16(STAMINA_MAX), fatigue: u16(FATIGUE) };
         const ok = s.max >= 1 && s.max <= 999 && s.stamina <= 999 && s.fatigue <= 999;
         if (!ok) return null;
         s.hearts = Object.fromEntries(GIRLS.map(([name, n]) => [name, u16(affection(n))]));
         s.held = u16(HELD);
-        s.floor = u16(PLACE) === MINE && u16(MINE_FLOOR) <= 9 ? u16(MINE_FLOOR) + 1 : null;
+        const ptr = u32(PLACE_PTR) - 0x80000000;
+        s.place = ptr >= 0 && ptr < 0x200000 ? u16(ptr) : null;
+        s.floor = MINES.includes(s.place) && u16(MINE_FLOOR) <= 9 ? u16(MINE_FLOOR) + 1 : null;
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
             if (u16(slot) === CAN && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }

@@ -39,6 +39,12 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `089bf44d-3f50-435c-8f87-44742db54e9d`. Ready revision `ps1-player-00098-rs6` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:da364c0dd3a49b67d1d00fa71d964319c78f22fb636acf6fa84ba9069dd1cf6f` (tag `20261109153905`). This deployed the working checkout directly without a GitHub commit or release. It replaces `ps1-player-00097-84r`, which also accepted 100 at `0x8006C3FA` and made the Mine line blink.
+
+The Mine line now uses the game's own place number (a u16 behind the pointer at `0x800A0378`; mines are 55 and 67). `make check` passed. Live index, `plugins.js` and the plugin file matched the build. A separate muted Chrome tab with saving blocked started the user's newest save on mine floor 2; ten reads over five seconds all gave place 67 and Floor 2.
+
+## Previous direct deployment
+
 On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `9f0f424a-750a-4440-8e71-abe5f60793bc`. Ready revision `ps1-player-00095-p9v` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:9a188a4ad2c308db23a340d4cbc65a08732c0b9b8af73dd4d857dc2eb03f2d90` (tag `20261109150330`). This deployed the working checkout directly without a GitHub commit or release.
 
 The Harvest Moon plugin adds a Mine line with the floor number, shown only in the mine. Plugin and `plugins.js` URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab with saving blocked started the user's newest save and showed Mine Floor 2 and Holding Hoe.
