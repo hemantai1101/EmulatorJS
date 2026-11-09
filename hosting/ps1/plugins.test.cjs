@@ -31,6 +31,8 @@ const P = window.PS1Plugins;
   store['ps1-player-plugins-auto'] = 'not json';
   assert.deepEqual([...P.auto()], [], 'bad stored value is ignored');
   await assert.rejects(P.load('nope'), /Unknown plugin/);
+  await P.load('hm-stamina-bar');
+  assert.equal(added.at(-1).src, 'plugins/hm-stamina-bar.js?v=' + P.list.find(p => p.id === 'hm-stamina-bar').v, 'a versioned plugin URL changes after an update');
   P.list.push({ id: 'broken', name: 'Broken', src: 'plugins/missing.js' });
   await assert.rejects(P.load('broken'), /Could not load Broken/);
   console.log('PASS: plugins load on request and on game start, and bad input is handled.');

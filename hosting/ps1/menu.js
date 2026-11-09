@@ -31,6 +31,12 @@
     menu.append(emulator.diskParent);
 
     const saves = group('Saves');
+    const autoSaveDot = document.createElement('span');
+    autoSaveDot.className = 'auto-save-dot';
+    autoSaveDot.setAttribute('role', 'img');
+    autoSaveDot.setAttribute('aria-label', 'Auto-save is on');
+    autoSaveDot.title = 'Auto-save is on';
+    saves.parentElement.querySelector('summary').append(autoSaveDot);
     const saveNow = document.createElement('button');
     saveNow.type = 'button';
     saveNow.textContent = 'Save state now';

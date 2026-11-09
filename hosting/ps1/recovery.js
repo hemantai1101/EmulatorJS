@@ -35,13 +35,11 @@
       const message = document.querySelector('#resume-message');
       const resume = document.querySelector('#resume-game');
       const reload = document.querySelector('#reload-game');
-      const fresh = document.querySelector('#start-fresh');
       const restore = document.querySelector('#restore-local');
       const saveNow = document.querySelector('#save-now');
       const saveLabel = document.querySelector('#save-now-label');
       const savePicker = document.querySelector('#local-saves');
       const exportSave = document.querySelector('#export-local');
-      const resumePicker = document.querySelector('#resume-save');
       const status = document.querySelector('#recovery-status');
       const autoToggle = document.querySelector('#auto-save');
       const id = 'pcsx_rearmed-4.2.3:' + gameName;
@@ -50,6 +48,28 @@
       let ready = false, pendingSave = null, manualRequested = false;
       let active = true, failedRecovery = false;
       let timer, watchdog, restoreOnResume = false;
+      let resuming = false;
+      const originalPlay = emulator.play;
+      const originalPause = emulator.pause;
+      const play = function (...args) {
+        if (!resuming && active && (backgrounded || schedulerPaused)) {
+          if (!failedRecovery) resumeEngine();
+          return;
+        }
+        const result = originalPlay.apply(this, args);
+        updateResumeButton();
+        return result;
+      };
+      const pause = function (...args) {
+        const result = originalPause.apply(this, args);
+        updateResumeButton();
+        return result;
+      };
+      emulator.play = play;
+      emulator.pause = pause;
+      function updateResumeButton() {
+        resume.hidden = !active || !ready || !emulator.paused || failedRecovery || !panel.hidden;
+      }
 
       function releaseButtons() {
         for (let input = 0; input < 16; input++) emulator.gameManager.simulateInput(0, input, 0);
@@ -62,37 +82,31 @@
           schedulerPaused = true;
         }
       }
-      function showPanel(text, savedGame = false, failed = false) {
+      function showPanel(text, failed = false) {
         failedRecovery = failed;
         message.textContent = text;
-        resume.textContent = savedGame ? 'Restore selected state' : 'Resume game';
-        resumePicker.hidden = !savedGame;
-        document.querySelector('#resume-save-label').hidden = !savedGame;
-        resume.hidden = failed;
-        fresh.hidden = !savedGame;
         reload.hidden = !failed;
         panel.hidden = false;
         updateSaveButton();
       }
       function updateSaveList(selected) {
-        for (const picker of [savePicker, resumePicker]) {
-          picker.replaceChildren();
-          saves.forEach((save, index) => {
-            const option = document.createElement('option');
-            option.value = String(index);
-            option.textContent = new Date(save.savedAt).toLocaleString() + (index === 0 ? ' (latest)' : '');
-            picker.append(option);
-          });
-          const index = selected ? saves.indexOf(selected) : 0;
-          picker.value = String(Math.max(0, index));
-        }
+        savePicker.replaceChildren();
+        saves.forEach((save, index) => {
+          const option = document.createElement('option');
+          option.value = String(index);
+          option.textContent = new Date(save.savedAt).toLocaleString() + (index === 0 ? ' (latest)' : '');
+          savePicker.append(option);
+        });
+        const index = selected ? saves.indexOf(selected) : 0;
+        savePicker.value = String(Math.max(0, index));
       }
+
       function updateSaveButton() {
+        updateResumeButton();
         saveNow.disabled = !!pendingSave || !active || !ready || failedRecovery || !panel.hidden;
         saveLabel.textContent = saveNow.title = pendingSave ? 'Saving state…' : 'Save state now';
         exportSave.disabled = !active || !saves.length || !!pendingSave;
         restore.disabled = savePicker.disabled = !active || !saves.length || !!pendingSave;
-        resumePicker.disabled = !!pendingSave;
       }
       function checkpoint(allowPaused = false, manual = false) {
         if (!active || !ready || failedRecovery || (emulator.paused && !allowPaused) || !panel.hidden) return Promise.resolve(false);
@@ -170,13 +184,15 @@
       function showGame() {
         if (!active || !backgrounded || document.hidden) return;
         if (failedRecovery) {
-          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', false, true);
+          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', true);
         } else {
-          showPanel('Safari paused the game while you were away. Tap Resume game.');
+          if (!emulator.paused) backgrounded = false;
+          updateSaveButton();
         }
       }
       function resumeEngine() {
         if (!active) return;
+        resuming = true;
         try {
           const audio = new Set();
           const context = emulator.Module.AL && emulator.Module.AL.currentCtx;
@@ -209,20 +225,17 @@
             try { stuck = emulator.gameManager.functions.getFrameNum() === frame; } catch (error) { /* Reload an aborted core. */ }
             if (stuck) {
               try { pauseEngine(); } catch (error) { /* Keep the reload button usable. */ }
-              showPanel('Safari is still stuck. Reload, pick the same CHD, and restore your last state.', false, true);
+              showPanel('Safari is still stuck. Reload, pick the same CHD, and restore your last state.', true);
             }
           }, 2000);
         } catch (error) {
-          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', false, true);
+          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', true);
+        } finally {
+          resuming = false;
         }
       }
       resume.addEventListener('click', () => {
-        if (restoreOnResume) lastSave = saves[Number(resumePicker.value)];
-        resumeEngine();
-      });
-      fresh.addEventListener('click', () => {
-        restoreOnResume = false;
-        resumeEngine();
+        if (active && ready && emulator.paused && !failedRecovery) resumeEngine();
       });
       reload.addEventListener('click', () => location.reload());
       restore.addEventListener('click', () => {
@@ -235,7 +248,7 @@
           resumeEngine();
           window.PS1Saves?.close();
         } catch (error) {
-          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', false, true);
+          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', true);
         }
       });
       document.addEventListener('visibilitychange', () => document.hidden ? hideGame() : showGame());
@@ -246,7 +259,7 @@
         if (!active) return;
         clearTimeout(watchdog);
         try { pauseEngine(); } catch (error) { /* Keep the reload button usable. */ }
-        showPanel('Safari stopped the game screen. Reload, pick the same CHD, and restore your last state.', false, true);
+        showPanel('Safari stopped the game screen. Reload, pick the same CHD, and restore your last state.', true);
       });
       try {
         const stored = await readSave(id);
@@ -260,7 +273,7 @@
           status.textContent = saves.length + ' of 10 states kept here. Auto-save runs every 5 minutes.';
           restoreOnResume = true;
           pauseEngine();
-          showPanel('A state from ' + new Date(lastSave.savedAt).toLocaleString() + ' is kept on this device.', true);
+          resumeEngine();
         } else {
           ready = true;
           status.textContent = 'Auto-save states: every 5 minutes; keeps the latest 10 states.';
@@ -282,6 +295,8 @@
         updateSaveButton();
         clearInterval(timer);
         clearTimeout(watchdog);
+        if (emulator.play === play) emulator.play = originalPlay;
+        if (emulator.pause === pause) emulator.pause = originalPause;
       });
       return { checkpoint };
     }

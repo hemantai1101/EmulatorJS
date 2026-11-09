@@ -13,6 +13,7 @@ node --check menu.js
 node --check plugins.js
 for f in plugins/*.js; do node --check "$f"; done
 node plugins.test.cjs
+node hm-stamina-bar.test.cjs
 node --check saves.js
 node --check state-cards.js
 node keyboard.test.cjs

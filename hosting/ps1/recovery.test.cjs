@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const stored = new Map(), timers = new Map();
-let timerId = 0, holdWrites = false, failNextWrite = false;
+let watchdogId, timerId = 0, holdWrites = false, failNextWrite = false;
 let writes = 0, activeWrites = 0, maxActiveWrites = 0;
 const pendingCommits = [];
 const db = { createObjectStore() {}, transaction() {
@@ -50,7 +50,7 @@ const context = {
   indexedDB: { open() { const request = {}; queueMicrotask(() => { request.result = db; request.onupgradeneeded(); request.onsuccess(); }); return request; } },
   document, window, Date: TestDate, Set, Promise,
   setInterval(callback, delay) { assert.equal(delay, 300000); timers.set(++timerId, callback); return timerId; },
-  setTimeout(callback) { timers.set(++timerId, callback); return timerId; },
+  setTimeout(callback) { timers.set(++timerId, callback); watchdogId = timerId; return timerId; },
   clearInterval(id) { timers.delete(id); }, clearTimeout(id) { timers.delete(id); },
   location: { reload() {} }
 };
@@ -78,7 +78,19 @@ function emulator() {
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, 'recovery.js'), 'utf8'), context);
   const game = emulator();
+  const originalPlay = game.play, originalPause = game.pause;
   const controller = await window.PS1Recovery.attach(game, 'test game');
+  assert.equal(document.querySelector('#resume-game').hidden, true, 'running game has no Resume button');
+  const callsWhilePlaying = game.calls.length;
+  document.querySelector('#resume-game').handlers.click();
+  assert.equal(game.calls.length, callsWhilePlaying, 'Resume cannot interrupt a running game');
+  game.pause();
+  assert.equal(document.querySelector('#resume-game').hidden, false, 'native pause shows Resume');
+  document.querySelector('#resume-game').handlers.click();
+  assert.equal(game.paused, false);
+  assert.equal(document.querySelector('#resume-game').hidden, true);
+  game.frame++;
+
   document.hidden = true;
   document.handlers.visibilitychange[0]();
   window.handlers.pagehide[0]();
@@ -89,11 +101,27 @@ function emulator() {
   assert.equal(game.paused, true);
   document.hidden = false;
   document.handlers.visibilitychange[0]();
-  assert.equal(document.querySelector('#resume-panel').hidden, false);
+  assert.equal(document.querySelector('#resume-panel').hidden, true, 'background resume leaves the game visible');
+  assert.equal(document.querySelector('#resume-game').hidden, false);
   document.querySelector('#resume-game').handlers.click();
   assert(game.calls.includes('audio'));
   assert(game.calls.includes('start scheduler'));
   assert.equal(game.paused, false);
+  assert.equal(document.querySelector('#resume-panel').hidden, true);
+  assert.equal(document.querySelector('#resume-game').hidden, true);
+  const runningCalls = game.calls.length;
+  window.handlers.pageshow[0]();
+  document.querySelector('#resume-game').handlers.click();
+  assert.equal(game.calls.length, runningCalls, 'foreground and stale Resume clicks leave running play alone');
+  document.hidden = true;
+  document.handlers.visibilitychange[0]();
+  document.hidden = false;
+  document.handlers.visibilitychange[0]();
+  const previousSchedulerStarts = game.calls.filter(x => x === 'start scheduler').length;
+  game.play();
+  assert.equal(game.calls.filter(x => x === 'start scheduler').length, previousSchedulerStarts + 1, 'native Play also restarts the stopped scheduler');
+  assert.equal(game.paused, false);
+  assert.equal(document.querySelector('#resume-game').hidden, true);
   assert.equal(document.querySelector('#resume-panel').hidden, true);
   const saveButton = document.querySelector('#save-now');
   assert.equal(saveButton.disabled, false);
@@ -134,7 +162,7 @@ function emulator() {
   document.hidden = false;
   document.handlers.visibilitychange[0]();
   document.querySelector('#resume-game').handlers.click();
-  const interval = [...timers.values()][0];
+  const interval = [...timers.entries()].find(([id]) => id !== watchdogId)[1];
   interval();
   await new Promise(setImmediate);
   assert.equal(writes, beforeLeave, 'auto-save waits five minutes');
@@ -199,23 +227,21 @@ function emulator() {
   stored.set(otherId, { id: otherId, state: new Uint8Array([99]), savedAt: 1 });
   game.events.exit();
   assert.equal(saveButton.disabled, true);
+  assert.equal(document.querySelector('#resume-game').hidden, true);
+  assert.equal(game.play, originalPlay);
+  assert.equal(game.pause, originalPause);
 
   document = surface();
   context.document = document;
   const reloadedGame = emulator();
+  const beforeAutoRestore = writes;
   await window.PS1Recovery.attach(reloadedGame, 'test game');
-  assert.equal(document.querySelector('#resume-panel').hidden, false);
-  assert.equal(document.querySelector('#resume-game').textContent, 'Restore selected state');
-  assert.equal(reloadedGame.paused, true);
-  const beforeRestore = writes;
-  for (const callback of timers.values()) callback();
-  await new Promise(setImmediate);
-  assert.equal(writes, beforeRestore, 'no auto-save before choosing restore or start fresh');
-  document.querySelector('#resume-save').value = '8';
-  document.querySelector('#resume-game').handlers.click();
-  assert.deepEqual(reloadedGame.calls.find(x => Array.isArray(x) && x[0] === 'restore'), ['restore', [3]]);
+  assert.equal(document.querySelector('#resume-panel').hidden, true, 'latest state loads without a prompt');
   assert.equal(reloadedGame.paused, false);
-  const watch = [...timers.values()].at(-1);
+  assert.equal(writes, beforeAutoRestore, 'auto restore does not write a new state');
+  assert.deepEqual(reloadedGame.calls.find(x => Array.isArray(x) && x[0] === 'restore'), ['restore', [11]]);
+  assert.equal(stored.get(history.id), history, 'automatic restore preserves all saved states');
+  const watch = timers.get(watchdogId);
   watch();
   assert.equal(document.querySelector('#reload-game').hidden, false);
   assert.equal(document.querySelector('#resume-game').hidden, true);
@@ -226,11 +252,25 @@ function emulator() {
   const legacyGame = emulator();
   await window.PS1Recovery.attach(legacyGame, 'other game');
   assert.equal(document.querySelector('#local-saves').children.length, 1);
-  document.querySelector('#resume-game').handlers.click();
+  assert.equal(document.querySelector('#resume-panel').hidden, true);
   assert.deepEqual(legacyGame.calls.find(x => Array.isArray(x) && x[0] === 'restore'), ['restore', [99]]);
   assert.equal(await document.querySelector('#save-now').handlers.click(), true);
   assert.deepEqual(Array.from(stored.get(otherId).history[0].state), [99]);
   assert.equal(stored.get(history.id), history, 'another game must keep its own history');
   legacyGame.events.exit();
+  document = surface();
+  context.document = document;
+  const brokenGame = emulator();
+  brokenGame.gameManager.loadState = () => { throw new Error('Bad state'); };
+  const beforeFailure = writes;
+  const brokenController = await window.PS1Recovery.attach(brokenGame, 'test game');
+  assert.equal(brokenGame.paused, true, 'failed restore keeps the game paused');
+  assert.equal(document.querySelector('#resume-panel').hidden, false);
+  assert.equal(document.querySelector('#reload-game').hidden, false);
+  assert.equal(document.querySelector('#resume-game').hidden, true);
+  assert.equal(await brokenController.checkpoint(true, true), false);
+  assert.equal(writes, beforeFailure, 'failed restore cannot overwrite saved states');
+  assert.equal(stored.get(history.id), history);
+  brokenGame.events.exit();
   console.log('PASS: ten-save retention, older selection, five-minute interval, quick backgrounding, legacy save kept, per-game isolation; manual/auto overlap, repeated taps, one write at a time, failed-write retry, background save, resume, reload restore, and stalled-loop recovery.');
 })();

@@ -23,7 +23,6 @@
     panel.showModal();
   }
   function close() { if (panel.open) panel.close(); }
-  document.querySelector('#saves-toggle').addEventListener('click', open);
   document.querySelector('#saves-done').addEventListener('click', close);
   document.querySelector('#saves-save-now').addEventListener('click', () => document.querySelector('#save-now').click());
   const recoveryStatus = document.querySelector('#recovery-status');
@@ -118,7 +117,7 @@
       if (bytes[0] !== 77 || bytes[1] !== 67) throw new Error('This file is not a raw PS1 memory card.');
       const message = slot === 1
         ? 'Replace slot 1 with this card? A backup of the current card downloads first. Use Load inside the game after import.'
-        : 'Replace the shared slot 2 card and reload? A backup downloads first. Then choose Play last game (or pick the same game) and Start fresh to use the card. Your states stay here.';
+        : 'Replace the shared slot 2 card and reload? A backup downloads first. Then choose Play last game (or pick the same game) and use Advanced → Restart in the game menu to use the card. Your states stay here.';
       if (!root.confirm(message)) return;
       const previous = cardBytes(slot);
       if (previous) exportCard(slot);

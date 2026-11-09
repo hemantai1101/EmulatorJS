@@ -37,6 +37,68 @@ The release archive is cached in `hosting/ps1/.cache/`. It is checked against th
 
 The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service name, and repository name are fixed in the script. Changing the project alone does not create its required resources.
 
+## Latest direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `68815c86-c027-4e55-8ef6-23c2db8ef529`. Ready revision `ps1-player-00089-w4s` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:3a1cd20c6d706d9b0b5f41e4009bc54e4ad9a07af4e7db6779c67bf93efbf697` (tag `20261109131129`). This deployed the working checkout directly without a GitHub commit or release.
+
+The Harvest Moon plugin now opens a hearts list (Karen, Ann, Elli, Mary, Popuri) when its box is tapped, with each affection number and a coloured heart. `plugins.js` and the plugin URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab of the live site started the user's last game; the plugin loaded from the user's stored auto list, showed stamina 100/100, fatigue 18/100 and all five hearts, and opened on tap. The tab's hearts-open choice was removed before the tab was closed.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `eea794c3-ea40-4734-a124-aca52b4eda42`. Ready revision `ps1-player-00088-gss` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:e5d5306b8d4b9baf8fe6c3e792a9d0140148adbf14a3f9f526c8d2afe076a9f1` (tag `20261109114323`). This deployed the working checkout directly without a GitHub commit or release.
+
+The previous deploy's plugin list stayed cached in browsers because `index.html` still loaded `plugins.js?v=20261102b`. The query is now `v=20261109-hm-stamina`, and plugins can carry a `v` that is added to their script URL. The stamina bar's fatigue colours now follow the game's own 50 and 80 steps, with a cap of 100. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `38eb02e3-a287-4898-9650-48fd7db44237`. Ready revision `ps1-player-00087-tzp` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:8c2f9b9d44ec1873ea0b087be314e7e702fe6722e0baca583ea7cccd51ac69c2` (tag `20261109103331`). This deployed the working checkout directly without a GitHub commit or release.
+
+This adds the Harvest Moon stamina bar plugin (`plugins/hm-stamina-bar.js`) to the Plugins list. Before deploying, live index, menu, recovery and saves scripts already matched the local build; only `plugins.js` differed. `make check` passed. After deploy, live index, `plugins.js`, both plugin files matched the build byte for byte, and both isolation headers were set. The plugin was checked on the user's real game before deploy by pasting it into a separate muted Chrome tab; the menu checkbox on the live site was not clicked. Hosting settings and the player address are unchanged.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `37c1fc0d-6643-4cc9-b509-a80d080b0fe3`. Ready revision `ps1-player-00086-2mq` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:2abc1736e1cde48400f89ade18d617eb11daf136344708a4e9bdb8178e9197a3` (tag `20261109090415`). This deployed the working checkout directly without a GitHub commit or release.
+
+Control Settings now uses a narrower 760 px maximum panel, tighter row spacing, compact text-width footer buttons aligned right, and 32 px controls on mouse devices. Touch devices retain 44 px targets. Only page CSS changed.
+
+`make check` passed. Local and live headless desktop Chrome checks covered mouse and simulated-touch modes at 1100×850, 390×844, 852×393, 320×568 and 568×320 in normal, browser-fill and native fullscreen views. Checks passed exact input heights, compact footer widths, panel bounds, no horizontal scroll, player tabs, virtual-gamepad switch, key remapping and Reset/Clear/Close. Tests used the shipped minified engine's native UI methods with a mock host, not real gameplay or physical devices. The live page matched the build with both isolation headers. Hosting settings and the player address are unchanged.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `0f0286ef-4471-4172-8912-d11a2377d382`. Ready revision `ps1-player-00085-f7z` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:29855c8ec4489166a253bc21e3764a6a08762086ddd492cd9781e879809d42a3` (tag `20261109084900`). This deployed the working checkout directly without a GitHub commit or release.
+
+Control Settings now matches the charcoal/soft-white/green player style. The opaque panel has dark key fields, green player selection and Close button, a green virtual-gamepad switch, a scrolling list and a fixed footer. Small views stack each row's label above its fields. The changes are scoped page CSS; native mapping handlers and stored settings remain in place.
+
+`make check` passed. Fresh headless desktop Chrome checked both shipped engines locally and live at 1100×850, 390×844, 852×393, 320×568 and 568×320 in normal, browser-fill and native fullscreen views. Panel bounds, no horizontal scroll, visible 44 px footer buttons, player tabs, virtual-gamepad switch, Set/key remapping and Reset/Clear/Close passed. Tests exercised native engine UI methods with a mock host, without real gameplay, a physical controller or a physical phone. Four live files (index, both engines and engine CSS) matched the build with both isolation headers. Hosting settings and the player address are unchanged.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `abd6dd61-1994-4fb8-9db3-908c10c2f986`. Ready revision `ps1-player-00084-d5x` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:83ec881ae3ea8afd6c210e8a32e2c237a09d2988c5f74b48284bd0e98ad0ca6f` (tag `20261109082223`). This deployed the working checkout directly without a GitHub commit or release.
+
+The duplicate page Saves button is removed. The in-game Saves control is now a folder icon with an accessible name, hover title and auto-save dot. The Saves script URL was bumped. `make check` passed. Fresh headless desktop Chrome with touch simulation checked the local and live builds at 1100×850, 390×844, 852×393, 320×568 and 568×320 in normal, browser-fill and native fullscreen views: one icon, absent duplicate, dot on/off, dialog open/Done and existing Resume behavior. These used a mock engine and dummy states in isolated browser storage, not real gameplay or a physical phone. Five live files matched the build with both isolation headers. Hosting settings and the player address are unchanged.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, local checks and Cloud Build `c77816fe-1b48-4088-b032-eaadc3def467` passed. The built image digest was deployed directly with the existing `deploy.sh` service settings. Ready revision `ps1-player-00083-l68` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:628ba9506ecf2d58a06bb03e95dd8431f5a7424864354faca1d9b216f97e96bd` (tag `20261109081613`). This deployed the working checkout without a GitHub commit or release.
+
+Normal background return now keeps the paused game visible, with a play icon next to the in-game Saves button. The icon appears only while paused and disappears during play; a stale click while running does nothing. Native Pause/Play stays in sync, including restarting a scheduler stopped by background recovery. Audio resume, input release, background save policy and the stalled-frame check remain. Only failures retain a blocking error panel. The recovery script URL was bumped.
+
+`make check` passed. Fresh headless desktop Chrome contexts with touch simulation checked the local and live builds at 1100×850, 390×844, 852×393, 320×568 and 568×320 in normal, browser-fill and native fullscreen views. Checks covered background pause/return without an overlay, 44 px targets, bounds after scrolling the player into view, placement next to Saves, tap/Enter resume and ignored running clicks. Tests used a mock engine and dummy snapshot bytes in isolated IndexedDB, not a real game or physical phone. Five live files matched the build with both isolation headers. Hosting settings and the player address are unchanged.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `65781c3a-6ed5-49f4-b4fe-2c1768c3d8ab`. Ready revision `ps1-player-00082-f5n` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:3d7b46f1a6e68aa048818578685a825cfb98ba6953195f2f66746be9a25edbf4` (tag `20261109080329`). This directly deployed the current working checkout without a GitHub commit or release.
+
+Games now automatically load their latest saved state without the startup picker popup. Start fresh is removed; Advanced → Restart remains. Background Resume game and failure panels remain. A failed restore keeps the engine paused and blocks saves. State history and IDs are unchanged. Slot 2 import guidance now points to Restart. Recovery and Saves script URLs were bumped.
+
+`make check` passed, including latest and legacy state restore, no write during restore, failed-restore protection, and existing history/save-job tests. Fresh headless desktop Chrome tested saved, absent and broken state cases against the local build with real IndexedDB and a mock engine. No real game or physical phone was tested. Five live files matched the tested build byte for byte with both isolation headers. Hosting settings and the player address are unchanged.
+
+## Previous direct deployment
+
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `d3a91c12-c721-457b-96f3-defea9d0775c`. Ready revision `ps1-player-00081-5bh` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:1fee5e468e6348554730634565c9f184d36b4db08b02d2d1c3584bd7f8839307` (tag `20261109075724`). This deployed the current working checkout directly, without a GitHub commit or release, including the previously local shoulder-button layout.
+
+The main screen's save-info line is hidden. The page's Saves button and game menu's Saves heading show a green dot while Auto-save is checked. The menu script URL is versioned for this release. `make check` passed. Five live files (index, menu, recovery, saves and touch controls) matched the build byte for byte with both isolation headers. A fresh headless desktop Chrome session checked the live page's dot on/off/on and hidden status line, without loading a game or touching the user's browser saves. The game-menu dot was not browser-tested. WebKit could not launch because its matching browser binary was absent; no physical-phone check was run. The player address and hosting settings are unchanged.
+
 ## Live resources
 
 | Item | Current value |
@@ -56,7 +118,7 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 Keep using the same player address. Browser storage belongs to the exact origin, so the alternate hostname has separate saves. Localhost and different localhost ports also have separate saves.
 
-Latest verified release, **31 October 2026 (Hong Kong)**: local `make deploy` completed Cloud Build `c8ff979c-ec0d-489a-a50e-be089bf63635`. Ready revision `ps1-player-00043-6tb` serves 100% of traffic, image `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:4291284b00b18b7271dbdcda646c4d3aeef97a15dcbfabfe50c287ad0c56170b` (tag `20261031005219`). This deploys the compact Saves panel with foldouts and a fixed Done row, state wording, and the picker following the latest state by default. Auto-save preserves a chosen older state; Save state now selects its new state after a successful write. Versioned recovery/menu/saves URLs fetch this release. Save IDs, stored bytes, card handling and the shared save job stay unchanged. This deployed the working checkout directly; it is not a GitHub release.
+Previous verified release, **31 October 2026 (Hong Kong)**: local `make deploy` completed Cloud Build `c8ff979c-ec0d-489a-a50e-be089bf63635`. Ready revision `ps1-player-00043-6tb` serves 100% of traffic, image `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:4291284b00b18b7271dbdcda646c4d3aeef97a15dcbfabfe50c287ad0c56170b` (tag `20261031005219`). This deploys the compact Saves panel with foldouts and a fixed Done row, state wording, and the picker following the latest state by default. Auto-save preserves a chosen older state; Save state now selects its new state after a successful write. Versioned recovery/menu/saves URLs fetch this release. Save IDs, stored bytes, card handling and the shared save job stay unchanged. This deployed the working checkout directly; it is not a GitHub release.
 
 `make check` passed. All 13 checked live files matched the tested build with both isolation headers kept. Fresh desktop Chrome and Playwright WebKit checked the live panel at 390×844, 320×568, 852×393, 568×320 and 1100×850, including panel bounds, scrolling, visible Done, 44 px controls, foldout click/keyboard actions, Done/Escape and browser-fill visibility. Separate isolated browser contexts checked the live recovery script with dummy snapshot bytes and real IndexedDB: default latest following, older-state retention, manual selection and state labels passed in both browsers. These are UI/persistence integration checks on this Mac, not real gameplay or a physical iPhone test. The user's live game and browser saves were untouched. Hosting resources and the player address are unchanged.
 
