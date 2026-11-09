@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, can water and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -16,6 +16,9 @@
         [50000, 'Yellow', '#facc15'], [60000, 'Orange', '#fb923c'], [Infinity, 'Red', '#ef4444']
     ];
     const heartOf = v => HEARTS.find(h => v < h[0]);
+    // Items are 6-byte slots: u16 id, then u16 value at +4. The held item is at 0x80071A84; carried tools start at 0x80070EC2.
+    // The basic watering can is item 21; its value is the water left, 100 when full (from the user's saves).
+    const HELD = 0x71A84, TOOL_SLOTS = 0x70EC2, TOOL_SLOT_COUNT = 8, CAN = 21, CAN_MAX = 100;
     const OPEN_KEY = 'ps1-plugin-hm-hearts-open';
     // BIOS exception handler at 0x80, used to find where PS1 RAM sits in the emulator heap.
     const SIG = [0x00, 0x00, 0x1a, 0x3c, 0x80, 0x0c, 0x5a, 0x27, 0x08, 0x00, 0x40, 0x03];
@@ -32,6 +35,10 @@
         const ok = s.max >= 1 && s.max <= 999 && s.stamina <= 999 && s.fatigue <= 999;
         if (!ok) return null;
         s.hearts = Object.fromEntries(GIRLS.map(([name, n]) => [name, u16(affection(n))]));
+        s.water = null;
+        for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
+            if (u16(slot) === CAN && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
+        }
         return s;
     }
 
@@ -48,6 +55,7 @@
         .fill { height: 100%; width: 0; border-radius: 4px; transition: width .2s; }
         .st .fill { background: #4ade80; } .st.low .fill { background: #f59e0b; } .st.empty .fill { background: #ef4444; }
         .fa .fill { background: #a78bfa; } .fa.tired .fill { background: #f59e0b; } .fa.high .fill { background: #ef4444; }
+        .wa .fill { background: #38bdf8; } .wa.empty .fill { background: #ef4444; }
         .num { text-align: right; font-variant-numeric: tabular-nums; }
         .wait { font-weight: 400; color: #aab3bf; }
         .toggle { font-weight: 400; color: #aab3bf; font-size: 10px; }
@@ -59,12 +67,13 @@
         <div class="wait">Waiting for Harvest Moon</div>
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+        <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="toggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), toggle = $('.toggle'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -88,6 +97,7 @@
         last = s;
         wait.hidden = !!s; st.hidden = fa.hidden = toggle.hidden = !s;
         hearts.hidden = !s || !open;
+        wa.hidden = !s || s.water === null;
         if (!s) return;
         bar(st, s.stamina, s.max);
         st.querySelector('.num').textContent = s.stamina + '/' + s.max;
@@ -97,6 +107,11 @@
         fa.querySelector('.num').textContent = s.fatigue + '/' + FATIGUE_MAX;
         fa.classList.toggle('tired', s.fatigue >= FATIGUE_TIRED && s.fatigue < FATIGUE_HIGH);
         fa.classList.toggle('high', s.fatigue >= FATIGUE_HIGH);
+        if (s.water !== null) {
+            bar(wa, s.water, CAN_MAX);
+            wa.querySelector('.num').textContent = s.water + '/' + CAN_MAX;
+            wa.classList.toggle('empty', s.water === 0);
+        }
         toggle.textContent = open ? '▴ Hide hearts' : '▾ Hearts';
         if (!open) return;
         for (const [name] of GIRLS) {

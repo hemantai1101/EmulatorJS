@@ -14,8 +14,8 @@
       id: 'hm-stamina-bar',
       name: 'Harvest Moon stamina and hearts',
       src: 'plugins/hm-stamina-bar.js',
-      v: '20261109-hearts2',
-      note: 'Shows stamina and fatigue bars for Harvest Moon: Back to Nature (US). Tap the box for the girls\' hearts.',
+      v: '20261109-water',
+      note: 'Shows stamina, fatigue and watering can bars for Harvest Moon: Back to Nature (US). Tap the box for the girls\' hearts.',
       stop: () => root.__hmStamina?.stop()
     }
   ];

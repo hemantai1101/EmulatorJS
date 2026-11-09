@@ -39,6 +39,12 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `aae0a40f-fca2-49fb-881c-588080a9677e`. Ready revision `ps1-player-00091-bqg` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:314d2422f68acfee82ecbe6403791e8b67134fb5411a2fcb0e34db916e9b5808` (tag `20261109133156`). This deployed the working checkout directly without a GitHub commit or release.
+
+The Harvest Moon plugin adds a Water line for the basic watering can. Plugin and `plugins.js` URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab with saving blocked started the user's newest save and showed Stamina 52/110, Fatigue 0/100 and Water 98/100.
+
+## Previous direct deployment
+
 On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `68815c86-c027-4e55-8ef6-23c2db8ef529`. Ready revision `ps1-player-00089-w4s` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:3a1cd20c6d706d9b0b5f41e4009bc54e4ad9a07af4e7db6779c67bf93efbf697` (tag `20261109131129`). This deployed the working checkout directly without a GitHub commit or release.
 
 The Harvest Moon plugin now opens a hearts list (Karen, Ann, Elli, Mary, Popuri) when its box is tapped, with each affection number and a coloured heart. `plugins.js` and the plugin URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab of the live site started the user's last game; the plugin loaded from the user's stored auto list, showed stamina 100/100, fatigue 18/100 and all five hearts, and opened on tap. The tab's hearts-open choice was removed before the tab was closed.
