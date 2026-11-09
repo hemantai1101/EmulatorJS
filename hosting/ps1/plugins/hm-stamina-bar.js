@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, can water and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor, can water and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -31,6 +31,9 @@
         'Spinach Seeds', 'Green Pepper Seeds', 'Moondrop Seeds', 'Pink Cat Seeds', 'Magic Red Seeds', 'Toy Flower Seeds',
         'Orange Cup Seeds', 'Grass Seeds', 'Ocarina', 'Fishing Rod', 'Fishing Pole'];
     const toolName = id => id === 0 ? 'Nothing' : TOOLS[id] || 'Item ' + id;
+    // Place number at 0x8006C3FA: 120 in the mine, 77 in town, 90 in the library (from the user's saves).
+    // The mine keeps its current floor, 0-based, at 0x8012D110; it went 0 to 1 when the user took the stairs.
+    const PLACE = 0x6C3FA, MINE = 120, MINE_FLOOR = 0x12D110;
     const OPEN_KEY = 'ps1-plugin-hm-hearts-open';
     // BIOS exception handler at 0x80, used to find where PS1 RAM sits in the emulator heap.
     const SIG = [0x00, 0x00, 0x1a, 0x3c, 0x80, 0x0c, 0x5a, 0x27, 0x08, 0x00, 0x40, 0x03];
@@ -48,6 +51,7 @@
         if (!ok) return null;
         s.hearts = Object.fromEntries(GIRLS.map(([name, n]) => [name, u16(affection(n))]));
         s.held = u16(HELD);
+        s.floor = u16(PLACE) === MINE && u16(MINE_FLOOR) <= 9 ? u16(MINE_FLOOR) + 1 : null;
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
             if (u16(slot) === CAN && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
@@ -83,13 +87,14 @@
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
+        <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="toggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -112,6 +117,7 @@
     function show(s) {
         last = s;
         wait.hidden = !!s; st.hidden = fa.hidden = tool.hidden = toggle.hidden = !s;
+        floor.hidden = !s || s.floor === null;
         hearts.hidden = !s || !open;
         wa.hidden = !s || s.water === null;
         if (!s) return;
@@ -124,6 +130,7 @@
         fa.classList.toggle('tired', s.fatigue >= FATIGUE_TIRED && s.fatigue < FATIGUE_HIGH);
         fa.classList.toggle('high', s.fatigue >= FATIGUE_HIGH);
         tool.querySelector('.name').textContent = toolName(s.held);
+        if (s.floor !== null) floor.querySelector('.name').textContent = 'Floor ' + s.floor;
         if (s.water !== null) {
             bar(wa, s.water, CAN_MAX);
             wa.querySelector('.num').textContent = s.water + '/' + CAN_MAX;

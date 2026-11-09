@@ -39,6 +39,12 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `9f0f424a-750a-4440-8e71-abe5f60793bc`. Ready revision `ps1-player-00095-p9v` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:9a188a4ad2c308db23a340d4cbc65a08732c0b9b8af73dd4d857dc2eb03f2d90` (tag `20261109150330`). This deployed the working checkout directly without a GitHub commit or release.
+
+The Harvest Moon plugin adds a Mine line with the floor number, shown only in the mine. Plugin and `plugins.js` URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab with saving blocked started the user's newest save and showed Mine Floor 2 and Holding Hoe.
+
+## Previous direct deployment
+
 On **9 November 2026 (Hong Kong)**, `make deploy` completed Cloud Build `b410d444-71db-4630-920a-3eb1d99af8ff`. Ready revision `ps1-player-00093-xqn` serves 100% of traffic. Image: `asia-east2-docker.pkg.dev/heman-dev/ps1-player/player@sha256:d8c9093907b7e71311e36f39787984b1e4ab576e6475544348613ad094291c6a` (tag `20261109133803`). This deployed the working checkout directly without a GitHub commit or release.
 
 The Harvest Moon plugin adds a Holding line with the held tool's name and looks for the can in all 24 tool slots. Plugin and `plugins.js` URL versions were bumped. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. A separate muted Chrome tab with saving blocked started the user's newest save and showed Stamina 110/110, Fatigue 0/100, Holding Watering Can and Water 98/100.

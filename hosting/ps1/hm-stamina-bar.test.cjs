@@ -54,8 +54,24 @@ put16(girl(3), 2000); put16(girl(7), 2200); put16(girl(9), 2700); put16(girl(14)
 run();
 const s = window.__hmStamina.read();
 assert.deepEqual({ ...s, hearts: { ...s.hearts } },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, water: null });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, floor: null, water: null });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
+assert.equal($('.floor').hidden, true, 'no floor outside the mine');
+
+// Mine floor: place 120 at 0x6C3FA, 0-based floor at 0x12D110; other places hide it.
+put16(0x6C3FA, 120); put16(0x12D110, 1);
+run();
+assert.equal(window.__hmStamina.read().floor, 2);
+assert.equal($('.floor').hidden, false);
+assert.equal($('.floor').querySelector('.name').textContent, 'Floor 2');
+put16(0x12D110, 40);
+run();
+assert.equal(window.__hmStamina.read().floor, null, 'odd floor value is hidden');
+put16(0x12D110, 1); put16(0x6C3FA, 77);
+run();
+assert.equal(window.__hmStamina.read().floor, null, 'town hides the floor');
+assert.equal($('.floor').hidden, true);
+put16(0x6C3FA, 0); put16(0x12D110, 0);
 assert.equal($('.wa').hidden, true, 'no can, no water line');
 
 // Water: the held can (item 21 at 0x71A84, value at +4), then a carried tool slot.
@@ -142,4 +158,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, can water and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor, can water and hearts, opens hearts on tap, and handles missing or odd RAM.');
