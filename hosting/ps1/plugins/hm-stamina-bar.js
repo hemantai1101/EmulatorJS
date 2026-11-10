@@ -47,6 +47,8 @@
         'Spinach Seeds', 'Green Pepper Seeds', 'Moondrop Seeds', 'Pink Cat Seeds', 'Magic Red Seeds', 'Toy Flower Seeds',
         'Orange Cup Seeds', 'Grass Seeds', 'Ocarina', 'Fishing Rod', 'Fishing Pole'];
     const toolName = id => id === 0 ? 'Nothing' : TOOLS[id] || 'Item ' + id;
+    // Item records are 40 bytes behind the pointer at 0x8006C858; the menu (0x800FB510) shows a slot's +4 count when byte +2 is 2 (seeds).
+    const ITEM_TABLE_PTR = 0x6C858, ITEM_SIZE = 40, STACKS = 2, STACK_MAX = 99;
     // The place number is a u16 behind the pointer at 0x800A0378. The hoe digs mine tiles only at places 55 and 67
     // (code at 0x800C64DC). The mine keeps its current floor, 0-based, at 0x8012D110.
     const PLACE_PTR = 0xA0378, MINES = [55, 67], MINE_FLOOR = 0x12D110;
@@ -158,10 +160,10 @@
         ['Chicken', Array.from({ length: 10 }, (_, i) => 0x74302 + i * 0xB4)],
         ['Barn', Array.from({ length: 20 }, (_, i) => 0x74A0A + i * 0xB8)]];
     const ANIMALS_KEY = 'ps1-plugin-hm-animals-open', LOVE_MAX = 255;
-    const ANIMAL_ICON = { Dog: '🐶', Horse: '🐴', Chicken: '🐔', Barn: '🐄' };
+    const ANIMAL_ICON = { Dog: '🐶', Horse: '🐴', Chicken: '🐔', Chick: '🐣', Barn: '🐄' };
     // Coop feed (game code 0x800E21E4): at the new day each unfed hen in the coop (place 4) empties the first full box of 10 at 0x8007130E.
     // A hen outside (place 1) is fed after 5 outside ticks (+0xAC, code 0x800E20F0); rain (today 0x8007AD00 = 1) costs love instead, winter does nothing.
-    const COOP_BOXES = 0x7130E, HENS = Array.from({ length: 10 }, (_, i) => 0x742EC + i * 0xB4), HEN = 0x109, IN_COOP = 4, OUTSIDE = 1;
+    const COOP_BOXES = 0x7130E, HENS = Array.from({ length: 10 }, (_, i) => 0x742EC + i * 0xB4), HEN = 0x109, CHICK = 0x10A, IN_COOP = 4, OUTSIDE = 1;
     const GRAZE_DONE = 5, WEATHER_TODAY = 0x7AD00, RAIN = 1, WINTER = 3, FEED_KEY = 'ps1-plugin-hm-feed-open';
     const letter = c => c < 26 ? String.fromCharCode(c + 65) : c >= 32 && c < 58 ? String.fromCharCode(c + 65) : '?';
     const clock = h => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
@@ -191,6 +193,9 @@
             if (name && i < 9 && u16(at + 0x16) <= FRIEND_MAX) s.sprites.push({ name, value: u16(at + 0x16) });
         }
         s.held = u16(HELD);
+        const items = u32(ITEM_TABLE_PTR) - 0x80000000, heldCount = u16(HELD + 4);
+        s.heldCount = items >= 0 && items + (s.held + 1) * ITEM_SIZE <= 0x200000 && H[B + items + s.held * ITEM_SIZE + 2] === STACKS
+            && heldCount >= 1 && heldCount <= STACK_MAX ? heldCount : null;
         const ptr = u32(PLACE_PTR) - 0x80000000;
         s.place = ptr >= 0 && ptr < 0x200000 ? u16(ptr) : null;
         s.floor = MINES.includes(s.place) && u16(MINE_FLOOR) <= 9 ? u16(MINE_FLOOR) + 1 : null;
@@ -199,7 +204,8 @@
             let name = '';
             if (u16(at - 2) !== 0xFFFF) continue;
             for (let i = 0; i < 8 && u16(at - 18 + i * 2) !== 0xFFFF; i++) name += letter(u16(at - 18 + i * 2));
-            if (name) s.animals.push({ kind, name, love: H[B + at] });
+            // Chicken records start 0x16 bytes before love with their kind: 0x10A is a chick.
+            if (name) s.animals.push({ kind: kind === 'Chicken' && u16(at - 0x16) === CHICK ? 'Chick' : kind, name, love: H[B + at] });
         }
         s.season = u16(SEASON); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
         s.feed = null;
@@ -262,7 +268,7 @@
             .more { display: block; justify-self: end; min-height: 0; padding: 1px 3px; position: sticky; top: 0; z-index: 1; border: 0;
                     background: #10151b; color: #aab3bf; font: 400 10px/16px system-ui, sans-serif; text-decoration: underline; cursor: pointer; }
         }
-        .row { display: grid; grid-template-columns: 44px 1fr 40px; align-items: center; gap: 6px; }
+        .row { display: grid; grid-template-columns: 44px 1fr 48px; align-items: center; gap: 6px; }
         .bar { height: 8px; background: #2a313b; border-radius: 4px; overflow: hidden; }
         .fill { height: 100%; width: 0; border-radius: 4px; transition: width .2s; }
         .st .fill { background: #4ade80; } .st.low .fill { background: #f59e0b; } .st.empty .fill { background: #ef4444; }
@@ -290,7 +296,7 @@
         .animal .fill { background: #f472b6; }
         .animal .kind { display: inline-block; width: 15px; font-weight: 400; }
         .animal > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ftoggle.ok { color: #4ade80; } .ftoggle.short { color: #f87171; }
+        .ftoggle.short { color: #f87171; }
         .feed { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .hen { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; }
         .hen .where { color: #8b95a3; font-weight: 400; }
@@ -314,17 +320,17 @@
         <button class="more" type="button" aria-expanded="false">More</button>
         <div class="details">
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
+        <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="tool sky" hidden><span>Tmrw</span><span class="name icon"></span></div>
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
         <div class="ores" hidden></div>
-        <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <button class="row bk" type="button" aria-expanded="false" title="Show or hide basket contents" hidden><span class="label">Basket ▸</span><div class="bar"><div class="fill"></div></div><span class="num"></span></button>
         <div class="ores bkitems" hidden></div>
         <div class="race" hidden></div>
         <div class="toggle stoggle" hidden></div>
         <div class="shops" hidden>${SHOPS.map(([name], i) =>
             `<div class="shop sh-${i}"><span class="dot"></span><span>${name}</span><span class="when"></span></div>`).join('')}</div>
-        <div class="toggle ftoggle" title="Full coop feed boxes / hens in the coop that still need one tonight" hidden></div>
+        <div class="toggle ftoggle" title="Show or hide hens and whether each is fed" hidden></div>
         <div class="feed" hidden></div>
         <div class="toggle atoggle" hidden></div>
         <div class="animals" hidden></div>
@@ -487,7 +493,7 @@
         fa.querySelector('.num').textContent = s.fatigue + '/' + FATIGUE_MAX;
         fa.classList.toggle('tired', s.fatigue >= FATIGUE_TIRED && s.fatigue < FATIGUE_HIGH);
         fa.classList.toggle('high', s.fatigue >= FATIGUE_HIGH);
-        tool.querySelector('.name').textContent = toolName(s.held);
+        tool.querySelector('.name').textContent = toolName(s.held) + (s.heldCount === null ? '' : ' ×' + s.heldCount);
         if (s.tomorrow !== null) {
             const icon = sky.querySelector('.name');
             icon.textContent = WEATHER_ICON[s.tomorrow];
@@ -515,8 +521,7 @@
         });
         if (s.feed) {
             const f = s.feed, short = f.need - f.boxes;
-            ftoggle.textContent = (feedOpen ? '▴ ' : '▾ ') + 'Feed ' + f.boxes + '/' + f.need + (short > 0 ? ' · ' + short + ' short' : ' ✓');
-            ftoggle.classList.toggle('ok', short <= 0);
+            ftoggle.textContent = (feedOpen ? '▴ Hide hens' : '▾ Hens') + ' (' + f.hens.length + ')';
             ftoggle.classList.toggle('short', short > 0);
             if (feedOpen) {
                 const html = f.hens.map(h => henHtml(h, f)).join('');

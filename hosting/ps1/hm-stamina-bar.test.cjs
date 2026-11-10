@@ -65,7 +65,7 @@ run();
 const s = window.__hmStamina.read();
 assert.equal(s.animals.length, 0, 'no named animals');
 assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined, villagers: undefined, sprites: undefined },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, race: null, feed: null, animals: undefined, villagers: undefined, sprites: undefined });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, heldCount: null, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, race: null, feed: null, animals: undefined, villagers: undefined, sprites: undefined });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -140,6 +140,21 @@ put16(0x71A84, 25); put16(0x71A88, 100);
 run();
 assert.equal(window.__hmStamina.read().water, 100, 'Mystrile can held, full');
 assert.equal($('.tool').querySelector('.name').textContent, 'Mystrile Can');
+// Held count: shown only when the item record's type byte (+2) is 2, as the game's menu does for seeds.
+put32(0x6C858, 0x8004B1A4);
+H[B + 0x4B1A4 + 34 * 40 + 2] = 2; H[B + 0x4B1A4 + 25 * 40 + 2] = 1;
+run();
+assert.equal($('.tool').querySelector('.name').textContent, 'Mystrile Can', 'a can shows no count');
+put16(0x71A84, 34); put16(0x71A88, 7);
+run();
+assert.equal($('.tool').querySelector('.name').textContent, 'Turnip Seeds ×7');
+put16(0x71A88, 0);
+run();
+assert.equal($('.tool').querySelector('.name').textContent, 'Turnip Seeds', 'no count when zero');
+put32(0x6C858, 0x12345678); put16(0x71A88, 7);
+run();
+assert.equal($('.tool').querySelector('.name').textContent, 'Turnip Seeds', 'bad table pointer shows no count');
+put32(0x6C858, 0); put16(0x71A84, 25); put16(0x71A88, 100);
 put16(0x71A84, 22); put16(0x71A88, 37);
 run();
 assert.equal(window.__hmStamina.read().water, 37, 'Copper can');
@@ -226,6 +241,11 @@ assert.equal($('.hearts').hidden, heartsBefore, 'the animals toggle does not fli
 assert.equal($('.animals').hidden, false);
 assert.equal(store['ps1-plugin-hm-animals-open'], '1');
 assert($('.animals').innerHTML.includes('<span><span class="kind">🐔</span>Cluck</span><div class="bar"><div class="fill" style="width:51%"></div></div><span class="num">130/255</span>'));
+put16(0x74302 + 0xB4 * 2 - 0x16, 0x10A);
+run();
+assert.equal(window.__hmStamina.read().animals[1].kind, 'Chick');
+assert($('.animals').innerHTML.includes('<span><span class="kind">🐣</span>Cluck</span>'), 'a chick gets its own emoji');
+put16(0x74302 + 0xB4 * 2 - 0x16, 0);
 assert($('.animals').innerHTML.includes('style="width:100%"></div></div><span class="num">255/255</span>'), 'full love fills the bar');
 assert($('.animals').innerHTML.includes('style="width:4%"></div></div><span class="num">10/255</span>'));
 $('.atoggle').fire('click');
@@ -243,8 +263,8 @@ run();
 let feedNow = JSON.parse(JSON.stringify(window.__hmStamina.read().feed));
 assert.deepEqual(feedNow, { boxes: 1, need: 1, rain: false, winter: false, hens: [
   { name: 'Amy', fed: false, inside: true, outside: false, graze: 0 }, { name: 'Peep', fed: true, inside: false, outside: true, graze: 5 }] });
-assert.equal($('.ftoggle').textContent, '▾ Feed 1/1 ✓');
-assert($('.ftoggle').classList.has('ok'));
+assert.equal($('.ftoggle').textContent, '▾ Hens (2)');
+assert(!$('.ftoggle').classList.has('short'));
 assert.equal($('.feed').hidden, true);
 $('.ftoggle').fire('click');
 assert.equal(store['ps1-plugin-hm-feed-open'], '1');
@@ -253,7 +273,7 @@ assert($('.feed').innerHTML.includes('<span>Amy</span><span class="where">In coo
 assert($('.feed').innerHTML.includes('<span>Peep</span><span class="where">Outside 5/5</span><span class="fed">✓ Fed</span>'));
 hen(5, 'Dot', 4, 0, 0); put16(0x7AD00, 1);
 run();
-assert.equal($('.ftoggle').textContent, '▴ Feed 1/2 · 1 short');
+assert.equal($('.ftoggle').textContent, '▴ Hide hens (3)');
 assert($('.ftoggle').classList.has('short'));
 assert($('.feed').innerHTML.includes('<span class="warn" title="Loses love outside in rain">🌧️ Rain</span>'));
 $('.ftoggle').fire('click');
