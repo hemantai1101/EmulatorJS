@@ -65,7 +65,7 @@ run();
 const s = window.__hmStamina.read();
 assert.equal(s.animals.length, 0, 'no named animals');
 assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined, villagers: undefined, sprites: undefined },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, race: null, animals: undefined, villagers: undefined, sprites: undefined });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, race: null, feed: null, animals: undefined, villagers: undefined, sprites: undefined });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -225,11 +225,43 @@ $('.atoggle').fire('click');
 assert.equal($('.hearts').hidden, heartsBefore, 'the animals toggle does not flip hearts');
 assert.equal($('.animals').hidden, false);
 assert.equal(store['ps1-plugin-hm-animals-open'], '1');
-assert($('.animals').innerHTML.includes('<span>Cluck <span class="kind">Chicken</span></span><div class="bar"><div class="fill" style="width:51%"></div></div><span class="num">130/255</span>'));
+assert($('.animals').innerHTML.includes('<span><span class="kind">🐔</span>Cluck</span><div class="bar"><div class="fill" style="width:51%"></div></div><span class="num">130/255</span>'));
 assert($('.animals').innerHTML.includes('style="width:100%"></div></div><span class="num">255/255</span>'), 'full love fills the bar');
 assert($('.animals').innerHTML.includes('style="width:4%"></div></div><span class="num">10/255</span>'));
 $('.atoggle').fire('click');
 assert.equal($('.animals').hidden, true);
+
+// Coop feed: one hen fed outside, one hungry hen in the coop, one full box; then a second hungry hen makes it 1 short.
+assert.equal(window.__hmStamina.read().feed, null, 'no hens, no feed line');
+assert.equal($('.ftoggle').hidden, true);
+const hen = (i, nm, where, flags, graze) => {
+  const at = 0x742EC + i * 0xB4;
+  put16(at, 0x109); name(at + 0x16, nm); put16(at + 0x30, where); H[B + at + 0x34] = flags; put16(at + 0xAC, graze);
+};
+hen(0, 'Amy', 4, 0x10, 0); hen(3, 'Peep', 1, 1, 7); H[B + 0x7130E + 2] = 1;
+run();
+let feedNow = JSON.parse(JSON.stringify(window.__hmStamina.read().feed));
+assert.deepEqual(feedNow, { boxes: 1, need: 1, rain: false, winter: false, hens: [
+  { name: 'Amy', fed: false, inside: true, outside: false, graze: 0 }, { name: 'Peep', fed: true, inside: false, outside: true, graze: 5 }] });
+assert.equal($('.ftoggle').textContent, '▾ Feed 1/1 ✓');
+assert($('.ftoggle').classList.has('ok'));
+assert.equal($('.feed').hidden, true);
+$('.ftoggle').fire('click');
+assert.equal(store['ps1-plugin-hm-feed-open'], '1');
+assert.equal($('.feed').hidden, false);
+assert($('.feed').innerHTML.includes('<span>Amy</span><span class="where">In coop</span><span class="hungry">Needs feed</span>'));
+assert($('.feed').innerHTML.includes('<span>Peep</span><span class="where">Outside 5/5</span><span class="fed">✓ Fed</span>'));
+hen(5, 'Dot', 4, 0, 0); put16(0x7AD00, 1);
+run();
+assert.equal($('.ftoggle').textContent, '▴ Feed 1/2 · 1 short');
+assert($('.ftoggle').classList.has('short'));
+assert($('.feed').innerHTML.includes('<span class="warn" title="Loses love outside in rain">🌧️ Rain</span>'));
+$('.ftoggle').fire('click');
+assert.equal($('.feed').hidden, true);
+for (const i of [0, 3, 5]) { put16(0x742EC + i * 0xB4, 0); put16(0x742EC + i * 0xB4 + 4, 0xFFFF); }
+H[B + 0x7130E + 2] = 0; put16(0x7AD00, 0);
+run();
+assert.equal($('.ftoggle').hidden, true);
 
 // Villagers: friendship is the u16 2 bytes before each villager's affection, out of 255; the girls are not listed.
 const friend = n => girl(n) - 2;
@@ -403,4 +435,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, shop hours, animal love, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, shop hours, animal love, coop feed, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');

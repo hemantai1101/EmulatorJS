@@ -158,6 +158,11 @@
         ['Chicken', Array.from({ length: 10 }, (_, i) => 0x74302 + i * 0xB4)],
         ['Barn', Array.from({ length: 20 }, (_, i) => 0x74A0A + i * 0xB8)]];
     const ANIMALS_KEY = 'ps1-plugin-hm-animals-open', LOVE_MAX = 255;
+    const ANIMAL_ICON = { Dog: '🐶', Horse: '🐴', Chicken: '🐔', Barn: '🐄' };
+    // Coop feed (game code 0x800E21E4): at the new day each unfed hen in the coop (place 4) empties the first full box of 10 at 0x8007130E.
+    // A hen outside (place 1) is fed after 5 outside ticks (+0xAC, code 0x800E20F0); rain (today 0x8007AD00 = 1) costs love instead, winter does nothing.
+    const COOP_BOXES = 0x7130E, HENS = Array.from({ length: 10 }, (_, i) => 0x742EC + i * 0xB4), HEN = 0x109, IN_COOP = 4, OUTSIDE = 1;
+    const GRAZE_DONE = 5, WEATHER_TODAY = 0x7AD00, RAIN = 1, WINTER = 3, FEED_KEY = 'ps1-plugin-hm-feed-open';
     const letter = c => c < 26 ? String.fromCharCode(c + 65) : c >= 32 && c < 58 ? String.fromCharCode(c + 65) : '?';
     const clock = h => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
     const isOpen = ([, from, to, closed, season], s) =>
@@ -197,6 +202,20 @@
             if (name) s.animals.push({ kind, name, love: H[B + at] });
         }
         s.season = u16(SEASON); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
+        s.feed = null;
+        const hens = [];
+        for (const at of HENS) {
+            if (u16(at) !== HEN) continue;
+            let name = '';
+            for (let i = 0; i < 8 && u16(at + 4 + i * 2) !== 0xFFFF; i++) name += letter(u16(at + 4 + i * 2));
+            const where = u16(at + 0x30);
+            hens.push({ name: name || 'Hen', fed: (H[B + at + 0x34] & 1) === 1, inside: where === IN_COOP, outside: where === OUTSIDE, graze: Math.min(u16(at + 0xAC), GRAZE_DONE) });
+        }
+        if (hens.length) {
+            let boxes = 0;
+            for (let i = 0; i < 10; i++) if (H[B + COOP_BOXES + i]) boxes++;
+            s.feed = { boxes, need: hens.filter(h => h.inside && !h.fed).length, rain: u16(WEATHER_TODAY) === RAIN, winter: s.season === WINTER, hens };
+        }
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
         s.basket = null;
         const kinds = BASKET_KINDS.map((_, i) => u16(BASKET + 2 + i * 2));
@@ -259,7 +278,7 @@
         .wait { font-weight: 400; color: #aab3bf; }
         .toggle { font-weight: 400; color: #aab3bf; font-size: 10px; }
         .ores { display: grid; grid-template-columns: 1fr auto; gap: 1px 6px; padding-left: 50px; font-weight: 400; font-size: 10px; color: #cfd6df; }
-        .box.wide { width: 190px; }
+        .box.wide { width: 230px; }
         .shops { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .shop { display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 5px; }
         .shop .dot { width: 7px; height: 7px; border-radius: 50%; background: #4b5563; }
@@ -269,8 +288,13 @@
         .animals { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .animal { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .animal .fill { background: #f472b6; }
-        .animal .kind { color: #8b95a3; font-weight: 400; }
+        .animal .kind { display: inline-block; width: 15px; font-weight: 400; }
         .animal > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ftoggle.ok { color: #4ade80; } .ftoggle.short { color: #f87171; }
+        .feed { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
+        .hen { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; }
+        .hen .where { color: #8b95a3; font-weight: 400; }
+        .hen .fed { color: #4ade80; } .hen .hungry { color: #f87171; } .hen .warn { color: #f59e0b; }
         .villagers { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .villager { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .villager .fill { background: #fbbf24; }
@@ -300,6 +324,8 @@
         <div class="toggle stoggle" hidden></div>
         <div class="shops" hidden>${SHOPS.map(([name], i) =>
             `<div class="shop sh-${i}"><span class="dot"></span><span>${name}</span><span class="when"></span></div>`).join('')}</div>
+        <div class="toggle ftoggle" title="Full coop feed boxes / hens in the coop that still need one tonight" hidden></div>
+        <div class="feed" hidden></div>
         <div class="toggle atoggle" hidden></div>
         <div class="animals" hidden></div>
         <div class="toggle vtoggle" hidden></div>
@@ -313,7 +339,7 @@
     </div>`;
     const $ = q => shadow.querySelector(q);
     const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems');
-    const more = $('.more');
+    const more = $('.more'), ftoggle = $('.ftoggle'), feed = $('.feed');
     let expanded = false;
     more.addEventListener('click', e => {
         e.stopPropagation();
@@ -367,6 +393,22 @@
         try { window.localStorage.setItem(ANIMALS_KEY, animalsOpen ? '1' : '0'); } catch {}
         show(last);
     }
+    let feedOpen = false;
+    try { feedOpen = window.localStorage.getItem(FEED_KEY) === '1'; } catch {}
+    ftoggle.addEventListener('click', e => {
+        e.stopPropagation();
+        feedOpen = !feedOpen;
+        try { window.localStorage.setItem(FEED_KEY, feedOpen ? '1' : '0'); } catch {}
+        show(last);
+    });
+    feed.addEventListener('click', e => e.stopPropagation());
+    function henHtml(h, f) {
+        const where = h.inside ? 'In coop' : h.outside ? 'Outside ' + h.graze + '/' + GRAZE_DONE : 'Away';
+        let state = h.fed ? '<span class="fed">✓ Fed</span>' : h.inside ? '<span class="hungry">Needs feed</span>' : '<span class="hungry">Not fed</span>';
+        if (h.outside && !h.fed && f.winter) state = '<span class="warn" title="No grass outside in winter">❄️ No grass</span>';
+        else if (h.outside && f.rain) state = '<span class="warn" title="Loses love outside in rain">🌧️ Rain</span>';
+        return `<div class="hen"><span>${h.name}</span><span class="where">${where}</span>${state}</div>`;
+    }
     let villagersOpen = false;
     try { villagersOpen = window.localStorage.getItem(VILLAGERS_KEY) === '1'; } catch {}
     function flipVillagers(e) {
@@ -412,7 +454,9 @@
         villagers.hidden = vtoggle.hidden || !villagersOpen;
         ptoggle.hidden = !s || !s.sprites.length;
         sprites.hidden = ptoggle.hidden || !spritesOpen;
-        box.classList.toggle('wide', !!s && (!!s.race || shopsOpen || animalsOpen && s.animals.length > 0 || !villagers.hidden || !sprites.hidden));
+        ftoggle.hidden = !s || !s.feed;
+        feed.hidden = ftoggle.hidden || !feedOpen;
+        box.classList.toggle('wide', !!s && (!!s.race || shopsOpen || animalsOpen && s.animals.length > 0 || !feed.hidden || !villagers.hidden || !sprites.hidden));
         floor.hidden = ores.hidden = !s || s.floor === null;
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
@@ -469,9 +513,19 @@
             row.querySelector('.when').textContent = clock(from) + '–' + clock(to);
             row.title = (closed.length ? 'Closed ' + closed.map(d => DAYS[d]).join(', ') : 'Open every day') + (season === undefined ? '' : ', summer only');
         });
+        if (s.feed) {
+            const f = s.feed, short = f.need - f.boxes;
+            ftoggle.textContent = (feedOpen ? '▴ ' : '▾ ') + 'Feed ' + f.boxes + '/' + f.need + (short > 0 ? ' · ' + short + ' short' : ' ✓');
+            ftoggle.classList.toggle('ok', short <= 0);
+            ftoggle.classList.toggle('short', short > 0);
+            if (feedOpen) {
+                const html = f.hens.map(h => henHtml(h, f)).join('');
+                if (feed.innerHTML !== html) feed.innerHTML = html;
+            }
+        }
         atoggle.textContent = (animalsOpen ? '▴ Hide animals' : '▾ Animals') + ' (' + s.animals.length + ')';
         if (animalsOpen) {
-            const html = s.animals.map(a => `<div class="animal" title="${a.kind}"><span>${a.name} <span class="kind">${a.kind}</span></span>`
+            const html = s.animals.map(a => `<div class="animal" title="${a.kind}"><span><span class="kind">${ANIMAL_ICON[a.kind] || '🐾'}</span>${a.name}</span>`
                 + `<div class="bar"><div class="fill" style="width:${Math.round(a.love / LOVE_MAX * 100)}%"></div></div>`
                 + `<span class="num">${a.love}/${LOVE_MAX}</span></div>`).join('');
             if (animals.innerHTML !== html) animals.innerHTML = html;
