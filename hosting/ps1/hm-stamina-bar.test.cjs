@@ -6,6 +6,7 @@ const vm = require('node:vm');
 function el() {
   const kids = {}, handlers = {};
   const e = {
+    setAttribute(k, v) { e[k] = v; },
     style: {}, dataset: {}, hidden: false, parentNode: null, textContent: '', title: '',
     classList: { set: new Set(), toggle(c, on) { on ? this.set.add(c) : this.set.delete(c); }, has(c) { return this.set.has(c); } },
     querySelector: q => (kids[q] ||= el()),
@@ -34,7 +35,7 @@ const ctx = {
   window,
   document: { body, createElement: () => host, fullscreenElement: null },
   setInterval: () => 1, clearInterval: () => {},
-  Date
+  Date, getComputedStyle: () => ({ display: 'none' })
 };
 window.EJS_emulator = { gameManager: { Module: { HEAPU8: H } } };
 const src = fs.readFileSync(__dirname + '/plugins/hm-stamina-bar.js', 'utf8');
@@ -46,6 +47,15 @@ assert.equal(host.parentNode, body, 'box attaches to the page');
 assert.equal($('.wait').hidden, false);
 assert.equal($('.st').hidden, true);
 assert.equal(window.__hmStamina.read(), null);
+
+$('.more').fire('click');
+assert($('.box').classList.has('expanded'));
+assert.equal($('.more').textContent, 'Close');
+assert.equal($('.more')['aria-expanded'], 'true');
+$('.more').fire('click');
+assert(!$('.box').classList.has('expanded'));
+assert.equal($('.more').textContent, 'More');
+assert.equal($('.more')['aria-expanded'], 'false');
 
 // Values from a live game: stamina 100 of 100, fatigue 18, hearts as read on 9 November 2026.
 sig.forEach((v, j) => { H[B + 0x80 + j] = v; });
@@ -225,22 +235,22 @@ assert.equal($('.animals').hidden, true);
 const friend = n => girl(n) - 2;
 const sprite = (k, text, v) => { const at = 0x7A638 + k * 0xF8; for (let i = 0; i < 9; i++) put16(at + 4 + i * 2, i < text.length ? text.charCodeAt(i) - 65 : 0xFFFF); put16(at + 0x16, v); };
 sprite(0, 'Chef', 50); sprite(6, 'Aqua', 70); sprite(3, 'Hoggy', 999);
-put16(friend(1), 69); put16(friend(6), 83); put16(friend(35), 255); put16(friend(24), 300);
+put16(friend(1), 69); put16(friend(6), 83); put16(friend(8), 169); put16(friend(35), 255); put16(friend(24), 300);
 run();
 const vs = JSON.parse(JSON.stringify(window.__hmStamina.read().villagers));
-assert.equal(vs.length, 25, 'an odd value over 255 is skipped');
-assert.deepEqual(vs.slice(0, 5), [{ name: 'Jeff', value: 69 }, { name: 'Sasha', value: 0 }, { name: 'Saibara', value: 0 }, { name: 'Gray', value: 0 }, { name: 'Doug', value: 83 }]);
+assert.equal(vs.length, 26, 'an odd value over 255 is skipped');
+assert.deepEqual(vs.slice(0, 6), [{ name: 'Jeff', value: 69 }, { name: 'Sasha', value: 0 }, { name: 'Saibara', value: 0 }, { name: 'Gray', value: 0 }, { name: 'Doug', value: 83 }, { name: 'Doctor', value: 169 }]);
 assert.deepEqual(vs.at(-1), { name: 'Won', value: 255 });
 assert(!vs.some(v => ['Karen', 'Ann', 'Elli', 'Mary', 'Popuri', 'Gotz'].includes(v.name)));
 assert.equal($('.vtoggle').hidden, false);
-assert.equal($('.vtoggle').textContent, '▾ Villagers (25)');
+assert.equal($('.vtoggle').textContent, '▾ Villagers (26)');
 assert.equal($('.villagers').hidden, true);
 heartsBefore = $('.hearts').hidden;
 $('.vtoggle').fire('click');
 assert.equal($('.hearts').hidden, heartsBefore, 'the villagers toggle does not flip hearts');
 assert.equal($('.villagers').hidden, false);
 assert.equal(store['ps1-plugin-hm-villagers-open'], '1');
-assert.equal($('.vtoggle').textContent, '▴ Hide villagers (25)');
+assert.equal($('.vtoggle').textContent, '▴ Hide villagers (26)');
 assert($('.box').classList.has('wide'));
 assert($('.villagers').innerHTML.startsWith('<div class="villager"><span>Jeff</span><div class="bar"><div class="fill" style="width:27%"></div></div><span class="num">69/255</span></div>'));
 assert($('.villagers').innerHTML.includes('<span>Won</span><div class="bar"><div class="fill" style="width:100%"></div></div><span class="num">255/255</span>'));
@@ -249,6 +259,7 @@ assert.equal($('.villagers').hidden, false, 'villagers choice survives a restart
 $('.vtoggle').fire('click');
 assert.equal($('.villagers').hidden, true);
 assert(!$('.box').classList.has('wide'));
+assert($('.villagers').innerHTML.includes('<span>Doctor</span><div class="bar"><div class="fill" style="width:66%"></div></div><span class="num">169/255</span>'), 'the Doctor is listed');
 assert(!$('.villagers').innerHTML.includes('Chef'), 'sprites are not in the villagers list');
 put16(friend(24), 0);
 
@@ -304,6 +315,13 @@ run();
 assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().basket)), { count: 8, value: 580, items: { Turnip: 3, Potato: 5 } });
 assert.equal($('.bk').hidden, false);
 assert.equal($('.bk').querySelector('.num').textContent, '8/30');
+assert.equal($('.bkitems').hidden, true, 'basket contents start hidden');
+$('.bk').fire('click');
+assert.equal($('.bkitems').hidden, false, 'tap shows contents');
+assert.equal($('.bk')['aria-expanded'], 'true');
+$('.bk').fire('click');
+assert.equal($('.bkitems').hidden, true, 'tap hides contents');
+assert.equal($('.bk')['aria-expanded'], 'false');
 assert.equal($('.bkitems').innerHTML, '<span>Turnip</span><span class="num">3</span><span>Potato</span><span class="num">5</span><span>Worth</span><span class="num">580G</span>');
 put16(0x712C0, 18); put16(0x712C2, 18); put16(0x712C4, 0); put16(0x712F4, 1080);
 run();
@@ -316,6 +334,22 @@ assert($('.bkitems').innerHTML.includes('<span>Milk</span><span class="num">5</s
 put16(0x712C0, 31);
 run();
 assert.equal(window.__hmStamina.read().basket, null, 'counts that do not add up are hidden');
+// The user's mine save of 10 November 2026: 2 items worth 30G with no kind counts.
+for (let i = 0; i < 27; i++) put16(0x712C0 + i * 2, 0);
+put16(0x712C0, 2); put16(0x712F4, 30);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().basket)), { count: 2, value: 30, items: { Other: 2 } });
+assert.equal($('.bkitems').innerHTML, '<span>Other</span><span class="num">2</span><span>Worth</span><span class="num">30G</span>');
+put16(0x712C0, 3); put16(0x712C2, 1);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().basket.items)), { Turnip: 1, Other: 2 });
+put16(0x712C0, 4); put16(0x712C2, 0); put16(0x712C2 + 22 * 2, 1); put16(0x712C2 + 24 * 2, 1);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().basket.items)), { 'Blue grass': 1, 'Green grass': 1, Other: 2 }, 'the last three kinds are the grasses');
+put16(0x712C2 + 22 * 2, 0); put16(0x712C2 + 24 * 2, 0);
+put16(0x712C0, 1); put16(0x712C2, 2);
+run();
+assert.equal(window.__hmStamina.read().basket, null, 'more sorted items than the count is hidden');
 for (let i = 0; i < 27; i++) put16(0x712C0 + i * 2, 0);
 
 // Horse race: the user's Spring 18 save (race 1 bet screen, odds 19 25 2 8 18 1 on screen).

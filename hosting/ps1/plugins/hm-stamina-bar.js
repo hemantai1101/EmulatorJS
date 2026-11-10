@@ -12,8 +12,9 @@
     const affection = n => 0x76224 + n * 0x1D4;
     // Other villagers' friendship is the u16 just before (0x80076222 + villager * 0x1D4); the game's add function at 0x8011FEE0 caps it at 255.
     // Names from a public cheat list (vcgamers.com); each address fits this layout and the list's girl entries match the game's table.
+    // Villager 8 is the Doctor: a gift to him raised it from 160 to 169 while the talk target 0x80071A22 was 8.
     const friendship = n => affection(n) - 2, FRIEND_MAX = 255;
-    const VILLAGERS = [[1, 'Jeff'], [2, 'Sasha'], [4, 'Saibara'], [5, 'Gray'], [6, 'Doug'], [10, 'Carter'], [11, 'Cliff'],
+    const VILLAGERS = [[1, 'Jeff'], [2, 'Sasha'], [4, 'Saibara'], [5, 'Gray'], [6, 'Doug'], [8, 'Doctor'], [10, 'Carter'], [11, 'Cliff'],
         [12, 'Basil'], [13, 'Anna'], [15, 'Barley'], [16, 'May'], [17, 'Thomas'], [18, 'Lillia'], [19, 'Rick'], [21, 'Duke'],
         [22, 'Manna'], [23, 'Ellen'], [24, 'Gotz'], [25, 'Kai'], [28, 'Harris'], [29, 'Kano'], [30, 'Gourmet'], [31, 'Louis'],
         [32, 'Greg'], [34, 'Stu'], [35, 'Won']];
@@ -135,9 +136,11 @@
     // Basket: u16 count at 0x800712C0, then 25 u16 counts by kind, then u32 sale value at 0x800712F4.
     // The add code at 0x800F3E44 stops at 30. Kinds come from 0x800F3C9C: items 0x41-0x4F are kinds 0-14 (crops, in seed order),
     // the rest group sizes and gold versions; their names follow item prices at 0x8006C858 + id * 40 + 0x12 matched to fan guides.
+    // Kinds 22-24 are items 0x5D-0x5F (item - 71 at 0x800F3D2C), named Blue, Red and Green Grass on a public CodeBreaker item list.
+    // Some items (such as mine finds) add to the count and value but to no kind; they show as Other.
     const BASKET = 0x712C0, BASKET_MAX = 30, BASKET_KINDS = ['Turnip', 'Potato', 'Cucumber', 'Strawberry', 'Cabbage', 'Tomato', 'Corn',
         'Onion', 'Pumpkin', 'Pineapple', 'Eggplant', 'Carrot', 'Sweet potato', 'Spinach', 'Green pepper', 'Egg', 'Mayonnaise', 'Wool',
-        'Milk', 'Cheese', 'Yarn', 'Fish', 'Other', 'Other', 'Other'];
+        'Milk', 'Cheese', 'Yarn', 'Fish', 'Blue grass', 'Red grass', 'Green grass'];
     const OPEN_KEY = 'ps1-plugin-hm-hearts-open', SHOPS_KEY = 'ps1-plugin-hm-shops-open';
     // Season (0 spring) at 0x80070CF2, weekday at 0x80070CF6 (0 is Sunday: the day-name code at 0x8001AAB8 indexes "Sun" first), hour at 0x80070CF8.
     const SEASON = 0x70CF2, WEEKDAY = 0x70CF6, HOUR = 0x70CF8, DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -197,9 +200,11 @@
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
         s.basket = null;
         const kinds = BASKET_KINDS.map((_, i) => u16(BASKET + 2 + i * 2));
-        if (u16(BASKET) > 0 && u16(BASKET) <= BASKET_MAX && kinds.reduce((a, b) => a + b) === u16(BASKET)) {
+        const sorted = kinds.reduce((a, b) => a + b);
+        if (u16(BASKET) > 0 && u16(BASKET) <= BASKET_MAX && sorted <= u16(BASKET)) {
             const items = {};
             kinds.forEach((n, i) => { if (n) items[BASKET_KINDS[i]] = (items[BASKET_KINDS[i]] || 0) + n; });
+            if (sorted < u16(BASKET)) items.Other = (items.Other || 0) + u16(BASKET) - sorted;
             s.basket = { count: u16(BASKET), value: u32(BASKET + 0x34), items };
         }
         s.race = null;
@@ -221,18 +226,30 @@
     }
 
     const host = document.createElement('div');
-    host.style.cssText = 'position:fixed;left:8px;top:8px;z-index:99999;pointer-events:none';
+    host.style.cssText = 'position:fixed;left:max(8px,env(safe-area-inset-left));top:max(8px,env(safe-area-inset-top));z-index:99999;pointer-events:none';
     const shadow = host.attachShadow({ mode: 'open' });
     shadow.innerHTML = `<style>
         [hidden] { display: none !important; }
         .box { width: 150px; padding: 6px 8px; background: rgba(12,15,20,.78); color: #eef2f7; border-radius: 8px;
                font: 600 11px/1.2 system-ui, sans-serif; display: grid; gap: 5px; pointer-events: auto; cursor: pointer;
                user-select: none; -webkit-user-select: none; }
+        .details { display: grid; gap: 5px; }
+        .more { display: none; }
+        @media (pointer: coarse), (max-width: 900px) {
+            .box { cursor: default; }
+            .box:not(.expanded) { width: 150px; padding: 4px 8px; gap: 3px; }
+            .box:not(.expanded) .details { display: none; }
+            .box.expanded { max-height: calc(100dvh - 32px - env(safe-area-inset-top)); overflow-y: auto; touch-action: pan-y; }
+            .more { display: block; justify-self: end; min-height: 0; padding: 1px 3px; position: sticky; top: 0; z-index: 1; border: 0;
+                    background: #10151b; color: #aab3bf; font: 400 10px/16px system-ui, sans-serif; text-decoration: underline; cursor: pointer; }
+        }
         .row { display: grid; grid-template-columns: 44px 1fr 40px; align-items: center; gap: 6px; }
         .bar { height: 8px; background: #2a313b; border-radius: 4px; overflow: hidden; }
         .fill { height: 100%; width: 0; border-radius: 4px; transition: width .2s; }
         .st .fill { background: #4ade80; } .st.low .fill { background: #f59e0b; } .st.empty .fill { background: #ef4444; }
         .fa .fill { background: #a78bfa; } .fa.tired .fill { background: #f59e0b; } .fa.high .fill { background: #ef4444; }
+        button.bk { width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+        .bk .label { font-size: 10px; }
         .bk .fill { background: #d6a35c; } .bk.full .fill { background: #ef4444; }
         .wa .fill { background: #38bdf8; } .wa.empty .fill { background: #ef4444; }
         .tool { display: grid; grid-template-columns: 44px 1fr; gap: 6px; }
@@ -253,6 +270,7 @@
         .animal { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .animal .fill { background: #f472b6; }
         .animal .kind { color: #8b95a3; font-weight: 400; }
+        .animal > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .villagers { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .villager { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .villager .fill { background: #fbbf24; }
@@ -269,12 +287,14 @@
         <div class="wait">Waiting for Harvest Moon</div>
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+        <button class="more" type="button" aria-expanded="false">More</button>
+        <div class="details">
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
         <div class="tool sky" hidden><span>Tmrw</span><span class="name icon"></span></div>
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
         <div class="ores" hidden></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
-        <div class="row bk" hidden><span>Basket</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+        <button class="row bk" type="button" aria-expanded="false" title="Show or hide basket contents" hidden><span class="label">Basket ▸</span><div class="bar"><div class="fill"></div></div><span class="num"></span></button>
         <div class="ores bkitems" hidden></div>
         <div class="race" hidden></div>
         <div class="toggle stoggle" hidden></div>
@@ -289,9 +309,19 @@
         <div class="toggle htoggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
+        </div>
     </div>`;
     const $ = q => shadow.querySelector(q);
     const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems');
+    const more = $('.more');
+    let expanded = false;
+    more.addEventListener('click', e => {
+        e.stopPropagation();
+        expanded = !expanded;
+        box.classList.toggle('expanded', expanded);
+        more.textContent = expanded ? 'Close' : 'More';
+        more.setAttribute('aria-expanded', String(expanded));
+    });
     race.addEventListener('click', e => e.stopPropagation());
     const raceCache = new Map();
     function raceHtml(r) {
@@ -309,6 +339,13 @@
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
     let last = null;
+    let basketOpen = false;
+    bk.addEventListener('click', e => {
+        e.stopPropagation();
+        basketOpen = !basketOpen;
+        show(last);
+    });
+    bkitems.addEventListener('click', e => e.stopPropagation());
     function flip() {
         open = !open;
         try { window.localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch {}
@@ -338,7 +375,7 @@
         try { window.localStorage.setItem(VILLAGERS_KEY, villagersOpen ? '1' : '0'); } catch {}
         show(last);
     }
-    box.addEventListener('click', flip);
+    box.addEventListener('click', () => { if (getComputedStyle(more).display === 'none') flip(); });
     let spritesOpen = false;
     try { spritesOpen = window.localStorage.getItem(SPRITES_KEY) === '1'; } catch {}
     function flipSprites(e) {
@@ -353,9 +390,10 @@
     villagers.addEventListener('click', e => e.stopPropagation());
     atoggle.addEventListener('click', flipAnimals);
     animals.addEventListener('click', e => e.stopPropagation());
+    toggle.addEventListener('click', e => { e.stopPropagation(); flip(); });
     stoggle.addEventListener('click', flipShops);
     shops.addEventListener('click', e => e.stopPropagation());
-    box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+    box.addEventListener('keydown', e => { if (e.target && e.target !== box) return; if (getComputedStyle(more).display !== 'none') return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
 
     function place() {
         const parent = document.fullscreenElement || document.webkitFullscreenElement || document.body;
@@ -379,7 +417,10 @@
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
         wa.hidden = !s || s.water === null;
-        bk.hidden = bkitems.hidden = !s || !s.basket;
+        bk.hidden = !s || !s.basket;
+        bkitems.hidden = bk.hidden || !basketOpen;
+        bk.setAttribute('aria-expanded', String(!bkitems.hidden));
+        bk.querySelector('.label').textContent = basketOpen ? 'Basket ▾' : 'Basket ▸';
         if (s?.basket) {
             bar(bk, s.basket.count, BASKET_MAX);
             bk.querySelector('.num').textContent = s.basket.count + '/' + BASKET_MAX;
