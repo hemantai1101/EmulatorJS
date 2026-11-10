@@ -39,6 +39,22 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00118-9bt`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. The Harvest Moon plugin adds a Basket line: count out of 30, what is inside, and its sale value. Script URLs are `plugins.js?v=20261110-hm-basket` and `plugins/hm-stamina-bar.js?v=20261110-basket`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build. The box was checked with fake RAM (the user's basket values) in the in-app browser.
+
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00117-d2q`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. The Harvest Moon plugin adds horse race tips: on Spring 18 or while the race code is loaded, it lists the current race's 6 horses with odds and a simulated win chance. Script URLs are `plugins.js?v=20261110-hm-horse-race` and `plugins/hm-stamina-bar.js?v=20261110-horse-race`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build. The box was checked with fake RAM (the user's Spring 18 horses) in the in-app browser; no race was run.
+
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00116-k4r`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. The Harvest Moon plugin's Harvest Sprites move out of the Villagers list into their own Sprites toggle, each bar in the sprite's colour. Script URLs are `plugins.js?v=20261110-hm-sprites-section` and `plugins/hm-stamina-bar.js?v=20261110-sprites-section`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. The box was checked with fake RAM in the in-app browser; no game was played.
+
+## Previous direct deployment
+
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00115-wz7`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. The Harvest Moon plugin's Villagers list now also shows the 7 Harvest Sprites' friendship, each bar in the sprite's own colour. Script URLs are `plugins.js?v=20261110-hm-sprites` and `plugins/hm-stamina-bar.js?v=20261110-sprites`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. The box was checked with fake RAM in the in-app browser; no game was played.
+
+## Previous direct deployment
+
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00114-gc4`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. It adds a Villagers toggle to the Harvest Moon plugin listing 26 villagers' friendship out of 255. Script URLs are `plugins.js?v=20261110-hm-villagers` and `plugins/hm-stamina-bar.js?v=20261110-villagers`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. The box was checked with fake RAM in the in-app browser; no game was played.
+
+## Previous direct deployment
+
 On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00112-qgr`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. The Harvest Moon plugin's Water line now shows for upgraded watering cans (items 21-25). Script URLs are `plugins.js?v=20261110-hm-all-cans` and `plugins/hm-stamina-bar.js?v=20261110-all-cans`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. No game was played to check it.
 
 ## Previous direct deployment

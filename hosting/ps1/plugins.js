@@ -14,8 +14,8 @@
       id: 'hm-stamina-bar',
       name: 'Harvest Moon stamina and hearts',
       src: 'plugins/hm-stamina-bar.js',
-      v: '20261110-all-cans',
-      note: 'Shows stamina, fatigue, the held tool, the mine floor and item odds, tomorrow\'s weather, shop hours, animal love and watering can water for Harvest Moon: Back to Nature (US). Tap the box for the girls\' hearts.',
+      v: '20261110-basket',
+      note: 'Shows stamina, fatigue, the held tool, the mine floor and item odds, basket contents, tomorrow\'s weather, horse race tips, shop hours, animal love and watering can water for Harvest Moon: Back to Nature (US). Tap the box for the girls\' hearts.',
       stop: () => root.__hmStamina?.stop()
     }
   ];

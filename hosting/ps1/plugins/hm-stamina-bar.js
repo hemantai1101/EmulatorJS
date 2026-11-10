@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, shop hours, animal love, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, shop hours, animal love, villager and sprite friendship, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -10,6 +10,20 @@
     // Affection is u16 at 0x80076224 + villager * 0x1D4; the girls' villager numbers come from the table at 0x80055988.
     const GIRLS = [['Karen', 3], ['Ann', 7], ['Elli', 9], ['Mary', 14], ['Popuri', 20]];
     const affection = n => 0x76224 + n * 0x1D4;
+    // Other villagers' friendship is the u16 just before (0x80076222 + villager * 0x1D4); the game's add function at 0x8011FEE0 caps it at 255.
+    // Names from a public cheat list (vcgamers.com); each address fits this layout and the list's girl entries match the game's table.
+    const friendship = n => affection(n) - 2, FRIEND_MAX = 255;
+    const VILLAGERS = [[1, 'Jeff'], [2, 'Sasha'], [4, 'Saibara'], [5, 'Gray'], [6, 'Doug'], [10, 'Carter'], [11, 'Cliff'],
+        [12, 'Basil'], [13, 'Anna'], [15, 'Barley'], [16, 'May'], [17, 'Thomas'], [18, 'Lillia'], [19, 'Rick'], [21, 'Duke'],
+        [22, 'Manna'], [23, 'Ellen'], [24, 'Gotz'], [25, 'Kai'], [28, 'Harris'], [29, 'Kano'], [30, 'Gourmet'], [31, 'Louis'],
+        [32, 'Greg'], [34, 'Stu'], [35, 'Won']];
+    const VILLAGERS_KEY = 'ps1-plugin-hm-villagers-open';
+    // Harvest Sprites: 7 records of 0xF8 bytes from 0x8007A638 (cleared and looped over by code at 0x8010C6A0 and 0x8010C95C).
+    // Each holds its name at +4 (u16 letters, 0xFFFF ends) and friendship at +0x16, kept within 0-255 by code at 0x8010CC78.
+    const SPRITES = Array.from({ length: 7 }, (_, k) => 0x7A638 + k * 0xF8);
+    // Each sprite's outfit colour, from fan guides.
+    const SPRITES_KEY = 'ps1-plugin-hm-sprites-open';
+    const SPRITE_COLOURS = { Chef: '#ef4444', Nappy: '#fb923c', Hoggy: '#facc15', Timid: '#22c55e', Aqua: '#38bdf8', Staid: '#6366f1', Bold: '#a855f7' };
     // Heart level steps from the game's code at 0x80022F1C. Colour names follow fan guides.
     const HEARTS = [
         [5000, 'Black', '#1b1b1b'], [20000, 'Purple', '#a855f7'], [30000, 'Blue', '#3b82f6'], [40000, 'Green', '#22c55e'],
@@ -65,6 +79,65 @@
     // 0 sunny and 1 rain were seen in saves; 2-4 come from a public cheat list.
     const WEATHER_TOMORROW = 0x7AD02, WEATHER = ['Sunny', 'Rain', 'Snow', 'Typhoon', 'Blizzard'];
     const WEATHER_ICON = { Sunny: '☀️', Rain: '🌧️', Snow: '❄️', Typhoon: '🌀', Blizzard: '🌨️' };
+    // Horse race: 3 races of 6 horses, 0xE bytes each from 0x8007AD4E (race * 0x54): u16 id, speed, whip, style, push, odds.
+    // Code at 0x8002206C rolls them at a new game and on race day. The current race is u16 at 0x8007AD4C (3: you ride, in row 2).
+    const RACE = 0x7AD4C, HORSES = 0x7AD4E, DAY = 0x70CF4;
+    // Names by id, from the race code's table at 0x800BB534 and the text at 0x800556A8 (one letter of id 29 is unknown).
+    const HORSE_NAMES = ['HoneyB', 'BeeBop', 'Nova', 'ShyBoy', 'Sadie', 'Apache', 'HotPot', 'Pesto', 'Bubba', 'Regent', 'Junior',
+        'Mango', 'Donut', 'Roper', 'MayDay', 'Wonder', 'Blacky', 'Matty', 'Adios', 'Maniac', 'Flower', 'Rocket', 'Kaya', 'Tangle',
+        'Chewy', 'Galaxy', 'RockOn', 'Elvis', 'ChaCha', '?UMom', 'Maple', 'Diva', 'Digger', 'Lava', 'Sultan', 'Fuji', 'Catnip',
+        'Dandy', 'Mojo', 'Koko'];
+    // While the race code is loaded, 0x800B7E20 holds 7 then 0x800B7EB8. Betting runs in town code, so race day (Spring 18) also counts.
+    const RACE_CODE = 0xB7E20, RACE_DAY = [0, 17], SIM_RUNS = 1000;
+    // Chance per row (push, normal, hold back) and column (stamina >170, >100, else; whip >80 or not) that a horse does NOT whip, out of 127.
+    const NO_WHIP = [[0, 80, 60, 90, 115, 100], [30, 100, 90, 110, 120, 110], [125, 127, 125, 127, 127, 120]];
+    // Replays the race code (0x800B8898 each frame, decisions every 6th frame) many times and counts wins per lane.
+    function raceOdds(horses, runs = SIM_RUNS) {
+        let seed = 1;
+        const rand = n => { seed = (Math.imul(seed, 0x41C64E6D) + 0x3039) >>> 0; return ((seed >>> 16) * n) >>> 16; };
+        const chance = x => rand(100) < Math.trunc(x * 100 / 127);
+        // Every frame starts each horse at its base pace (0x800B9C48); a whip only lifts the pace of its own frame.
+        const n = horses.length, base = horses.map(h => 128 + Math.trunc(512 * h.speed / 25500));
+        const step = base.map(b => Math.trunc(b * 4096 / 30)), wins = horses.map(() => 0);
+        const stamina = new Int32Array(n), pos = new Int32Array(n), whip = new Uint8Array(n), pace = new Int32Array(n);
+        for (let run = 0; run < runs; run++) {
+            stamina.fill(255); pos.fill(-0x20000); whip.fill(0);
+            let leader = 0, winner = -1;
+            for (let frame = 1; winner < 0 && frame < 5000; frame++) {
+                for (let i = 0; i < n; i++) pace[i] = base[i];
+                if (frame % 6 === 0) {
+                    for (let i = 0; i < n; i++) if (stamina[i] < 255) stamina[i] += 5;
+                    const late = pos[leader] >= 0x400000;
+                    for (let i = 0; i < n; i++) {
+                        if (whip[i]) { whip[i] = 0; continue; }
+                        const h = horses[i];
+                        let mood = (late ? chance(h.style + 1) : chance(127 - h.style)) ? 1 : 2, boxed = false;
+                        for (let j = 0; j < n; j++) if (j !== i && pos[j] - pos[i] >= 0 && pos[j] - pos[i] <= 0x59FFF) boxed = true;
+                        if (boxed && chance(h.push + 1)) mood--;
+                        const col = (stamina[i] > 170 ? 0 : stamina[i] > 100 ? 2 : 4) + (h.whipPower > 80 ? 0 : 1);
+                        whip[i] = NO_WHIP[mood][col] < rand(127) ? 1 : 0;
+                    }
+                    for (let i = 0; i < n; i++) {
+                        if (whip[i] && stamina[i] >= 40) { stamina[i] -= 40; pace[i] += Math.trunc(pace[i] * (horses[i].whipPower + 150) / 255); }
+                        pace[i] = Math.max(base[i], pace[i] - Math.trunc((pace[i] - base[i]) * 255 / ((stamina[i] + 1) * 18)));
+                    }
+                }
+                for (let i = 0; i < n; i++) {
+                    pos[i] += pace[i] === base[i] ? step[i] : Math.trunc(pace[i] * 4096 / 30);
+                    if (winner < 0 && pos[i] > 0x7FFFFF) winner = i;
+                }
+                for (let i = 0; i < n; i++) if (pos[i] > pos[leader]) leader = i;
+            }
+            if (winner >= 0) wins[winner]++;
+        }
+        return wins.map(w => Math.round(w / runs * 1000) / 10);
+    }
+    // Basket: u16 count at 0x800712C0, then 25 u16 counts by kind, then u32 sale value at 0x800712F4.
+    // The add code at 0x800F3E44 stops at 30. Kinds come from 0x800F3C9C: items 0x41-0x4F are kinds 0-14 (crops, in seed order),
+    // the rest group sizes and gold versions; their names follow item prices at 0x8006C858 + id * 40 + 0x12 matched to fan guides.
+    const BASKET = 0x712C0, BASKET_MAX = 30, BASKET_KINDS = ['Turnip', 'Potato', 'Cucumber', 'Strawberry', 'Cabbage', 'Tomato', 'Corn',
+        'Onion', 'Pumpkin', 'Pineapple', 'Eggplant', 'Carrot', 'Sweet potato', 'Spinach', 'Green pepper', 'Egg', 'Mayonnaise', 'Wool',
+        'Milk', 'Cheese', 'Yarn', 'Fish', 'Other', 'Other', 'Other'];
     const OPEN_KEY = 'ps1-plugin-hm-hearts-open', SHOPS_KEY = 'ps1-plugin-hm-shops-open';
     // Season (0 spring) at 0x80070CF2, weekday at 0x80070CF6 (0 is Sunday: the day-name code at 0x8001AAB8 indexes "Sun" first), hour at 0x80070CF8.
     const SEASON = 0x70CF2, WEEKDAY = 0x70CF6, HOUR = 0x70CF8, DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -102,6 +175,13 @@
         const ok = s.max >= 1 && s.max <= 999 && s.stamina <= 999 && s.fatigue <= 999;
         if (!ok) return null;
         s.hearts = Object.fromEntries(GIRLS.map(([name, n]) => [name, u16(affection(n))]));
+        s.villagers = VILLAGERS.map(([n, name]) => ({ name, value: u16(friendship(n)) })).filter(v => v.value <= FRIEND_MAX);
+        s.sprites = [];
+        for (const at of SPRITES) {
+            let name = '', i = 0;
+            for (; i < 9 && u16(at + 4 + i * 2) !== 0xFFFF; i++) name += letter(u16(at + 4 + i * 2));
+            if (name && i < 9 && u16(at + 0x16) <= FRIEND_MAX) s.sprites.push({ name, value: u16(at + 0x16) });
+        }
         s.held = u16(HELD);
         const ptr = u32(PLACE_PTR) - 0x80000000;
         s.place = ptr >= 0 && ptr < 0x200000 ? u16(ptr) : null;
@@ -115,6 +195,24 @@
         }
         s.season = u16(SEASON); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
+        s.basket = null;
+        const kinds = BASKET_KINDS.map((_, i) => u16(BASKET + 2 + i * 2));
+        if (u16(BASKET) > 0 && u16(BASKET) <= BASKET_MAX && kinds.reduce((a, b) => a + b) === u16(BASKET)) {
+            const items = {};
+            kinds.forEach((n, i) => { if (n) items[BASKET_KINDS[i]] = (items[BASKET_KINDS[i]] || 0) + n; });
+            s.basket = { count: u16(BASKET), value: u32(BASKET + 0x34), items };
+        }
+        s.race = null;
+        const raceCode = u32(RACE_CODE) === 7 && u32(RACE_CODE + 4) === 0x800B7EB8;
+        if ((raceCode || s.season === RACE_DAY[0] && u16(DAY) === RACE_DAY[1]) && u16(RACE) <= 3) {
+            const at = HORSES + Math.min(u16(RACE), 2) * 0x54;
+            const horses = Array.from({ length: 6 }, (_, i) => {
+                const o = at + i * 0xE, id = u16(o);
+                return { id, name: id === 0xFFFF ? 'You' : HORSE_NAMES[id], speed: u16(o + 2), whipPower: u16(o + 4), style: u16(o + 6), push: u16(o + 8), odds: u16(o + 10) };
+            });
+            if (horses.every(h => h.id === 0xFFFF || h.name && h.speed <= 255 && h.whipPower <= 255 && h.style <= 127 && h.push <= 127))
+                s.race = { number: Math.min(u16(RACE), 2) + 1, ride: u16(RACE) === 3, horses };
+        }
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
             if (CANS.includes(u16(slot)) && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
@@ -135,6 +233,7 @@
         .fill { height: 100%; width: 0; border-radius: 4px; transition: width .2s; }
         .st .fill { background: #4ade80; } .st.low .fill { background: #f59e0b; } .st.empty .fill { background: #ef4444; }
         .fa .fill { background: #a78bfa; } .fa.tired .fill { background: #f59e0b; } .fa.high .fill { background: #ef4444; }
+        .bk .fill { background: #d6a35c; } .bk.full .fill { background: #ef4444; }
         .wa .fill { background: #38bdf8; } .wa.empty .fill { background: #ef4444; }
         .tool { display: grid; grid-template-columns: 44px 1fr; gap: 6px; }
         .tool .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -154,6 +253,14 @@
         .animal { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .animal .fill { background: #f472b6; }
         .animal .kind { color: #8b95a3; font-weight: 400; }
+        .villagers { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
+        .villager { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
+        .villager .fill { background: #fbbf24; }
+        .race { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
+        .race .title { font-size: 11px; }
+        .horse { display: grid; grid-template-columns: 10px 1fr 34px 38px; align-items: center; gap: 5px; color: #8b95a3; }
+        .horse.best { color: #4ade80; }
+        .horse .odds { font-weight: 400; }
         .hearts { display: grid; gap: 3px; border-top: 1px solid #2f3742; padding-top: 5px; }
         .girl { display: grid; grid-template-columns: 44px 14px 1fr; align-items: center; gap: 6px; }
         .heart { font-size: 13px; line-height: 1; text-shadow: 0 0 1px #fff, 0 0 1px #fff; }
@@ -167,17 +274,37 @@
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
         <div class="ores" hidden></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+        <div class="row bk" hidden><span>Basket</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+        <div class="ores bkitems" hidden></div>
+        <div class="race" hidden></div>
         <div class="toggle stoggle" hidden></div>
         <div class="shops" hidden>${SHOPS.map(([name], i) =>
             `<div class="shop sh-${i}"><span class="dot"></span><span>${name}</span><span class="when"></span></div>`).join('')}</div>
         <div class="toggle atoggle" hidden></div>
         <div class="animals" hidden></div>
+        <div class="toggle vtoggle" hidden></div>
+        <div class="villagers" hidden></div>
+        <div class="toggle ptoggle" hidden></div>
+        <div class="villagers sprites" hidden></div>
         <div class="toggle htoggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems');
+    race.addEventListener('click', e => e.stopPropagation());
+    const raceCache = new Map();
+    function raceHtml(r) {
+        const key = JSON.stringify(r);
+        if (!raceCache.has(key)) {
+            const odds = r.ride ? null : raceOdds(r.horses);
+            const best = odds && odds.indexOf(Math.max(...odds));
+            raceCache.set(key, `<div class="title">🏇 Race ${r.number} · ${r.ride ? 'you ride, no tip' : 'likely ' + r.horses[best].name}</div>`
+                + r.horses.map((h, i) => `<div class="horse${i === best ? ' best' : ''}"><span>${i + 1}</span><span>${h.name}</span>`
+                + `<span class="num odds">×${h.odds}</span><span class="num">${odds ? odds[i] + '%' : ''}</span></div>`).join(''));
+        }
+        return raceCache.get(key);
+    }
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -203,7 +330,27 @@
         try { window.localStorage.setItem(ANIMALS_KEY, animalsOpen ? '1' : '0'); } catch {}
         show(last);
     }
+    let villagersOpen = false;
+    try { villagersOpen = window.localStorage.getItem(VILLAGERS_KEY) === '1'; } catch {}
+    function flipVillagers(e) {
+        e.stopPropagation();
+        villagersOpen = !villagersOpen;
+        try { window.localStorage.setItem(VILLAGERS_KEY, villagersOpen ? '1' : '0'); } catch {}
+        show(last);
+    }
     box.addEventListener('click', flip);
+    let spritesOpen = false;
+    try { spritesOpen = window.localStorage.getItem(SPRITES_KEY) === '1'; } catch {}
+    function flipSprites(e) {
+        e.stopPropagation();
+        spritesOpen = !spritesOpen;
+        try { window.localStorage.setItem(SPRITES_KEY, spritesOpen ? '1' : '0'); } catch {}
+        show(last);
+    }
+    vtoggle.addEventListener('click', flipVillagers);
+    ptoggle.addEventListener('click', flipSprites);
+    sprites.addEventListener('click', e => e.stopPropagation());
+    villagers.addEventListener('click', e => e.stopPropagation());
     atoggle.addEventListener('click', flipAnimals);
     animals.addEventListener('click', e => e.stopPropagation());
     stoggle.addEventListener('click', flipShops);
@@ -223,11 +370,29 @@
         shops.hidden = !s || !shopsOpen;
         atoggle.hidden = !s || !s.animals.length;
         animals.hidden = atoggle.hidden || !animalsOpen;
-        box.classList.toggle('wide', !!s && (shopsOpen || animalsOpen && s.animals.length > 0));
+        vtoggle.hidden = !s || !s.villagers.length;
+        villagers.hidden = vtoggle.hidden || !villagersOpen;
+        ptoggle.hidden = !s || !s.sprites.length;
+        sprites.hidden = ptoggle.hidden || !spritesOpen;
+        box.classList.toggle('wide', !!s && (!!s.race || shopsOpen || animalsOpen && s.animals.length > 0 || !villagers.hidden || !sprites.hidden));
         floor.hidden = ores.hidden = !s || s.floor === null;
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
         wa.hidden = !s || s.water === null;
+        bk.hidden = bkitems.hidden = !s || !s.basket;
+        if (s?.basket) {
+            bar(bk, s.basket.count, BASKET_MAX);
+            bk.querySelector('.num').textContent = s.basket.count + '/' + BASKET_MAX;
+            bk.classList.toggle('full', s.basket.count >= BASKET_MAX);
+            const html = Object.entries(s.basket.items).map(([name, n]) => `<span>${name}</span><span class="num">${n}</span>`).join('')
+                + `<span>Worth</span><span class="num">${s.basket.value.toLocaleString('en-US')}G</span>`;
+            if (bkitems.innerHTML !== html) bkitems.innerHTML = html;
+        }
+        race.hidden = !s || !s.race;
+        if (s?.race) {
+            const html = raceHtml(s.race);
+            if (race.innerHTML !== html) race.innerHTML = html;
+        }
         if (!s) return;
         bar(st, s.stamina, s.max);
         st.querySelector('.num').textContent = s.stamina + '/' + s.max;
@@ -270,6 +435,19 @@
                 + `<span class="num">${a.love}/${LOVE_MAX}</span></div>`).join('');
             if (animals.innerHTML !== html) animals.innerHTML = html;
         }
+        vtoggle.textContent = (villagersOpen ? '▴ Hide villagers' : '▾ Villagers') + ' (' + s.villagers.length + ')';
+        const friends = (list, colour) => list.map(v => `<div class="villager"><span>${v.name}</span>`
+            + `<div class="bar"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${colour?.[v.name] ? ';background:' + colour[v.name] : ''}"></div></div>`
+            + `<span class="num">${v.value.toLocaleString('en-US')}/${FRIEND_MAX}</span></div>`).join('');
+        if (villagersOpen) {
+            const html = friends(s.villagers);
+            if (villagers.innerHTML !== html) villagers.innerHTML = html;
+        }
+        ptoggle.textContent = (spritesOpen ? '▴ Hide sprites' : '▾ Sprites') + ' (' + s.sprites.length + ')';
+        if (spritesOpen) {
+            const html = friends(s.sprites, SPRITE_COLOURS);
+            if (sprites.innerHTML !== html) sprites.innerHTML = html;
+        }
         toggle.textContent = open ? '▴ Hide hearts' : '▾ Hearts';
         if (!open) return;
         for (const [name] of GIRLS) {
@@ -302,6 +480,7 @@
         heart: v => heartOf(v)[1],
         toolName,
         mineOdds,
+        raceOdds,
         isOpen: (name, s) => isOpen(SHOPS.find(x => x[0] === name), s)
     };
 })();

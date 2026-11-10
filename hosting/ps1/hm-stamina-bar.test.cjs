@@ -54,8 +54,8 @@ put16(girl(3), 2000); put16(girl(7), 2200); put16(girl(9), 2700); put16(girl(14)
 run();
 const s = window.__hmStamina.read();
 assert.equal(s.animals.length, 0, 'no named animals');
-assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, animals: undefined });
+assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined, villagers: undefined, sprites: undefined },
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, race: null, animals: undefined, villagers: undefined, sprites: undefined });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -221,6 +221,59 @@ assert($('.animals').innerHTML.includes('style="width:4%"></div></div><span clas
 $('.atoggle').fire('click');
 assert.equal($('.animals').hidden, true);
 
+// Villagers: friendship is the u16 2 bytes before each villager's affection, out of 255; the girls are not listed.
+const friend = n => girl(n) - 2;
+const sprite = (k, text, v) => { const at = 0x7A638 + k * 0xF8; for (let i = 0; i < 9; i++) put16(at + 4 + i * 2, i < text.length ? text.charCodeAt(i) - 65 : 0xFFFF); put16(at + 0x16, v); };
+sprite(0, 'Chef', 50); sprite(6, 'Aqua', 70); sprite(3, 'Hoggy', 999);
+put16(friend(1), 69); put16(friend(6), 83); put16(friend(35), 255); put16(friend(24), 300);
+run();
+const vs = JSON.parse(JSON.stringify(window.__hmStamina.read().villagers));
+assert.equal(vs.length, 25, 'an odd value over 255 is skipped');
+assert.deepEqual(vs.slice(0, 5), [{ name: 'Jeff', value: 69 }, { name: 'Sasha', value: 0 }, { name: 'Saibara', value: 0 }, { name: 'Gray', value: 0 }, { name: 'Doug', value: 83 }]);
+assert.deepEqual(vs.at(-1), { name: 'Won', value: 255 });
+assert(!vs.some(v => ['Karen', 'Ann', 'Elli', 'Mary', 'Popuri', 'Gotz'].includes(v.name)));
+assert.equal($('.vtoggle').hidden, false);
+assert.equal($('.vtoggle').textContent, '▾ Villagers (25)');
+assert.equal($('.villagers').hidden, true);
+heartsBefore = $('.hearts').hidden;
+$('.vtoggle').fire('click');
+assert.equal($('.hearts').hidden, heartsBefore, 'the villagers toggle does not flip hearts');
+assert.equal($('.villagers').hidden, false);
+assert.equal(store['ps1-plugin-hm-villagers-open'], '1');
+assert.equal($('.vtoggle').textContent, '▴ Hide villagers (25)');
+assert($('.box').classList.has('wide'));
+assert($('.villagers').innerHTML.startsWith('<div class="villager"><span>Jeff</span><div class="bar"><div class="fill" style="width:27%"></div></div><span class="num">69/255</span></div>'));
+assert($('.villagers').innerHTML.includes('<span>Won</span><div class="bar"><div class="fill" style="width:100%"></div></div><span class="num">255/255</span>'));
+run();
+assert.equal($('.villagers').hidden, false, 'villagers choice survives a restart');
+$('.vtoggle').fire('click');
+assert.equal($('.villagers').hidden, true);
+assert(!$('.box').classList.has('wide'));
+assert(!$('.villagers').innerHTML.includes('Chef'), 'sprites are not in the villagers list');
+put16(friend(24), 0);
+
+// Sprites: 7 records of 0xF8 from 0x7A638, name at +4, friendship at +0x16; slots without a name end or over 255 are skipped.
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().sprites)), [{ name: 'Chef', value: 50 }, { name: 'Aqua', value: 70 }]);
+assert.equal($('.ptoggle').hidden, false);
+assert.equal($('.ptoggle').textContent, '▾ Sprites (2)');
+assert.equal($('.sprites').hidden, true);
+heartsBefore = $('.hearts').hidden;
+const villagersBefore = $('.villagers').hidden;
+$('.ptoggle').fire('click');
+assert.equal($('.hearts').hidden, heartsBefore, 'the sprites toggle does not flip hearts');
+assert.equal($('.villagers').hidden, villagersBefore, 'the sprites toggle does not open villagers');
+assert.equal($('.sprites').hidden, false);
+assert.equal(store['ps1-plugin-hm-sprites-open'], '1');
+assert.equal($('.ptoggle').textContent, '▴ Hide sprites (2)');
+assert($('.box').classList.has('wide'));
+assert.equal($('.sprites').innerHTML, '<div class="villager"><span>Chef</span><div class="bar"><div class="fill" style="width:20%;background:#ef4444"></div></div><span class="num">50/255</span></div>'
+  + '<div class="villager"><span>Aqua</span><div class="bar"><div class="fill" style="width:27%;background:#38bdf8"></div></div><span class="num">70/255</span></div>', 'each sprite has its own colour');
+run();
+assert.equal($('.sprites').hidden, false, 'sprites choice survives a restart');
+$('.ptoggle').fire('click');
+assert.equal($('.sprites').hidden, true);
+assert(!$('.box').classList.has('wide'));
+
 // Heart colours follow the game's steps: 5000, 20000, 30000, 40000, 50000, 60000.
 const heart = window.__hmStamina.heart;
 assert.deepEqual([0, 4999, 5000, 19999, 20000, 29999, 30000, 39999, 40000, 49999, 50000, 59999, 60000, 65535].map(heart),
@@ -244,6 +297,65 @@ assert($('.fa').classList.has('high'));
 assert(!$('.fa').classList.has('tired'));
 assert.equal($('.st').querySelector('.fill').style.width, '20%');
 
+// Basket: the user's saves of 10 November 2026 (3 turnips and 5 potatoes worth 580G, then 18 turnips worth 1,080G).
+assert.equal($('.bk').hidden, true, 'empty basket is hidden');
+put16(0x712C0, 8); put16(0x712C2, 3); put16(0x712C4, 5); put16(0x712F4, 580);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().basket)), { count: 8, value: 580, items: { Turnip: 3, Potato: 5 } });
+assert.equal($('.bk').hidden, false);
+assert.equal($('.bk').querySelector('.num').textContent, '8/30');
+assert.equal($('.bkitems').innerHTML, '<span>Turnip</span><span class="num">3</span><span>Potato</span><span class="num">5</span><span>Worth</span><span class="num">580G</span>');
+put16(0x712C0, 18); put16(0x712C2, 18); put16(0x712C4, 0); put16(0x712F4, 1080);
+run();
+assert.equal($('.bkitems').innerHTML, '<span>Turnip</span><span class="num">18</span><span>Worth</span><span class="num">1,080G</span>');
+assert(!$('.bk').classList.has('full'));
+put16(0x712C0, 30); put16(0x712C2, 25); put16(0x712C2 + 18 * 2, 5);
+run();
+assert($('.bk').classList.has('full'), 'full basket turns red');
+assert($('.bkitems').innerHTML.includes('<span>Milk</span><span class="num">5</span>'));
+put16(0x712C0, 31);
+run();
+assert.equal(window.__hmStamina.read().basket, null, 'counts that do not add up are hidden');
+for (let i = 0; i < 27; i++) put16(0x712C0 + i * 2, 0);
+
+// Horse race: the user's Spring 18 save (race 1 bet screen, odds 19 25 2 8 18 1 on screen).
+const RACE_ROWS = [[[35, 58, 74, 0, 127, 19], [1, 44, 140, 64, 0, 25], [18, 171, 132, 64, 127, 2], [23, 121, 10, 96, 64, 8], [33, 59, 121, 127, 96, 18], [14, 190, 107, 32, 0, 1]],
+  [[34, 46, 175, 64, 64, 21], [27, 18, 130, 96, 127, 30], [39, 170, 170, 127, 127, 1], [36, 116, 203, 32, 32, 8], [29, 78, 88, 32, 96, 13], [7, 182, 168, 64, 96, 1]],
+  [[17, 51, 148, 0, 127, 18], [24, 77, 167, 0, 32, 12], [8, 108, 32, 0, 64, 7], [11, 115, 220, 96, 96, 7], [4, 76, 11, 0, 127, 12], [5, 181, 22, 64, 64, 3]]];
+RACE_ROWS.forEach((row, k) => row.forEach((h, i) => h.forEach((v, j) => put16(0x7AD4E + k * 0x54 + i * 0xE + j * 2, v))));
+run();
+assert.equal(window.__hmStamina.read().race, null, 'no race tips on other days');
+assert.equal($('.race').hidden, true);
+put16(0x70CF2, 0); put16(0x70CF4, 17); put16(0x7AD4C, 0);
+run();
+let race = window.__hmStamina.read().race;
+assert.deepEqual([...race.horses.map(h => h.name)], ['Fuji', 'BeeBop', 'Adios', 'Tangle', 'Lava', 'MayDay']);
+assert.deepEqual([...race.horses.map(h => h.odds)], [19, 25, 2, 8, 18, 1]);
+assert.equal($('.race').hidden, false);
+assert($('.race').innerHTML.includes('Race 1 · likely Adios'), 'race 1 tip');
+assert($('.race').innerHTML.includes('<div class="horse best"><span>3</span><span>Adios</span>'));
+const winOdds = window.__hmStamina.raceOdds(race.horses);
+assert(Math.abs(winOdds.reduce((a, b) => a + b) - 100) < 1, 'win chances add up to 100');
+assert.deepEqual([...window.__hmStamina.raceOdds(race.horses)], [...winOdds], 'same numbers every time');
+put16(0x7AD4C, 2);
+run();
+assert($('.race').innerHTML.includes('Race 3 · likely Mango'), 'race 3 tip');
+put16(0x7AD4C, 3); put16(0x7AD4E + 2 * 0x54 + 2 * 0xE, 0xFFFF);
+run();
+assert($('.race').innerHTML.includes('you ride, no tip'));
+assert($('.race').innerHTML.includes('<span>You</span>'));
+// The race code being loaded also counts, on any day.
+put16(0x70CF4, 3); put16(0x7AD4C, 1);
+run();
+assert.equal(window.__hmStamina.read().race, null);
+const put32r = (o, v) => { put16(o, v & 0xffff); put16(o + 2, v >>> 16); };
+put32r(0xB7E20, 7); put32r(0xB7E24, 0x800B7EB8);
+run();
+assert.equal(window.__hmStamina.read().race.number, 2);
+put32r(0xB7E20, 6); put16(0x70CF4, 0); put16(0x7AD4C, 0);
+run();
+assert.equal($('.race').hidden, true);
+
 // Values out of range (another game) are not shown.
 put16(0x71A14, 0);
 run();
@@ -257,4 +369,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, shop hours, animal love, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, shop hours, animal love, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
