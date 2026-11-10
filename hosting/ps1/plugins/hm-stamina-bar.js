@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, shop hours, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, shop hours, animal love, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -74,6 +74,14 @@
         ['Poultry Farm', 12, 16, [0]], ['Yodel Ranch', 9, 15, [1]], ['Clinic', 9, 16, [3]],
         ['Inn', 8, 21, []], ['Won', 13, 16, []], ['Winery', 9, 12, [6]], ['Kai', 10, 17, [1], 1]
     ];
+    // Animal love is a byte; the name field is 9 u16 letters 18 bytes before it, padded with 0xFFFF (an empty slot starts with 0xFFFF).
+    // Addresses from a public CodeBreaker list: chickens from 0x80074302 every 0xB4, barn animals from 0x80074A0A every 0xB8,
+    // dog 0x800759FA, horse 0x80075AEA. Love tops out at 255.
+    const ANIMALS = [['Dog', [0x759FA]], ['Horse', [0x75AEA]],
+        ['Chicken', Array.from({ length: 10 }, (_, i) => 0x74302 + i * 0xB4)],
+        ['Barn', Array.from({ length: 20 }, (_, i) => 0x74A0A + i * 0xB8)]];
+    const ANIMALS_KEY = 'ps1-plugin-hm-animals-open', LOVE_MAX = 255;
+    const letter = c => c < 26 ? String.fromCharCode(c + 65) : c >= 32 && c < 58 ? String.fromCharCode(c + 65) : '?';
     const clock = h => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
     const isOpen = ([, from, to, closed, season], s) =>
         s.hour >= from && s.hour < to && !closed.includes(s.weekday) && (season === undefined || season === s.season);
@@ -97,6 +105,13 @@
         const ptr = u32(PLACE_PTR) - 0x80000000;
         s.place = ptr >= 0 && ptr < 0x200000 ? u16(ptr) : null;
         s.floor = MINES.includes(s.place) && u16(MINE_FLOOR) <= 9 ? u16(MINE_FLOOR) + 1 : null;
+        s.animals = [];
+        for (const [kind, spots] of ANIMALS) for (const at of spots) {
+            let name = '';
+            if (u16(at - 2) !== 0xFFFF) continue;
+            for (let i = 0; i < 8 && u16(at - 18 + i * 2) !== 0xFFFF; i++) name += letter(u16(at - 18 + i * 2));
+            if (name) s.animals.push({ kind, name, love: H[B + at] });
+        }
         s.season = u16(SEASON); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
         s.water = null;
@@ -134,6 +149,10 @@
         .shop.open .dot { background: #4ade80; }
         .shop:not(.open) { color: #8b95a3; }
         .shop .when { font-weight: 400; font-variant-numeric: tabular-nums; }
+        .animals { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
+        .animal { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
+        .animal .fill { background: #f472b6; }
+        .animal .kind { color: #8b95a3; font-weight: 400; }
         .hearts { display: grid; gap: 3px; border-top: 1px solid #2f3742; padding-top: 5px; }
         .girl { display: grid; grid-template-columns: 44px 14px 1fr; align-items: center; gap: 6px; }
         .heart { font-size: 13px; line-height: 1; text-shadow: 0 0 1px #fff, 0 0 1px #fff; }
@@ -150,12 +169,14 @@
         <div class="toggle stoggle" hidden></div>
         <div class="shops" hidden>${SHOPS.map(([name], i) =>
             `<div class="shop sh-${i}"><span class="dot"></span><span>${name}</span><span class="when"></span></div>`).join('')}</div>
+        <div class="toggle atoggle" hidden></div>
+        <div class="animals" hidden></div>
         <div class="toggle htoggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), hearts = $('.hearts');
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -173,7 +194,17 @@
         try { window.localStorage.setItem(SHOPS_KEY, shopsOpen ? '1' : '0'); } catch {}
         show(last);
     }
+    let animalsOpen = false;
+    try { animalsOpen = window.localStorage.getItem(ANIMALS_KEY) === '1'; } catch {}
+    function flipAnimals(e) {
+        e.stopPropagation();
+        animalsOpen = !animalsOpen;
+        try { window.localStorage.setItem(ANIMALS_KEY, animalsOpen ? '1' : '0'); } catch {}
+        show(last);
+    }
     box.addEventListener('click', flip);
+    atoggle.addEventListener('click', flipAnimals);
+    animals.addEventListener('click', e => e.stopPropagation());
     stoggle.addEventListener('click', flipShops);
     shops.addEventListener('click', e => e.stopPropagation());
     box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
@@ -189,7 +220,9 @@
         last = s;
         wait.hidden = !!s; st.hidden = fa.hidden = tool.hidden = toggle.hidden = stoggle.hidden = !s;
         shops.hidden = !s || !shopsOpen;
-        box.classList.toggle('wide', !!s && shopsOpen);
+        atoggle.hidden = !s || !s.animals.length;
+        animals.hidden = atoggle.hidden || !animalsOpen;
+        box.classList.toggle('wide', !!s && (shopsOpen || animalsOpen && s.animals.length > 0));
         floor.hidden = ores.hidden = !s || s.floor === null;
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
@@ -229,6 +262,13 @@
             row.querySelector('.when').textContent = clock(from) + '–' + clock(to);
             row.title = (closed.length ? 'Closed ' + closed.map(d => DAYS[d]).join(', ') : 'Open every day') + (season === undefined ? '' : ', summer only');
         });
+        atoggle.textContent = (animalsOpen ? '▴ Hide animals' : '▾ Animals') + ' (' + s.animals.length + ')';
+        if (animalsOpen) {
+            const html = s.animals.map(a => `<div class="animal" title="${a.kind}"><span>${a.name} <span class="kind">${a.kind}</span></span>`
+                + `<div class="bar"><div class="fill" style="width:${Math.round(a.love / LOVE_MAX * 100)}%"></div></div>`
+                + `<span class="num">${a.love}/${LOVE_MAX}</span></div>`).join('');
+            if (animals.innerHTML !== html) animals.innerHTML = html;
+        }
         toggle.textContent = open ? '▴ Hide hearts' : '▾ Hearts';
         if (!open) return;
         for (const [name] of GIRLS) {

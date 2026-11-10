@@ -53,8 +53,9 @@ put16(0x71A12, 100); put16(0x71A14, 100); put16(0x71A16, 18);
 put16(girl(3), 2000); put16(girl(7), 2200); put16(girl(9), 2700); put16(girl(14), 0); put16(girl(20), 2200);
 run();
 const s = window.__hmStamina.read();
-assert.deepEqual({ ...s, hearts: { ...s.hearts } },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null });
+assert.equal(s.animals.length, 0, 'no named animals');
+assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined },
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, animals: undefined });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -187,6 +188,31 @@ assert.equal($('.shops').hidden, true);
 assert(!$('.box').classList.has('wide'));
 put16(0x70CF6, 0); put16(0x70CF8, 0);
 
+// Animals: a slot shows when its name (18 bytes before the love byte) does not start with 0xFFFF.
+const name = (at, text) => { [...text].forEach((c, i) => put16(at - 18 + i * 2, c.charCodeAt(0) - 65)); for (let i = text.length; i < 9; i++) put16(at - 18 + i * 2, 0xFFFF); };
+assert.equal($('.atoggle').hidden, true, 'no animals, no toggle');
+name(0x759FA, 'Bin'); H[B + 0x759FA] = 10;
+name(0x74302 + 0xB4 * 2, 'Cluck'); H[B + 0x74302 + 0xB4 * 2] = 130;
+name(0x74A0A + 0xB8 * 19, 'Moo'); H[B + 0x74A0A + 0xB8 * 19] = 255;
+for (let i = 0; i < 9; i++) put16(0x75AEA - 18 + i * 2, 0xFFFF);
+H[B + 0x75AEA] = 99;
+run();
+const animals = JSON.parse(JSON.stringify(window.__hmStamina.read().animals));
+assert.deepEqual(animals, [{ kind: 'Dog', name: 'Bin', love: 10 }, { kind: 'Chicken', name: 'Cluck', love: 130 }, { kind: 'Barn', name: 'Moo', love: 255 }],
+  'empty horse slot is skipped');
+assert.equal($('.atoggle').textContent, '▾ Animals (3)');
+assert.equal($('.animals').hidden, true);
+heartsBefore = $('.hearts').hidden;
+$('.atoggle').fire('click');
+assert.equal($('.hearts').hidden, heartsBefore, 'the animals toggle does not flip hearts');
+assert.equal($('.animals').hidden, false);
+assert.equal(store['ps1-plugin-hm-animals-open'], '1');
+assert($('.animals').innerHTML.includes('<span>Cluck <span class="kind">Chicken</span></span><div class="bar"><div class="fill" style="width:51%"></div></div><span class="num">130/255</span>'));
+assert($('.animals').innerHTML.includes('style="width:100%"></div></div><span class="num">255/255</span>'), 'full love fills the bar');
+assert($('.animals').innerHTML.includes('style="width:4%"></div></div><span class="num">10/255</span>'));
+$('.atoggle').fire('click');
+assert.equal($('.animals').hidden, true);
+
 // Heart colours follow the game's steps: 5000, 20000, 30000, 40000, 50000, 60000.
 const heart = window.__hmStamina.heart;
 assert.deepEqual([0, 4999, 5000, 19999, 20000, 29999, 30000, 39999, 40000, 49999, 50000, 59999, 60000, 65535].map(heart),
@@ -223,4 +249,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, shop hours, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, shop hours, animal love, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
