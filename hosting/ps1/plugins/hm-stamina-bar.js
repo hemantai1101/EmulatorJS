@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, shop hours, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -64,7 +64,19 @@
     // 0 sunny and 1 rain were seen in saves; 2-4 come from a public cheat list.
     const WEATHER_TOMORROW = 0x7AD02, WEATHER = ['Sunny', 'Rain', 'Snow', 'Typhoon', 'Blizzard'];
     const WEATHER_ICON = { Sunny: '☀️', Rain: '🌧️', Snow: '❄️', Typhoon: '🌀', Blizzard: '🌨️' };
-    const OPEN_KEY = 'ps1-plugin-hm-hearts-open';
+    const OPEN_KEY = 'ps1-plugin-hm-hearts-open', SHOPS_KEY = 'ps1-plugin-hm-shops-open';
+    // Season (0 spring) at 0x80070CF2, weekday at 0x80070CF6 (0 is Sunday: the day-name code at 0x8001AAB8 indexes "Sun" first), hour at 0x80070CF8.
+    const SEASON = 0x70CF2, WEEKDAY = 0x70CF6, HOUR = 0x70CF8, DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    // Shop hours from fan guides, not the game's code: [name, opens, closes, closed weekdays, only in season].
+    // Festivals and storms can also close shops; the plugin does not know about those.
+    const SHOPS = [
+        ['Supermarket', 9, 18, [0, 2]], ['Blacksmith', 10, 16, [4]], ['Carpenter', 11, 17, [0]],
+        ['Poultry Farm', 12, 16, [0]], ['Yodel Ranch', 9, 15, [1]], ['Clinic', 9, 16, [3]],
+        ['Inn', 8, 21, []], ['Won', 13, 16, []], ['Winery', 9, 12, [6]], ['Kai', 10, 17, [1], 1]
+    ];
+    const clock = h => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
+    const isOpen = ([, from, to, closed, season], s) =>
+        s.hour >= from && s.hour < to && !closed.includes(s.weekday) && (season === undefined || season === s.season);
     // BIOS exception handler at 0x80, used to find where PS1 RAM sits in the emulator heap.
     const SIG = [0x00, 0x00, 0x1a, 0x3c, 0x80, 0x0c, 0x5a, 0x27, 0x08, 0x00, 0x40, 0x03];
 
@@ -85,6 +97,7 @@
         const ptr = u32(PLACE_PTR) - 0x80000000;
         s.place = ptr >= 0 && ptr < 0x200000 ? u16(ptr) : null;
         s.floor = MINES.includes(s.place) && u16(MINE_FLOOR) <= 9 ? u16(MINE_FLOOR) + 1 : null;
+        s.season = u16(SEASON); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
@@ -114,11 +127,18 @@
         .wait { font-weight: 400; color: #aab3bf; }
         .toggle { font-weight: 400; color: #aab3bf; font-size: 10px; }
         .ores { display: grid; grid-template-columns: 1fr auto; gap: 1px 6px; padding-left: 50px; font-weight: 400; font-size: 10px; color: #cfd6df; }
+        .box.wide { width: 190px; }
+        .shops { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
+        .shop { display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 5px; }
+        .shop .dot { width: 7px; height: 7px; border-radius: 50%; background: #4b5563; }
+        .shop.open .dot { background: #4ade80; }
+        .shop:not(.open) { color: #8b95a3; }
+        .shop .when { font-weight: 400; font-variant-numeric: tabular-nums; }
         .hearts { display: grid; gap: 3px; border-top: 1px solid #2f3742; padding-top: 5px; }
         .girl { display: grid; grid-template-columns: 44px 14px 1fr; align-items: center; gap: 6px; }
         .heart { font-size: 13px; line-height: 1; text-shadow: 0 0 1px #fff, 0 0 1px #fff; }
     </style>
-    <div class="box" role="button" tabindex="0" title="Show or hide hearts">
+    <div class="box" role="button" tabindex="0" title="Tap for hearts">
         <div class="wait">Waiting for Harvest Moon</div>
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
@@ -127,12 +147,15 @@
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
         <div class="ores" hidden></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
-        <div class="toggle" hidden></div>
+        <div class="toggle stoggle" hidden></div>
+        <div class="shops" hidden>${SHOPS.map(([name], i) =>
+            `<div class="shop sh-${i}"><span class="dot"></span><span>${name}</span><span class="when"></span></div>`).join('')}</div>
+        <div class="toggle htoggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), hearts = $('.hearts');
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -142,7 +165,17 @@
         try { window.localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch {}
         show(last);
     }
+    let shopsOpen = false;
+    try { shopsOpen = window.localStorage.getItem(SHOPS_KEY) === '1'; } catch {}
+    function flipShops(e) {
+        e.stopPropagation();
+        shopsOpen = !shopsOpen;
+        try { window.localStorage.setItem(SHOPS_KEY, shopsOpen ? '1' : '0'); } catch {}
+        show(last);
+    }
     box.addEventListener('click', flip);
+    stoggle.addEventListener('click', flipShops);
+    shops.addEventListener('click', e => e.stopPropagation());
     box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
 
     function place() {
@@ -154,7 +187,9 @@
     }
     function show(s) {
         last = s;
-        wait.hidden = !!s; st.hidden = fa.hidden = tool.hidden = toggle.hidden = !s;
+        wait.hidden = !!s; st.hidden = fa.hidden = tool.hidden = toggle.hidden = stoggle.hidden = !s;
+        shops.hidden = !s || !shopsOpen;
+        box.classList.toggle('wide', !!s && shopsOpen);
         floor.hidden = ores.hidden = !s || s.floor === null;
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
@@ -187,6 +222,13 @@
             wa.querySelector('.num').textContent = s.water + '/' + CAN_MAX;
             wa.classList.toggle('empty', s.water === 0);
         }
+        stoggle.textContent = (shopsOpen ? '▴ Hide shops' : '▾ Shops') + ' · ' + DAYS[s.weekday] + ' ' + clock(s.hour);
+        if (shopsOpen) SHOPS.forEach((shop, i) => {
+            const [, from, to, closed, season] = shop, row = shops.querySelector('.sh-' + i);
+            row.classList.toggle('open', isOpen(shop, s));
+            row.querySelector('.when').textContent = clock(from) + '–' + clock(to);
+            row.title = (closed.length ? 'Closed ' + closed.map(d => DAYS[d]).join(', ') : 'Open every day') + (season === undefined ? '' : ', summer only');
+        });
         toggle.textContent = open ? '▴ Hide hearts' : '▾ Hearts';
         if (!open) return;
         for (const [name] of GIRLS) {
@@ -218,6 +260,7 @@
         read: () => { const H = heap(); return H && B !== null ? read(H, B) : null; },
         heart: v => heartOf(v)[1],
         toolName,
-        mineOdds
+        mineOdds,
+        isOpen: (name, s) => isOpen(SHOPS.find(x => x[0] === name), s)
     };
 })();

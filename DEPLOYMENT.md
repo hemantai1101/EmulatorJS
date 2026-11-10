@@ -39,6 +39,10 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00107-mtk`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. It adds a Shops toggle to the Harvest Moon plugin listing shop hours with an open-now dot. Script URLs are `plugins.js?v=20261110-hm-shops` and `plugins/hm-stamina-bar.js?v=20261110-shops`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. The box was checked with fake RAM in the in-app browser; no game was played.
+
+## Previous direct deployment
+
 On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00105-jch`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. It adds each mine floor's item odds under the Harvest Moon plugin's Mine line. Script URLs are `plugins.js?v=20261110-hm-ore-odds` and `plugins/hm-stamina-bar.js?v=20261110-ore-odds`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. No game was played to check it.
 
 ## Previous direct deployment

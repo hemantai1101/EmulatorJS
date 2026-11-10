@@ -11,7 +11,7 @@ function el() {
     querySelector: q => (kids[q] ||= el()),
     appendChild(c) { c.parentNode = e; },
     addEventListener(t, f) { handlers[t] = f; },
-    fire(t, ev = {}) { handlers[t]?.({ preventDefault() {}, ...ev }); },
+    fire(t, ev = {}) { handlers[t]?.({ preventDefault() {}, stopPropagation() {}, ...ev }); },
     remove() { e.removed = true; e.parentNode = null; }
   };
   return e;
@@ -54,7 +54,7 @@ put16(girl(3), 2000); put16(girl(7), 2200); put16(girl(9), 2700); put16(girl(14)
 run();
 const s = window.__hmStamina.read();
 assert.deepEqual({ ...s, hearts: { ...s.hearts } },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, tomorrow: 'Sunny', water: null });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -142,7 +142,7 @@ assert.equal($('.fa').querySelector('.num').textContent, '18/100');
 
 // Hearts start closed; a tap opens them and the choice is kept.
 assert.equal($('.hearts').hidden, true);
-assert.equal($('.toggle').textContent, '▾ Hearts');
+assert.equal($('.htoggle').textContent, '▾ Hearts');
 $('.box').fire('click');
 assert.equal($('.hearts').hidden, false);
 assert.equal(store['ps1-plugin-hm-hearts-open'], '1');
@@ -155,6 +155,37 @@ assert.equal($('.hearts').hidden, false, 'open choice survives a restart');
 $('.box').fire('keydown', { key: 'Enter' });
 assert.equal($('.hearts').hidden, true, 'Enter closes the hearts');
 $('.box').fire('click');
+
+// Shops: closed until tapped; open shops get a green dot from the weekday and hour.
+const shopRow = i => $('.shops').querySelector('.sh-' + i);
+assert.equal($('.shops').hidden, true);
+put16(0x70CF6, 1); put16(0x70CF8, 10);
+run();
+assert.equal($('.stoggle').textContent, '▾ Shops · Mon 10a');
+let heartsBefore = $('.hearts').hidden;
+$('.stoggle').fire('click');
+assert.equal($('.shops').hidden, false);
+assert.equal($('.hearts').hidden, heartsBefore, 'the shops toggle does not flip hearts');
+assert.equal(store['ps1-plugin-hm-shops-open'], '1');
+assert($('.box').classList.has('wide'));
+assert(shopRow(0).classList.has('open'), 'Supermarket open Monday 10 AM');
+assert(!shopRow(4).classList.has('open'), 'Yodel Ranch closed on Monday');
+assert.equal(shopRow(0).querySelector('.when').textContent, '9a–6p');
+assert.equal(shopRow(0).title, 'Closed Sun, Tue');
+assert.equal(shopRow(9).title, 'Closed Mon, summer only');
+const open = (name, season, weekday, hour) => window.__hmStamina.isOpen(name, { season, weekday, hour });
+assert.equal(open('Supermarket', 0, 2, 10), false, 'closed Tuesday');
+assert.equal(open('Supermarket', 0, 3, 17), true);
+assert.equal(open('Supermarket', 0, 3, 18), false, 'shut at closing hour');
+assert.equal(open('Kai', 0, 3, 12), false, 'Kai only in summer');
+assert.equal(open('Kai', 1, 3, 12), true);
+assert.equal(open('Inn', 3, 0, 20), true);
+run();
+assert.equal($('.shops').hidden, false, 'shops choice survives a restart');
+$('.stoggle').fire('click');
+assert.equal($('.shops').hidden, true);
+assert(!$('.box').classList.has('wide'));
+put16(0x70CF6, 0); put16(0x70CF8, 0);
 
 // Heart colours follow the game's steps: 5000, 20000, 30000, 40000, 50000, 60000.
 const heart = window.__hmStamina.heart;
@@ -192,4 +223,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, shop hours, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
