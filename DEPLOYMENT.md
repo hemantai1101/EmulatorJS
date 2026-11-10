@@ -39,6 +39,10 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00112-qgr`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. The Harvest Moon plugin's Water line now shows for upgraded watering cans (items 21-25). Script URLs are `plugins.js?v=20261110-hm-all-cans` and `plugins/hm-stamina-bar.js?v=20261110-all-cans`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. No game was played to check it.
+
+## Previous direct deployment
+
 On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00110-2q5`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. The Harvest Moon plugin's Animals list now shows love as a bar with `love/255` (replaces `ps1-player-00109-564`, which showed heart counts). Script URLs are `plugins.js?v=20261110-hm-animal-bars` and `plugins/hm-stamina-bar.js?v=20261110-animal-bars`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. The box was checked with fake RAM in the in-app browser; no game was played.
 
 ## Previous direct deployment

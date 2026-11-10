@@ -126,6 +126,14 @@ put16(0x70EC2 + 6 * 23, 21); put16(0x70EC2 + 6 * 23 + 4, 40); put16(0x70EC2 + 6 
 run();
 assert.equal(window.__hmStamina.read().water, 40, 'can in the last of 24 tool slots');
 put16(0x70EC2 + 6 * 23, 0);
+put16(0x71A84, 25); put16(0x71A88, 100);
+run();
+assert.equal(window.__hmStamina.read().water, 100, 'Mystrile can held, full');
+assert.equal($('.tool').querySelector('.name').textContent, 'Mystrile Can');
+put16(0x71A84, 22); put16(0x71A88, 37);
+run();
+assert.equal(window.__hmStamina.read().water, 37, 'Copper can');
+put16(0x71A84, 0); put16(0x71A88, 0);
 put16(0x70EC2 + 6 * 3, 0);
 run();
 assert.equal(window.__hmStamina.read().water, null, 'can put away');

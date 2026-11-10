@@ -17,8 +17,9 @@
     ];
     const heartOf = v => HEARTS.find(h => v < h[0]);
     // Items are 6-byte slots: u16 id, then u16 value at +4. The held item is at 0x80071A84; the 24 tool slots start at 0x80070EC2.
-    // The basic watering can is item 21; its value is the water left, 100 when full (from the user's saves).
-    const HELD = 0x71A84, TOOL_SLOTS = 0x70EC2, TOOL_SLOT_COUNT = 24, CAN = 21, CAN_MAX = 100;
+    // Watering cans are items 21-25 (basic to Mystrile); the value is the water left, 100 when full
+    // (seen for the basic and Mystrile cans in the user's saves).
+    const HELD = 0x71A84, TOOL_SLOTS = 0x70EC2, TOOL_SLOT_COUNT = 24, CANS = [21, 22, 23, 24, 25], CAN_MAX = 100;
     // Tool item numbers 1-57, from a public GameShark item list; they match the tools seen in the user's saves.
     const TOOLS = [, 'Sickle', 'Copper Sickle', 'Silver Sickle', 'Golden Sickle', 'Mystrile Sickle',
         'Hoe', 'Copper Hoe', 'Silver Hoe', 'Golden Hoe', 'Mystrile Hoe',
@@ -116,7 +117,7 @@
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
-            if (u16(slot) === CAN && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
+            if (CANS.includes(u16(slot)) && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
         }
         return s;
     }
