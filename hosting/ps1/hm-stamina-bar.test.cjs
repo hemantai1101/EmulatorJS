@@ -6,7 +6,7 @@ const vm = require('node:vm');
 function el() {
   const kids = {}, handlers = {};
   const e = {
-    style: {}, hidden: false, parentNode: null, textContent: '', title: '',
+    style: {}, dataset: {}, hidden: false, parentNode: null, textContent: '', title: '',
     classList: { set: new Set(), toggle(c, on) { on ? this.set.add(c) : this.set.delete(c); }, has(c) { return this.set.has(c); } },
     querySelector: q => (kids[q] ||= el()),
     appendChild(c) { c.parentNode = e; },
@@ -81,6 +81,16 @@ run();
 assert.equal(window.__hmStamina.read().floor, 2);
 assert.equal($('.floor').hidden, false);
 assert.equal($('.floor').querySelector('.name').textContent, 'Floor 2');
+assert.equal($('.ores').hidden, false, 'item odds show in the mine');
+assert.equal($('.ores').innerHTML, '<span>Nothing</span><span class="num">40%</span><span>Coin</span><span class="num">25%</span>'
+  + '<span>Junk Ore</span><span class="num">20%</span><span>Copper</span><span class="num">10%</span><span>Silver</span><span class="num">5%</span>');
+const odds = (place, floor) => JSON.parse(JSON.stringify(window.__hmStamina.mineOdds(place, floor)));
+assert.deepEqual(odds(67, 1), [['Nothing', 40], ['Coin', 30], ['Junk Ore', 20], ['Copper', 10]]);
+assert.deepEqual(odds(55, 9), [['Orichalcum', 25], ['Adamantite', 25], ['Rare item*', 50]]);
+assert.deepEqual(odds(55, 10), [['Nothing', 100]], 'a running total over 100 never reaches later slots');
+for (const place of [55, 67]) for (let f = 1; f <= 10; f++) {
+  assert.equal(odds(place, f).reduce((t, [, c]) => t + c, 0), 100, `odds add to 100 at ${place} floor ${f}`);
+}
 put16(0x9F78C, 55);
 run();
 assert.equal(window.__hmStamina.read().floor, 2, '55 is a mine too');
@@ -91,6 +101,7 @@ put16(0x12D110, 1); put16(0x9F78C, 19);
 run();
 assert.equal(window.__hmStamina.read().floor, null, 'other places hide the floor');
 assert.equal($('.floor').hidden, true);
+assert.equal($('.ores').hidden, true);
 put32(0xA0378, 0x12345678);
 run();
 assert.equal(window.__hmStamina.read().place, null, 'a bad pointer is ignored');
@@ -181,4 +192,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');

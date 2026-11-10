@@ -39,6 +39,10 @@ The script accepts `PS1_PROJECT`, defaulting to `heman-dev`. Region, service nam
 
 ## Latest direct deployment
 
+On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00105-jch`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. It adds each mine floor's item odds under the Harvest Moon plugin's Mine line. Script URLs are `plugins.js?v=20261110-hm-ore-odds` and `plugins/hm-stamina-bar.js?v=20261110-ore-odds`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. No game was played to check it.
+
+## Previous direct deployment
+
 On **10 November 2026 (Hong Kong)**, `make deploy` made ready revision `ps1-player-00103-rcc`, serving 100% of traffic. It deployed the working checkout directly, without a GitHub commit. It adds a Tmrw line to the Harvest Moon plugin showing tomorrow's weather as an emoji (u16 at `0x8007AD02`). It replaces `ps1-player-00102-h2k`, which showed the weather as text. Script URLs are `plugins.js?v=20261110-hm-weather-icon` and `plugins/hm-stamina-bar.js?v=20261110-weather-icon`. `make check` passed. Live index, `plugins.js` and the plugin file matched the build, and both isolation headers were set. No game was played to check it.
 
 ## Previous direct deployment

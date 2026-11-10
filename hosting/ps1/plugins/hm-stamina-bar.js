@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -34,6 +34,32 @@
     // The place number is a u16 behind the pointer at 0x800A0378. The hoe digs mine tiles only at places 55 and 67
     // (code at 0x800C64DC). The mine keeps its current floor, 0-based, at 0x8012D110.
     const PLACE_PTR = 0xA0378, MINES = [55, 67], MINE_FLOOR = 0x12D110;
+    // Item odds for a dug tile that is not stairs, from 0x80113A20: one rand(100) roll walks 8 slots of percents.
+    // Tables copied from 0x80127FE8 (place 67) and 0x80128088 (place 55), one row per floor; items from 0x80128128 and 0x80128138.
+    // Item names from a public CodeBreaker item list; 99 is not on it. Starred items are given once.
+    const MINE_ITEMS = {
+        67: [0, 102, 312, 124, 123, 122, 96, 103],
+        55: [0, 312, 102, 96, 97, 98, 103, 99]
+    };
+    const MINE_ODDS = {
+        67: [[40, 30, 20, 10, 0, 0, 0, 0], [40, 25, 20, 10, 5, 0, 0, 0], [40, 20, 20, 15, 5, 0, 0, 0], [30, 20, 20, 15, 10, 5, 0, 0],
+            [30, 15, 15, 15, 10, 5, 5, 5], [20, 10, 15, 20, 10, 15, 5, 5], [15, 10, 15, 20, 15, 10, 10, 5], [10, 5, 10, 25, 20, 15, 10, 5],
+            [5, 5, 15, 25, 20, 15, 10, 5], [0, 0, 10, 30, 25, 20, 10, 5]],
+        55: [[40, 30, 20, 10, 0, 0, 0, 0], [40, 20, 20, 10, 5, 5, 0, 0], [35, 20, 20, 15, 5, 5, 0, 0], [25, 20, 20, 15, 10, 10, 0, 0],
+            [25, 15, 20, 15, 10, 10, 5, 0], [20, 10, 20, 15, 15, 15, 5, 0], [15, 10, 20, 20, 15, 15, 5, 0], [10, 5, 15, 25, 20, 20, 5, 0],
+            [0, 0, 0, 0, 25, 25, 0, 50], [100, 0, 10, 30, 25, 20, 10, 5]]
+    };
+    const ITEM_NAMES = { 0: 'Nothing', 96: 'Mystrile', 97: 'Orichalcum', 98: 'Adamantite', 99: 'Rare item*', 102: 'Coin',
+        103: 'Power Berry*', 122: 'Gold', 123: 'Silver', 124: 'Copper', 312: 'Junk Ore' };
+    // The roll stops at the first slot whose running total passes it, so totals above 100 never reach later slots.
+    function mineOdds(place, floor) {
+        let sum = 0;
+        return MINE_ODDS[place][floor - 1].map((pct, i) => {
+            const chance = Math.min(100, sum + pct) - Math.min(100, sum);
+            sum += pct;
+            return [ITEM_NAMES[MINE_ITEMS[place][i]], chance];
+        }).filter(([, chance]) => chance > 0);
+    }
     // Weather is u16: today at 0x8007AD00, tomorrow at 0x8007AD02 (tomorrow became today in the user's saves).
     // 0 sunny and 1 rain were seen in saves; 2-4 come from a public cheat list.
     const WEATHER_TOMORROW = 0x7AD02, WEATHER = ['Sunny', 'Rain', 'Snow', 'Typhoon', 'Blizzard'];
@@ -87,6 +113,7 @@
         .num { text-align: right; font-variant-numeric: tabular-nums; }
         .wait { font-weight: 400; color: #aab3bf; }
         .toggle { font-weight: 400; color: #aab3bf; font-size: 10px; }
+        .ores { display: grid; grid-template-columns: 1fr auto; gap: 1px 6px; padding-left: 50px; font-weight: 400; font-size: 10px; color: #cfd6df; }
         .hearts { display: grid; gap: 3px; border-top: 1px solid #2f3742; padding-top: 5px; }
         .girl { display: grid; grid-template-columns: 44px 14px 1fr; align-items: center; gap: 6px; }
         .heart { font-size: 13px; line-height: 1; text-shadow: 0 0 1px #fff, 0 0 1px #fff; }
@@ -98,13 +125,14 @@
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
         <div class="tool sky" hidden><span>Tmrw</span><span class="name icon"></span></div>
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
+        <div class="ores" hidden></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="toggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), sky = $('.sky'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.toggle'), hearts = $('.hearts');
 
     let open = false;
     try { open = window.localStorage.getItem(OPEN_KEY) === '1'; } catch {}
@@ -127,7 +155,7 @@
     function show(s) {
         last = s;
         wait.hidden = !!s; st.hidden = fa.hidden = tool.hidden = toggle.hidden = !s;
-        floor.hidden = !s || s.floor === null;
+        floor.hidden = ores.hidden = !s || s.floor === null;
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
         wa.hidden = !s || s.water === null;
@@ -146,7 +174,14 @@
             icon.textContent = WEATHER_ICON[s.tomorrow];
             icon.title = s.tomorrow + ' tomorrow';
         }
-        if (s.floor !== null) floor.querySelector('.name').textContent = 'Floor ' + s.floor;
+        if (s.floor !== null) {
+            floor.querySelector('.name').textContent = 'Floor ' + s.floor;
+            const key = s.place + ':' + s.floor;
+            if (ores.dataset.key !== key) {
+                ores.dataset.key = key;
+                ores.innerHTML = mineOdds(s.place, s.floor).map(([name, chance]) => `<span>${name}</span><span class="num">${chance}%</span>`).join('');
+            }
+        }
         if (s.water !== null) {
             bar(wa, s.water, CAN_MAX);
             wa.querySelector('.num').textContent = s.water + '/' + CAN_MAX;
@@ -182,6 +217,7 @@
         stop() { clearInterval(timer); host.remove(); delete window.__hmStamina; },
         read: () => { const H = heap(); return H && B !== null ? read(H, B) : null; },
         heart: v => heartOf(v)[1],
-        toolName
+        toolName,
+        mineOdds
     };
 })();
