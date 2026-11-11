@@ -193,14 +193,15 @@
   #game:fullscreen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
   #game:-webkit-full-screen { width: 100vw !important; height: 100vh !important; height: 100dvh !important; }
   #player-quick-tools { position: absolute; z-index: 10000; top: 12px; right: 12px; display: flex; align-items: center; gap: 8px; }
-  #game .ejs_virtualGamepad_open, #picture-zoom, #leave-fill, #game-saves, #resume-game {
+  #game .ejs_virtualGamepad_open, #picture-zoom, #leave-fill, #game-saves, #resume-game, #center-play {
     position: static; flex: 0 0 44px; margin: 0; box-sizing: border-box; line-height: 1;
     width: 44px; height: 44px; min-height: 44px; padding: 11px;
     border: 1px solid #ffffff33; border-radius: 12px; color: #f3f2ed;
     background: #222527dd; cursor: pointer; opacity: 1 !important;
   }
-  #game .ejs_virtualGamepad_open svg, #picture-zoom svg, #leave-fill svg, #resume-game svg, #game-saves svg { display: block; width: 20px; height: 20px; }
-  #resume-game[hidden] { display: none; }
+  #game .ejs_virtualGamepad_open svg, #picture-zoom svg, #leave-fill svg, #resume-game svg, #game-saves svg, #center-play svg { display: block; width: 20px; height: 20px; }
+  #resume-game[hidden], #center-play[hidden] { display: none; }
+  #game #center-play { position: absolute; z-index: 10000; top: 50%; left: 50%; transform: translate(-50%, -50%); }
   #resume-game:not([data-paused="true"]) .play-icon, #resume-game[data-paused="true"] .pause-icon { display: none; }
   #game-saves { position: relative; }
   #game-saves .auto-save-dot { position: absolute; top: 6px; right: 6px; margin: 0; }
@@ -456,7 +457,14 @@
   .saves-toggle-label input { width: 16px; height: 16px; margin: 0; }
   .saves-grid h3 { font-size: 15px; }
   #saves-panel label[for=local-saves] { display: block; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
-  #saves-panel #local-saves { margin: 6px 0 8px; }
+  #saves-panel #local-saves, #saves-panel #named-saves { margin: 6px 0 8px; }
+  #named-saves { width: 100%; font-size: 16px; }
+  #saves-panel label[for=named-saves] { display: block; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .state-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .named-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  @media (max-width: 420px) { .named-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .state-actions button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .named-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
   #saves-panel #saves-status { margin-top: 10px; font-size: 13px; }
   #saves-panel details { margin-top: 14px; }
   #saves-panel .saves-grid > details { margin-top: 0; }
@@ -472,8 +480,8 @@
     #play-tools { gap: 6px; }
     #play-tools button { width: 36px; height: 36px; min-height: 36px; padding: 8px; border-radius: 8px; }
     #play-tools button svg { width: 18px; height: 18px; }
-    #game .ejs_virtualGamepad_open, #picture-zoom, #leave-fill, #game-saves, #resume-game { width: 36px; height: 36px; min-height: 36px; flex-basis: 36px; padding: 8px; border-radius: 8px; }
-    #game .ejs_virtualGamepad_open svg, #picture-zoom svg, #leave-fill svg, #resume-game svg, #game-saves svg { width: 18px; height: 18px; }
+    #game .ejs_virtualGamepad_open, #picture-zoom, #leave-fill, #game-saves, #resume-game, #center-play { width: 36px; height: 36px; min-height: 36px; flex-basis: 36px; padding: 8px; border-radius: 8px; }
+    #game .ejs_virtualGamepad_open svg, #picture-zoom svg, #leave-fill svg, #resume-game svg, #game-saves svg, #center-play svg { width: 18px; height: 18px; }
     #game .ejs_menu_bar .ejs_menu_button, #game .ps1-menu-group-body > button, #game .ps1-menu-group summary, #game .ps1-menu-group-body select { min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
     #game .ejs_menu_bar .ejs_volume_parent input { min-height: 34px; }
     #game .ejs_menu_bar .ejs_volume_parent input::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -5px; }
@@ -526,6 +534,7 @@
       <div id="play-tools">
         <button id="save-now" type="button" aria-labelledby="save-now-label" title="Save state now" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 3h12l4 4v14H3V3h2Z M7 3v6h10V3 M7 21v-8h10v8"/></svg><span id="save-now-label" hidden>Save state now</span></button>
         <button id="resume-game" type="button" aria-label="Pause game" title="Pause game" hidden><svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4h4v16H7Zm6 0h4v16h-4Z"/></svg><svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4v16l12-8Z"/></svg></button>
+        <button id="center-play" type="button" aria-label="Resume game" title="Resume game" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4v16l12-8Z"/></svg></button>
         <button id="fill-window" type="button" aria-label="Fill screen" title="Fill screen — keep browser tabs" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 8h18"/></svg></button>
         <button id="fill-screen" type="button" aria-label="Fullscreen" title="Fullscreen" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
         <button id="settings-toggle" type="button" aria-label="Settings" title="Settings" aria-expanded="false" aria-controls="player-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m10 3-.5 3-2 .9L5 5.8 2.8 9.5l2.3 2v2L2.8 15.5 5 19.2l2.5-1.1 2 .9.5 3h4l.5-3 2-.9 2.5 1.1 2.2-3.7-2.3-2v-2l2.3-2L19 5.8l-2.5 1.1-2-.9-.5-3Z"/><circle cx="12" cy="12.5" r="3"/></svg></button>
@@ -541,8 +550,13 @@
           <button id="saves-save-now" type="button" class="primary" disabled>Save state now</button>
           <label for="local-saves">Pick a state</label>
           <select id="local-saves" disabled><option>No states yet</option></select>
-          <div class="save-actions"><button id="restore-local" type="button" aria-label="Load selected state" disabled>Load state</button><button id="export-local" type="button" aria-label="Export selected state" disabled>Export state</button></div>
+          <div class="save-actions state-actions"><button id="restore-local" type="button" aria-label="Load selected state" disabled>Load</button><button id="export-local" type="button" aria-label="Export selected state" disabled>Export</button><button id="name-local" type="button" aria-label="Move selected state to named states" disabled>Name it</button></div>
           <p id="saves-status" class="hint" role="status" aria-live="polite"></p>
+          <div class="saves-row named-row"><h3 id="named-title">Named states</h3><button id="save-named" type="button" disabled>Save named state</button></div>
+          <p class="hint">Kept until you delete them. Not part of the 10 auto states.</p>
+          <label for="named-saves">Pick a named state</label>
+          <select id="named-saves" disabled><option value="">No named states yet</option></select>
+          <div class="save-actions state-actions named-actions"><button id="load-named" type="button" aria-label="Load selected named state" disabled>Load</button><button id="rename-named" type="button" aria-label="Rename selected named state" disabled>Rename</button><button id="export-named" type="button" aria-label="Download selected named state" disabled>Download</button><button id="delete-named" type="button" aria-label="Delete selected named state" disabled>Delete</button></div>
           <details>
             <summary>Import a state file</summary>
             <div class="details-body">
@@ -567,7 +581,7 @@
         </details>
         <details>
           <summary>Save help</summary>
-          <div class="details-body"><p class="hint">A state holds one moment of play. Export it to keep it past the 10-state limit.</p><p class="hint">Memory cards hold in-game saves and stay here after reload. Import only to restore a card backup. Keep backups of both.</p></div>
+          <div class="details-body"><p class="hint">A state holds one moment of play. Auto states keep the latest 10. Use Name it or Save named state to keep one until you delete it.</p><p class="hint">Memory cards hold in-game saves and stay here after reload. Import only to restore a card backup. Keep backups of both.</p></div>
         </details>
       </div>
     </dialog>
@@ -610,9 +624,9 @@
   </footer>
 </main>
 <script src="recent-game.js"></script>
-<script src="recovery.js?v=20261110-pause-toggle"></script>
+<script src="recovery.js?v=20261111-named-states"></script>
 <script src="touch-controls.js?v=20261028-analog-status"></script>
-<script src="plugins.js?v=20261111-hm-held-count"></script>
+<script src="plugins.js?v=20261111-hm-fish-pond"></script>
 <script src="menu.js?v=20261110-menu"></script>
 <script src="saves.js?v=20261109-single-saves"></script>
 <script src="state-cards.js?v=20261030"></script>
@@ -909,7 +923,7 @@ function setupDisplayTools(gameRoot) {
   savesButton.addEventListener('click', () => PS1Saves.open());
   tools.append(document.querySelector('#resume-game'), savesButton, zoomButton, document.querySelector('#leave-fill'));
   if (menuButton) tools.append(menuButton);
-  gameRoot.append(tools, panel);
+  gameRoot.append(tools, panel, document.querySelector('#center-play'));
   const quickVisibility = panel.querySelector('#quick-show-touch-controls');
   quickVisibility.checked = touchVisibility.checked;
   quickVisibility.addEventListener('change', () => setTouchControlsVisible(quickVisibility.checked));

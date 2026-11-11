@@ -65,7 +65,7 @@ run();
 const s = window.__hmStamina.read();
 assert.equal(s.animals.length, 0, 'no named animals');
 assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined, villagers: undefined, sprites: undefined },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, heldCount: null, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, race: null, feed: null, animals: undefined, villagers: undefined, sprites: undefined });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, heldCount: null, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, pond: null, race: null, animals: undefined, villagers: undefined, sprites: undefined });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -174,21 +174,29 @@ assert.equal($('.st').querySelector('.num').textContent, '100/100');
 assert.equal($('.fa').querySelector('.fill').style.width, '18%');
 assert.equal($('.fa').querySelector('.num').textContent, '18/100');
 
-// Hearts start closed; a tap opens them and the choice is kept.
+// Hearts start closed; the toggle opens them and the choice is kept.
 assert.equal($('.hearts').hidden, true);
 assert.equal($('.htoggle').textContent, '▾ Hearts');
 $('.box').fire('click');
+assert.equal($('.hearts').hidden, true, 'tapping the stats does not open hearts');
+$('.htoggle').fire('click');
 assert.equal($('.hearts').hidden, false);
 assert.equal(store['ps1-plugin-hm-hearts-open'], '1');
 const row = n => $('.hearts').querySelector('.g-' + n);
 assert.equal(row('Elli').querySelector('.num').textContent, '2,700');
 assert.equal(row('Elli').querySelector('.heart').title, 'Black heart');
 assert.equal(row('Mary').querySelector('.num').textContent, '0');
+assert.equal(row('Elli').querySelector('.fill').style.width, '4%', 'heart bar is out of 65,535');
+assert.equal(row('Elli').querySelector('.fill').style.background, '#9ca3af', 'a black heart gets a grey bar so it shows on the dark panel');
+$('.hearts').fire('click', { target: { closest: q => q === 'a' ? {} : null } });
+assert.equal($('.hearts').hidden, false, 'a name link does not close the hearts');
+$('.hearts').fire('click');
+assert.equal($('.hearts').hidden, true, 'tapping the open hearts closes them');
+$('.htoggle').fire('click');
+assert.equal($('.hearts').hidden, false);
+assert.equal($('.htoggle').textContent, '▴ Hearts');
 run();
 assert.equal($('.hearts').hidden, false, 'open choice survives a restart');
-$('.box').fire('keydown', { key: 'Enter' });
-assert.equal($('.hearts').hidden, true, 'Enter closes the hearts');
-$('.box').fire('click');
 
 // Shops: closed until tapped; open shops get a green dot from the weekday and hour.
 const shopRow = i => $('.shops').querySelector('.sh-' + i);
@@ -216,9 +224,9 @@ assert.equal(open('Kai', 1, 3, 12), true);
 assert.equal(open('Inn', 3, 0, 20), true);
 run();
 assert.equal($('.shops').hidden, false, 'shops choice survives a restart');
-$('.stoggle').fire('click');
-assert.equal($('.shops').hidden, true);
-assert(!$('.box').classList.has('wide'));
+$('.shops').fire('click');
+assert.equal($('.shops').hidden, true, 'tapping the open shops closes them');
+assert.equal($('.box').classList.has('wide'), !$('.hearts').hidden, 'only open hearts keep the box wide');
 put16(0x70CF6, 0); put16(0x70CF8, 0);
 
 // Animals: a slot shows when its name (18 bytes before the love byte) does not start with 0xFFFF.
@@ -229,15 +237,24 @@ name(0x74302 + 0xB4 * 2, 'Cluck'); H[B + 0x74302 + 0xB4 * 2] = 130;
 name(0x74A0A + 0xB8 * 19, 'Moo'); H[B + 0x74A0A + 0xB8 * 19] = 255;
 for (let i = 0; i < 9; i++) put16(0x75AEA - 18 + i * 2, 0xFFFF);
 H[B + 0x75AEA] = 99;
+H[B + 0x75A18] = 4;
 run();
 const animals = JSON.parse(JSON.stringify(window.__hmStamina.read().animals));
-assert.deepEqual(animals, [{ kind: 'Dog', name: 'Bin', love: 10 }, { kind: 'Chicken', name: 'Cluck', love: 130 }, { kind: 'Barn', name: 'Moo', love: 255 }],
+assert.deepEqual(animals, [{ kind: 'Dog', name: 'Bin', love: 10, marks: [[true, '🤲', 'Picked up today'], [false, '📯', 'Whistled today']] }, { kind: 'Chicken', name: 'Cluck', love: 130 }, { kind: 'Barn', name: 'Moo', love: 255 }],
   'empty horse slot is skipped');
 assert.equal($('.atoggle').textContent, '▾ Animals (3)');
 assert.equal($('.animals').hidden, true);
 heartsBefore = $('.hearts').hidden;
 $('.atoggle').fire('click');
 assert.equal($('.hearts').hidden, heartsBefore, 'the animals toggle does not flip hearts');
+assert($('.animals').innerHTML.includes('Bin <span class="mark on" title="Picked up today">🤲</span><span class="mark" title="Whistled today">📯</span></span>'), 'dog shows pick-up and whistle marks');
+assert(!$('.animals').innerHTML.includes('Cluck <span class="mark'), 'a chicken without a record has no marks');
+name(0x75AEA, 'Rose'); H[B + 0x75AEA] = 36; H[B + 0x75B08] = 4;
+run();
+assert($('.animals').innerHTML.includes('Rose <span class="mark on" title="Brushed today">🪮</span><span class="mark" title="Called today">📯</span></span>'), 'horse shows brush and call marks');
+for (let i = 0; i < 9; i++) put16(0x75AEA - 18 + i * 2, 0xFFFF);
+H[B + 0x75B08] = 0;
+run();
 assert.equal($('.animals').hidden, false);
 assert.equal(store['ps1-plugin-hm-animals-open'], '1');
 assert($('.animals').innerHTML.includes('<span><span class="kind">🐔</span>Cluck</span><div class="bar"><div class="fill" style="width:51%"></div></div><span class="num">130/255</span>'));
@@ -251,37 +268,35 @@ assert($('.animals').innerHTML.includes('style="width:4%"></div></div><span clas
 $('.atoggle').fire('click');
 assert.equal($('.animals').hidden, true);
 
-// Coop feed: one hen fed outside, one hungry hen in the coop, one full box; then a second hungry hen makes it 1 short.
-assert.equal(window.__hmStamina.read().feed, null, 'no hens, no feed line');
-assert.equal($('.ftoggle').hidden, true);
+// Hen marks in the Animals rows: a full box covers the first unfed hens in the coop; outside hens show grazing.
 const hen = (i, nm, where, flags, graze) => {
   const at = 0x742EC + i * 0xB4;
   put16(at, 0x109); name(at + 0x16, nm); put16(at + 0x30, where); H[B + at + 0x34] = flags; put16(at + 0xAC, graze);
 };
-hen(0, 'Amy', 4, 0x10, 0); hen(3, 'Peep', 1, 1, 7); H[B + 0x7130E + 2] = 1;
+hen(0, 'Amy', 4, 0x10, 0); hen(3, 'Peep', 1, 0, 3); hen(5, 'Dot', 4, 0, 0); H[B + 0x7130E + 2] = 1;
+$('.atoggle').fire('click');
 run();
-let feedNow = JSON.parse(JSON.stringify(window.__hmStamina.read().feed));
-assert.deepEqual(feedNow, { boxes: 1, need: 1, rain: false, winter: false, hens: [
-  { name: 'Amy', fed: false, inside: true, outside: false, graze: 0 }, { name: 'Peep', fed: true, inside: false, outside: true, graze: 5 }] });
-assert.equal($('.ftoggle').textContent, '▾ Hens (2)');
-assert(!$('.ftoggle').classList.has('short'));
-assert.equal($('.feed').hidden, true);
-$('.ftoggle').fire('click');
-assert.equal(store['ps1-plugin-hm-feed-open'], '1');
-assert.equal($('.feed').hidden, false);
-assert($('.feed').innerHTML.includes('<span>Amy</span><span class="where">In coop</span><span class="hungry">Needs feed</span>'));
-assert($('.feed').innerHTML.includes('<span>Peep</span><span class="where">Outside 5/5</span><span class="fed">✓ Fed</span>'));
-hen(5, 'Dot', 4, 0, 0); put16(0x7AD00, 1);
+const marksOf = nm => window.__hmStamina.read().animals.find(a => a.name === nm).marks;
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Amy'))), [[true, '🌾', 'Fed tonight']], 'a full box covers the first hen');
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Dot'))), [[false, '🌾', 'No feed in the coop']], 'no box left for the second');
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Peep'))), [[false, '🌿', 'Grazed 3/5']]);
+assert($('.animals').innerHTML.includes('Amy <span class="mark on" title="Fed tonight">🌾</span></span>'));
+assert($('.animals').innerHTML.includes('Dot <span class="mark" title="No feed in the coop">🌾</span></span>'));
+assert(!$('.animals').innerHTML.includes('In coop'), 'no words for where a hen is');
+H[B + 0x742EC + 5 * 0xB4 + 0x34] = 1; put16(0x742EC + 3 * 0xB4 + 0xAC, 6); put16(0x7AD00, 1);
 run();
-assert.equal($('.ftoggle').textContent, '▴ Hide hens (3)');
-assert($('.ftoggle').classList.has('short'));
-assert($('.feed').innerHTML.includes('<span class="warn" title="Loses love outside in rain">🌧️ Rain</span>'));
-$('.ftoggle').fire('click');
-assert.equal($('.feed').hidden, true);
+assert.equal(marksOf('Dot')[0][0], true, 'a hen fed today stays fed');
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Peep'))), [[true, '🌿', 'Grazed 5/5'], [true, '🌧️', 'Rain: loses love outside']]);
+put16(0x70CF2, 3);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Peep')[0])), [false, '🌿', 'No grass in winter']);
+put16(0x742EC + 3 * 0xB4 + 0x30, 9);
+run();
+assert.equal(marksOf('Peep'), undefined, 'a hen away has no marks');
+$('.atoggle').fire('click');
 for (const i of [0, 3, 5]) { put16(0x742EC + i * 0xB4, 0); put16(0x742EC + i * 0xB4 + 4, 0xFFFF); }
-H[B + 0x7130E + 2] = 0; put16(0x7AD00, 0);
+H[B + 0x7130E + 2] = 0; put16(0x7AD00, 0); put16(0x70CF2, 0);
 run();
-assert.equal($('.ftoggle').hidden, true);
 
 // Villagers: friendship is the u16 2 bytes before each villager's affection, out of 255; the girls are not listed.
 const friend = n => girl(n) - 2;
@@ -302,16 +317,16 @@ $('.vtoggle').fire('click');
 assert.equal($('.hearts').hidden, heartsBefore, 'the villagers toggle does not flip hearts');
 assert.equal($('.villagers').hidden, false);
 assert.equal(store['ps1-plugin-hm-villagers-open'], '1');
-assert.equal($('.vtoggle').textContent, '▴ Hide villagers (26)');
+assert.equal($('.vtoggle').textContent, '▴ Villagers (26)');
 assert($('.box').classList.has('wide'));
-assert($('.villagers').innerHTML.startsWith('<div class="villager"><span>Jeff</span><div class="bar"><div class="fill" style="width:27%"></div></div><span class="num">69/255</span></div>'));
-assert($('.villagers').innerHTML.includes('<span>Won</span><div class="bar"><div class="fill" style="width:100%"></div></div><span class="num">255/255</span>'));
+assert($('.villagers').innerHTML.startsWith('<div class="villager"><a href="https://harvestmoon.fandom.com/wiki/Jeff_(BTN)" target="_blank" rel="noopener">Jeff</a><div class="bar"><div class="fill" style="width:27%"></div></div><span class="num">69/255</span></div>'));
+assert($('.villagers').innerHTML.includes('<a href="https://harvestmoon.fandom.com/wiki/Won_(BTN)" target="_blank" rel="noopener">Won</a><div class="bar"><div class="fill" style="width:100%"></div></div><span class="num">255/255</span>'));
 run();
 assert.equal($('.villagers').hidden, false, 'villagers choice survives a restart');
 $('.vtoggle').fire('click');
 assert.equal($('.villagers').hidden, true);
-assert(!$('.box').classList.has('wide'));
-assert($('.villagers').innerHTML.includes('<span>Doctor</span><div class="bar"><div class="fill" style="width:66%"></div></div><span class="num">169/255</span>'), 'the Doctor is listed');
+assert.equal($('.box').classList.has('wide'), !$('.hearts').hidden, 'only open hearts keep the box wide');
+assert($('.villagers').innerHTML.includes('<a href="https://harvestmoon.fandom.com/wiki/Doctor_(BTN)" target="_blank" rel="noopener">Doctor</a><div class="bar"><div class="fill" style="width:66%"></div></div><span class="num">169/255</span>'), 'the Doctor is listed');
 assert(!$('.villagers').innerHTML.includes('Chef'), 'sprites are not in the villagers list');
 put16(friend(24), 0);
 
@@ -327,15 +342,15 @@ assert.equal($('.hearts').hidden, heartsBefore, 'the sprites toggle does not fli
 assert.equal($('.villagers').hidden, villagersBefore, 'the sprites toggle does not open villagers');
 assert.equal($('.sprites').hidden, false);
 assert.equal(store['ps1-plugin-hm-sprites-open'], '1');
-assert.equal($('.ptoggle').textContent, '▴ Hide sprites (2)');
+assert.equal($('.ptoggle').textContent, '▴ Sprites (2)');
 assert($('.box').classList.has('wide'));
-assert.equal($('.sprites').innerHTML, '<div class="villager"><span>Chef</span><div class="bar"><div class="fill" style="width:20%;background:#ef4444"></div></div><span class="num">50/255</span></div>'
-  + '<div class="villager"><span>Aqua</span><div class="bar"><div class="fill" style="width:27%;background:#38bdf8"></div></div><span class="num">70/255</span></div>', 'each sprite has its own colour');
+assert.equal($('.sprites').innerHTML, '<div class="villager"><a href="https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)" target="_blank" rel="noopener">Chef</a><div class="bar"><div class="fill" style="width:20%;background:#ef4444"></div></div><span class="num">50/255</span></div>'
+  + '<div class="villager"><a href="https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)" target="_blank" rel="noopener">Aqua</a><div class="bar"><div class="fill" style="width:27%;background:#38bdf8"></div></div><span class="num">70/255</span></div>', 'each sprite has its own colour and links to the Harvest Sprites page');
 run();
 assert.equal($('.sprites').hidden, false, 'sprites choice survives a restart');
 $('.ptoggle').fire('click');
 assert.equal($('.sprites').hidden, true);
-assert(!$('.box').classList.has('wide'));
+assert.equal($('.box').classList.has('wide'), !$('.hearts').hidden, 'only open hearts keep the box wide');
 
 // Heart colours follow the game's steps: 5000, 20000, 30000, 40000, 50000, 60000.
 const heart = window.__hmStamina.heart;
@@ -442,6 +457,30 @@ put32r(0xB7E20, 6); put16(0x70CF4, 0); put16(0x7AD4C, 0);
 run();
 assert.equal($('.race').hidden, true);
 
+// Fish pond: 99 slots of 4 bytes from 0x75854 (u16 item 0xA3 small, 0xA2 medium, 0xA1 large); bit 0 of 0x759E0 is fed today.
+assert.equal($('.pond').hidden, true, 'empty unfed pond is hidden');
+put16(0x75854, 0xA3); put16(0x75858, 0xA3); put16(0x75860, 0xA2); put16(0x75854 + 98 * 4, 0xA1);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 2, medium: 1, large: 1, count: 4, fed: false });
+assert.equal($('.pond').hidden, false);
+assert.equal($('.pond').querySelector('.name').innerHTML, 'S2 M1 L1 <span class="num">4/99</span> <span class="mark">🍤</span>');
+assert.match($('.pond').title, /Not fed today/);
+put16(0x759E0, 1);
+run();
+assert.equal(window.__hmStamina.read().pond.fed, true);
+assert.match($('.pond').querySelector('.name').innerHTML, /mark on/);
+assert.match($('.pond').title, /Fed today/);
+put16(0x7585C, 0x41);
+run();
+assert.equal(window.__hmStamina.read().pond, null, 'a slot that is not a fish hides the line');
+assert.equal($('.pond').hidden, true);
+for (let i = 0; i < 99; i++) put16(0x75854 + i * 4, 0);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 0, medium: 0, large: 0, count: 0, fed: true }, 'fed but empty still shows');
+put16(0x759E0, 0);
+run();
+assert.equal(window.__hmStamina.read().pond, null);
+
 // Values out of range (another game) are not shown.
 put16(0x71A14, 0);
 run();
@@ -455,4 +494,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, shop hours, animal love, coop feed, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond, horse race tips, shop hours, animal love, coop feed, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');

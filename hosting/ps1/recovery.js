@@ -18,15 +18,24 @@
       request.onerror = () => reject(request.error);
     });
   }
-  async function writeSave(save, saves) {
+  // Writes the auto list and, when given, the named list in one transaction
+  async function writeSave(id, saves, named) {
     const db = await database;
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('states', 'readwrite');
-      transaction.objectStore('states').put({ ...save, history: saves.slice(1) });
+      const store = transaction.objectStore('states');
+      if (saves) {
+        if (saves.length) store.put({ ...saves[0], id, history: saves.slice(1) });
+        else store.delete(id);
+      }
+      if (named) store.put({ id: 'named:' + id, named });
       transaction.oncomplete = resolve;
       transaction.onerror = () => reject(transaction.error);
       transaction.onabort = () => reject(transaction.error);
     });
+  }
+  function fileName(text) {
+    return text.replace(/[^a-z0-9 _-]/gi, '_');
   }
 
   window.PS1Recovery = {
@@ -34,6 +43,7 @@
       const panel = document.querySelector('#resume-panel');
       const message = document.querySelector('#resume-message');
       const resume = document.querySelector('#resume-game');
+      const centerPlay = document.querySelector('#center-play');
       const reload = document.querySelector('#reload-game');
       const restore = document.querySelector('#restore-local');
       const saveNow = document.querySelector('#save-now');
@@ -42,8 +52,21 @@
       const exportSave = document.querySelector('#export-local');
       const status = document.querySelector('#recovery-status');
       const autoToggle = document.querySelector('#auto-save');
+      const keepNamed = document.querySelector('#name-local');
+      const saveNamed = document.querySelector('#save-named');
+      const namedPicker = document.querySelector('#named-saves');
+      const loadNamed = document.querySelector('#load-named');
+      const renameNamed = document.querySelector('#rename-named');
+      const exportNamed = document.querySelector('#export-named');
+      const deleteNamed = document.querySelector('#delete-named');
       const id = 'pcsx_rearmed-4.2.3:' + gameName;
-      let saves = [];
+      let saves = [], named = [];
+      let queue = Promise.resolve(), namedBusy = false;
+      function enqueue(job) {
+        const result = queue.then(job);
+        queue = result.catch(() => {});
+        return result;
+      }
       let lastSave, backgrounded = false, schedulerPaused = false;
       let ready = false, pendingSave = null, manualRequested = false;
       let active = true, failedRecovery = false;
@@ -73,6 +96,7 @@
         resume.dataset.paused = String(!!emulator.paused);
         resume.setAttribute('aria-label', label);
         resume.title = label;
+        if (centerPlay) centerPlay.hidden = resume.hidden || !emulator.paused;
       }
 
       function releaseButtons() {
@@ -95,6 +119,11 @@
       }
       function updateSaveList(selected) {
         savePicker.replaceChildren();
+        if (!saves.length) {
+          const option = document.createElement('option');
+          option.textContent = 'No states yet';
+          savePicker.append(option);
+        }
         saves.forEach((save, index) => {
           const option = document.createElement('option');
           option.value = String(index);
@@ -104,13 +133,48 @@
         const index = selected ? saves.indexOf(selected) : 0;
         savePicker.value = String(Math.max(0, index));
       }
+      function updateNamedList(selected) {
+        if (!namedPicker) return;
+        namedPicker.replaceChildren();
+        if (!named.length) {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No named states yet';
+          namedPicker.append(option);
+        }
+        named.forEach((save, index) => {
+          const option = document.createElement('option');
+          option.value = String(index);
+          option.textContent = save.name + ' · ' + new Date(save.savedAt).toLocaleString();
+          namedPicker.append(option);
+        });
+        const index = selected ? named.indexOf(selected) : 0;
+        namedPicker.value = named.length ? String(Math.max(0, index)) : '';
+      }
+      function askName(current) {
+        const answer = window.prompt('Name this state', current);
+        if (answer === null || answer === undefined) return null;
+        const name = String(answer).trim().slice(0, 60);
+        if (!name) {
+          status.textContent = 'A named state needs a name.';
+          return null;
+        }
+        return name;
+      }
 
       function updateSaveButton() {
         updateResumeButton();
         saveNow.disabled = !!pendingSave || !active || !ready || failedRecovery || !panel.hidden;
         saveLabel.textContent = saveNow.title = pendingSave ? 'Saving state…' : 'Save state now';
-        exportSave.disabled = !active || !saves.length || !!pendingSave;
-        restore.disabled = savePicker.disabled = !active || !saves.length || !!pendingSave;
+        const busy = !!pendingSave || namedBusy;
+        exportSave.disabled = !active || !saves.length || busy;
+        restore.disabled = savePicker.disabled = !active || !saves.length || busy;
+        if (keepNamed) keepNamed.disabled = !active || !saves.length || busy;
+        if (saveNamed) saveNamed.disabled = busy || !active || !ready || failedRecovery || !panel.hidden;
+        if (namedPicker) {
+          namedPicker.disabled = !active || !named.length || busy;
+          for (const button of [loadNamed, renameNamed, exportNamed, deleteNamed]) button.disabled = namedPicker.disabled;
+        }
       }
       function checkpoint(allowPaused = false, manual = false) {
         if (!active || !ready || failedRecovery || (emulator.paused && !allowPaused) || !panel.hidden) return Promise.resolve(false);
@@ -130,8 +194,11 @@
           updateSaveButton();
           return Promise.resolve(false);
         }
-        const nextSaves = [save, ...saves].slice(0, SAVE_LIMIT);
-        pendingSave = writeSave(save, nextSaves).then(() => {
+        let nextSaves;
+        pendingSave = enqueue(() => {
+          nextSaves = [save, ...saves].slice(0, SAVE_LIMIT);
+          return writeSave(id, nextSaves);
+        }).then(() => {
           const selected = !manualRequested && Number(savePicker.value) > 0
             ? saves[Number(savePicker.value)] : null;
           saves = nextSaves;
@@ -157,11 +224,121 @@
         if (!selected) return;
         try {
           const stamp = new Date(selected.savedAt).toISOString().replace(/[:.]/g, '-');
-          window.PS1Saves.download(selected.state, gameName.replace(/[^a-z0-9 _-]/gi, '_') + '-' + stamp + '.state');
+          window.PS1Saves.download(selected.state, fileName(gameName) + '-' + stamp + '.state');
           status.textContent = 'Exported state from ' + new Date(selected.savedAt).toLocaleString() + '.';
         } catch (error) {
           status.textContent = 'Could not export this state. Try again.';
         }
+      });
+      function namedJob(work, failure) {
+        namedBusy = true;
+        updateSaveButton();
+        return enqueue(work).catch(() => {
+          status.textContent = failure;
+          return false;
+        }).finally(() => {
+          namedBusy = false;
+          updateSaveButton();
+        });
+      }
+      function selectedNamed() {
+        return namedPicker && named[Number(namedPicker.value)];
+      }
+      keepNamed?.addEventListener('click', () => {
+        if (!active || pendingSave || namedBusy) return;
+        const picked = saves[Number(savePicker.value)];
+        if (!picked) return;
+        const name = askName(new Date(picked.savedAt).toLocaleString());
+        if (!name) return;
+        return namedJob(async () => {
+          const entry = { name, state: picked.state, savedAt: picked.savedAt };
+          const nextNamed = [entry, ...named];
+          const nextSaves = saves.filter(save => save !== picked);
+          await writeSave(id, nextSaves, nextNamed);
+          saves = nextSaves;
+          named = nextNamed;
+          if (lastSave === picked) lastSave = saves[0];
+          updateSaveList();
+          updateNamedList(entry);
+          status.textContent = 'Moved to named state "' + name + '". ' + saves.length + ' of 10 auto states kept here.';
+          return true;
+        }, 'Could not name this state. Your states were not changed.');
+      });
+      saveNamed?.addEventListener('click', () => {
+        if (!active || !ready || failedRecovery || !panel.hidden || pendingSave || namedBusy) return;
+        let state;
+        try { state = emulator.gameManager.getState(); }
+        catch (error) {
+          status.textContent = 'Could not save a state on this device. Use Save State to download a backup.';
+          return;
+        }
+        const savedAt = Date.now();
+        const name = askName(new Date(savedAt).toLocaleString());
+        if (!name) return;
+        return namedJob(async () => {
+          const entry = { name, state, savedAt };
+          const nextNamed = [entry, ...named];
+          await writeSave(id, null, nextNamed);
+          named = nextNamed;
+          updateNamedList(entry);
+          status.textContent = 'Saved named state "' + name + '".';
+          return true;
+        }, 'Could not save a named state on this device.');
+      });
+      loadNamed?.addEventListener('click', () => {
+        if (pendingSave || namedBusy || !active) return;
+        const picked = selectedNamed();
+        if (!picked) return;
+        lastSave = picked;
+        try {
+          pauseEngine();
+          restoreOnResume = true;
+          resumeEngine();
+          window.PS1Saves?.close();
+        } catch (error) {
+          showPanel('Safari could not resume. Reload, pick the same CHD, and restore your last state.', true);
+        }
+      });
+      renameNamed?.addEventListener('click', () => {
+        if (!active || pendingSave || namedBusy) return;
+        const picked = selectedNamed();
+        if (!picked) return;
+        const name = askName(picked.name);
+        if (!name || name === picked.name) return;
+        return namedJob(async () => {
+          const entry = { ...picked, name };
+          const nextNamed = named.map(save => save === picked ? entry : save);
+          await writeSave(id, null, nextNamed);
+          named = nextNamed;
+          updateNamedList(entry);
+          status.textContent = 'Renamed to "' + name + '".';
+          return true;
+        }, 'Could not rename this state.');
+      });
+      exportNamed?.addEventListener('click', () => {
+        if (!active || pendingSave || namedBusy) return;
+        const picked = selectedNamed();
+        if (!picked) return;
+        try {
+          window.PS1Saves.download(picked.state, fileName(gameName) + '-' + fileName(picked.name) + '.state');
+          status.textContent = 'Downloaded "' + picked.name + '".';
+        } catch (error) {
+          status.textContent = 'Could not download this state. Try again.';
+        }
+      });
+      deleteNamed?.addEventListener('click', () => {
+        if (!active || pendingSave || namedBusy) return;
+        const picked = selectedNamed();
+        if (!picked) return;
+        if (!window.confirm('Delete "' + picked.name + '"? This cannot be undone. Download it first to keep a copy.')) return;
+        return namedJob(async () => {
+          const nextNamed = named.filter(save => save !== picked);
+          await writeSave(id, null, nextNamed);
+          named = nextNamed;
+          updateNamedList();
+          status.textContent = 'Deleted "' + picked.name + '".';
+          return true;
+        }, 'Could not delete this state.');
       });
       function autoEnabled() {
         try { return localStorage.getItem('ps1-auto-save') !== 'off'; } catch (error) { return true; }
@@ -247,6 +424,17 @@
           emulator.pause();
         }
       });
+      centerPlay?.addEventListener('click', () => {
+        if (active && ready && !failedRecovery && emulator.paused) resumeEngine();
+      });
+      document.addEventListener('keydown', event => {
+        if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (!active || !ready || failedRecovery || !panel.hidden || !emulator.paused) return;
+        if (event.target?.closest?.('input, select, textarea, button, [contenteditable]')) return;
+        if (emulator.isPopupOpen?.()) return;
+        event.preventDefault();
+        resumeEngine();
+      });
       reload.addEventListener('click', () => location.reload());
       restore.addEventListener('click', () => {
         if (pendingSave || !active) return;
@@ -272,6 +460,11 @@
         showPanel('Safari stopped the game screen. Reload, pick the same CHD, and restore your last state.', true);
       });
       try {
+        try {
+          const storedNamed = await readSave('named:' + id);
+          named = storedNamed && Array.isArray(storedNamed.named) ? storedNamed.named : [];
+        } catch (error) { named = []; }
+        updateNamedList();
         const stored = await readSave(id);
         if (stored) {
           lastSave = { id: stored.id, state: stored.state, savedAt: stored.savedAt };

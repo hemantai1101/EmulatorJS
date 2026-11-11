@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, shop hours, animal love, villager and sprite friendship, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, fish pond, shop hours, animal love, villager and sprite friendship, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -18,7 +18,8 @@
         [12, 'Basil'], [13, 'Anna'], [15, 'Barley'], [16, 'May'], [17, 'Thomas'], [18, 'Lillia'], [19, 'Rick'], [21, 'Duke'],
         [22, 'Manna'], [23, 'Ellen'], [24, 'Gotz'], [25, 'Kai'], [28, 'Harris'], [29, 'Kano'], [30, 'Gourmet'], [31, 'Louis'],
         [32, 'Greg'], [34, 'Stu'], [35, 'Won']];
-    const VILLAGERS_KEY = 'ps1-plugin-hm-villagers-open';
+    const VILLAGERS_KEY = 'ps1-plugin-hm-villagers-open', WIKI = name => 'https://harvestmoon.fandom.com/wiki/' + name + '_(BTN)';
+    const SPRITES_WIKI = 'https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)';
     // Harvest Sprites: 7 records of 0xF8 bytes from 0x8007A638 (cleared and looped over by code at 0x8010C6A0 and 0x8010C95C).
     // Each holds its name at +4 (u16 letters, 0xFFFF ends) and friendship at +0x16, kept within 0-255 by code at 0x8010CC78.
     const SPRITES = Array.from({ length: 7 }, (_, k) => 0x7A638 + k * 0xF8);
@@ -27,10 +28,12 @@
     const SPRITE_COLOURS = { Chef: '#ef4444', Nappy: '#fb923c', Hoggy: '#facc15', Timid: '#22c55e', Aqua: '#38bdf8', Staid: '#6366f1', Bold: '#a855f7' };
     // Heart level steps from the game's code at 0x80022F1C. Colour names follow fan guides.
     const HEARTS = [
-        [5000, 'Black', '#1b1b1b'], [20000, 'Purple', '#a855f7'], [30000, 'Blue', '#3b82f6'], [40000, 'Green', '#22c55e'],
+        [5000, 'Black', '#1b1b1b', '#9ca3af'], [20000, 'Purple', '#a855f7'], [30000, 'Blue', '#3b82f6'], [40000, 'Green', '#22c55e'],
         [50000, 'Yellow', '#facc15'], [60000, 'Orange', '#fb923c'], [Infinity, 'Red', '#ef4444']
     ];
     const heartOf = v => HEARTS.find(h => v < h[0]);
+    // The affection adder at 0x8011FF0C stops at 0xFFFF.
+    const HEART_MAX = 0xFFFF;
     // Items are 6-byte slots: u16 id, then u16 value at +4. The held item is at 0x80071A84; the 24 tool slots start at 0x80070EC2.
     // Watering cans are items 21-25 (basic to Mystrile); the value is the water left, 100 when full
     // (seen for the basic and Mystrile cans in the user's saves).
@@ -159,12 +162,16 @@
     const ANIMALS = [['Dog', [0x759FA]], ['Horse', [0x75AEA]],
         ['Chicken', Array.from({ length: 10 }, (_, i) => 0x74302 + i * 0xB4)],
         ['Barn', Array.from({ length: 20 }, (_, i) => 0x74A0A + i * 0xB8)]];
-    const ANIMALS_KEY = 'ps1-plugin-hm-animals-open', LOVE_MAX = 255;
+    const ANIMALS_KEY = 'ps1-plugin-hm-animals-open', LOVE_MAX = 255, DOG_FLAGS = 0x75A18, HORSE_FLAGS = 0x75B08;
     const ANIMAL_ICON = { Dog: '🐶', Horse: '🐴', Chicken: '🐔', Chick: '🐣', Barn: '🐄' };
     // Coop feed (game code 0x800E21E4): at the new day each unfed hen in the coop (place 4) empties the first full box of 10 at 0x8007130E.
     // A hen outside (place 1) is fed after 5 outside ticks (+0xAC, code 0x800E20F0); rain (today 0x8007AD00 = 1) costs love instead, winter does nothing.
     const COOP_BOXES = 0x7130E, HENS = Array.from({ length: 10 }, (_, i) => 0x742EC + i * 0xB4), HEN = 0x109, CHICK = 0x10A, IN_COOP = 4, OUTSIDE = 1;
-    const GRAZE_DONE = 5, WEATHER_TODAY = 0x7AD00, RAIN = 1, WINTER = 3, FEED_KEY = 'ps1-plugin-hm-feed-open';
+    const GRAZE_DONE = 5, WEATHER_TODAY = 0x7AD00, RAIN = 1, WINTER = 3;
+    // Fish pond: 99 slots of 4 bytes from 0x80075854 (u16 item, u16 days grown), counted by 0x8010C668.
+    // Items 0xA3 small, 0xA2 medium, 0xA1 large (0x8010C5A0 sets the size by days: under 10, under 20, then large).
+    // Bit 0 of 0x800759E0 is set when Fish Food goes in (0x8010C4B0); only then do the fish grow that night (0x8010C3F8).
+    const POND = 0x75854, POND_SLOTS = 99, POND_FED = 0x759E0, FISH = { 0xA3: 'small', 0xA2: 'medium', 0xA1: 'large' };
     const letter = c => c < 26 ? String.fromCharCode(c + 65) : c >= 32 && c < 58 ? String.fromCharCode(c + 65) : '?';
     const clock = h => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
     const isOpen = ([, from, to, closed, season], s) =>
@@ -205,23 +212,32 @@
             if (u16(at - 2) !== 0xFFFF) continue;
             for (let i = 0; i < 8 && u16(at - 18 + i * 2) !== 0xFFFF; i++) name += letter(u16(at - 18 + i * 2));
             // Chicken records start 0x16 bytes before love with their kind: 0x10A is a chick.
-            if (name) s.animals.push({ kind: kind === 'Chicken' && u16(at - 0x16) === CHICK ? 'Chick' : kind, name, love: H[B + at] });
+            if (name) s.animals.push({ kind: kind === 'Chicken' && u16(at - 0x16) === CHICK ? 'Chick' : kind, name, love: H[B + at], at });
         }
+        // Dog flags (record +0x34): 0x4 picked up today, 0x2 came to the whistle today; each gives +2 love at the new day (0x80108D84).
+        const dog = s.animals.find(a => a.kind === 'Dog');
+        if (dog) dog.marks = [[(H[B + DOG_FLAGS] & 4) !== 0, '🤲', 'Picked up today'], [(H[B + DOG_FLAGS] & 2) !== 0, '📯', 'Whistled today']];
+        // Horse flags work the same way (0x8010B264): 0x4 brushed today, 0x2 came when called today.
+        const horse = s.animals.find(a => a.kind === 'Horse');
+        if (horse) horse.marks = [[(H[B + HORSE_FLAGS] & 4) !== 0, '🪮', 'Brushed today'], [(H[B + HORSE_FLAGS] & 2) !== 0, '📯', 'Called today']];
         s.season = u16(SEASON); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
-        s.feed = null;
-        const hens = [];
+        // Hens take full coop boxes in slot order at the new day, so a full box counts as fed for the first unfed hens inside.
+        let boxes = 0;
+        for (let i = 0; i < 10; i++) if (H[B + COOP_BOXES + i]) boxes++;
+        const rain = u16(WEATHER_TODAY) === RAIN, winter = s.season === WINTER;
         for (const at of HENS) {
-            if (u16(at) !== HEN) continue;
-            let name = '';
-            for (let i = 0; i < 8 && u16(at + 4 + i * 2) !== 0xFFFF; i++) name += letter(u16(at + 4 + i * 2));
-            const where = u16(at + 0x30);
-            hens.push({ name: name || 'Hen', fed: (H[B + at + 0x34] & 1) === 1, inside: where === IN_COOP, outside: where === OUTSIDE, graze: Math.min(u16(at + 0xAC), GRAZE_DONE) });
+            const hen = s.animals.find(a => a.at === at + 0x16);
+            if (u16(at) !== HEN || !hen) continue;
+            const fed = (H[B + at + 0x34] & 1) === 1, where = u16(at + 0x30), graze = Math.min(u16(at + 0xAC), GRAZE_DONE);
+            if (where === IN_COOP) {
+                const covered = fed || boxes-- > 0;
+                hen.marks = [[covered, '🌾', covered ? 'Fed tonight' : 'No feed in the coop']];
+            } else if (where === OUTSIDE) {
+                hen.marks = [[!winter && (fed || graze >= GRAZE_DONE), '🌿', winter ? 'No grass in winter' : 'Grazed ' + graze + '/' + GRAZE_DONE]];
+                if (rain) hen.marks.push([true, '🌧️', 'Rain: loses love outside']);
+            }
         }
-        if (hens.length) {
-            let boxes = 0;
-            for (let i = 0; i < 10; i++) if (H[B + COOP_BOXES + i]) boxes++;
-            s.feed = { boxes, need: hens.filter(h => h.inside && !h.fed).length, rain: u16(WEATHER_TODAY) === RAIN, winter: s.season === WINTER, hens };
-        }
+        for (const a of s.animals) delete a.at;
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
         s.basket = null;
         const kinds = BASKET_KINDS.map((_, i) => u16(BASKET + 2 + i * 2));
@@ -243,6 +259,13 @@
             if (horses.every(h => h.id === 0xFFFF || h.name && h.speed <= 255 && h.whipPower <= 255 && h.style <= 127 && h.push <= 127))
                 s.race = { number: Math.min(u16(RACE), 2) + 1, ride: u16(RACE) === 3, horses };
         }
+        s.pond = { small: 0, medium: 0, large: 0, count: 0, fed: (u16(POND_FED) & 1) === 1 };
+        for (let i = 0; i < POND_SLOTS && s.pond; i++) {
+            const id = u16(POND + i * 4);
+            if (id && !FISH[id]) s.pond = null;
+            else if (id) { s.pond[FISH[id]]++; s.pond.count++; }
+        }
+        if (s.pond && !s.pond.count && !s.pond.fed) s.pond = null;
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
             if (CANS.includes(u16(slot)) && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
@@ -294,13 +317,9 @@
         .animals { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .animal { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .animal .fill { background: #f472b6; }
+        .mark { opacity: .5; filter: grayscale(1); } .mark.on { opacity: 1; filter: none; }
         .animal .kind { display: inline-block; width: 15px; font-weight: 400; }
         .animal > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ftoggle.short { color: #f87171; }
-        .feed { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
-        .hen { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; }
-        .hen .where { color: #8b95a3; font-weight: 400; }
-        .hen .fed { color: #4ade80; } .hen .hungry { color: #f87171; } .hen .warn { color: #f59e0b; }
         .villagers { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .villager { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .villager .fill { background: #fbbf24; }
@@ -310,10 +329,11 @@
         .horse.best { color: #4ade80; }
         .horse .odds { font-weight: 400; }
         .hearts { display: grid; gap: 3px; border-top: 1px solid #2f3742; padding-top: 5px; }
-        .girl { display: grid; grid-template-columns: 44px 14px 1fr; align-items: center; gap: 6px; }
+        .girl { display: grid; grid-template-columns: 44px 14px 1fr 46px; align-items: center; gap: 6px; }
+        .girl a, .villager a { justify-self: start; color: inherit; text-decoration: none; } .girl a:hover, .villager a:hover { text-decoration: underline; }
         .heart { font-size: 13px; line-height: 1; text-shadow: 0 0 1px #fff, 0 0 1px #fff; }
     </style>
-    <div class="box" role="button" tabindex="0" title="Tap for hearts">
+    <div class="box">
         <div class="wait">Waiting for Harvest Moon</div>
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
@@ -326,12 +346,11 @@
         <div class="ores" hidden></div>
         <button class="row bk" type="button" aria-expanded="false" title="Show or hide basket contents" hidden><span class="label">Basket ▸</span><div class="bar"><div class="fill"></div></div><span class="num"></span></button>
         <div class="ores bkitems" hidden></div>
+        <div class="tool pond" hidden><span>Pond</span><span class="name"></span></div>
         <div class="race" hidden></div>
         <div class="toggle stoggle" hidden></div>
         <div class="shops" hidden>${SHOPS.map(([name], i) =>
             `<div class="shop sh-${i}"><span class="dot"></span><span>${name}</span><span class="when"></span></div>`).join('')}</div>
-        <div class="toggle ftoggle" title="Show or hide hens and whether each is fed" hidden></div>
-        <div class="feed" hidden></div>
         <div class="toggle atoggle" hidden></div>
         <div class="animals" hidden></div>
         <div class="toggle vtoggle" hidden></div>
@@ -340,12 +359,12 @@
         <div class="villagers sprites" hidden></div>
         <div class="toggle htoggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
-            `<div class="girl g-${name}"><span>${name}</span><span class="heart">♥</span><span class="num"></span></div>`).join('')}</div>
+            `<div class="girl g-${name}"><a href="${WIKI(name)}" target="_blank" rel="noopener">${name}</a><span class="heart">♥</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>`).join('')}</div>
         </div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems');
-    const more = $('.more'), ftoggle = $('.ftoggle'), feed = $('.feed');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond');
+    const more = $('.more');
     let expanded = false;
     more.addEventListener('click', e => {
         e.stopPropagation();
@@ -377,7 +396,6 @@
         basketOpen = !basketOpen;
         show(last);
     });
-    bkitems.addEventListener('click', e => e.stopPropagation());
     function flip() {
         open = !open;
         try { window.localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch {}
@@ -399,22 +417,6 @@
         try { window.localStorage.setItem(ANIMALS_KEY, animalsOpen ? '1' : '0'); } catch {}
         show(last);
     }
-    let feedOpen = false;
-    try { feedOpen = window.localStorage.getItem(FEED_KEY) === '1'; } catch {}
-    ftoggle.addEventListener('click', e => {
-        e.stopPropagation();
-        feedOpen = !feedOpen;
-        try { window.localStorage.setItem(FEED_KEY, feedOpen ? '1' : '0'); } catch {}
-        show(last);
-    });
-    feed.addEventListener('click', e => e.stopPropagation());
-    function henHtml(h, f) {
-        const where = h.inside ? 'In coop' : h.outside ? 'Outside ' + h.graze + '/' + GRAZE_DONE : 'Away';
-        let state = h.fed ? '<span class="fed">✓ Fed</span>' : h.inside ? '<span class="hungry">Needs feed</span>' : '<span class="hungry">Not fed</span>';
-        if (h.outside && !h.fed && f.winter) state = '<span class="warn" title="No grass outside in winter">❄️ No grass</span>';
-        else if (h.outside && f.rain) state = '<span class="warn" title="Loses love outside in rain">🌧️ Rain</span>';
-        return `<div class="hen"><span>${h.name}</span><span class="where">${where}</span>${state}</div>`;
-    }
     let villagersOpen = false;
     try { villagersOpen = window.localStorage.getItem(VILLAGERS_KEY) === '1'; } catch {}
     function flipVillagers(e) {
@@ -423,7 +425,6 @@
         try { window.localStorage.setItem(VILLAGERS_KEY, villagersOpen ? '1' : '0'); } catch {}
         show(last);
     }
-    box.addEventListener('click', () => { if (getComputedStyle(more).display === 'none') flip(); });
     let spritesOpen = false;
     try { spritesOpen = window.localStorage.getItem(SPRITES_KEY) === '1'; } catch {}
     function flipSprites(e) {
@@ -434,14 +435,20 @@
     }
     vtoggle.addEventListener('click', flipVillagers);
     ptoggle.addEventListener('click', flipSprites);
-    sprites.addEventListener('click', e => e.stopPropagation());
-    villagers.addEventListener('click', e => e.stopPropagation());
     atoggle.addEventListener('click', flipAnimals);
-    animals.addEventListener('click', e => e.stopPropagation());
     toggle.addEventListener('click', e => { e.stopPropagation(); flip(); });
     stoggle.addEventListener('click', flipShops);
-    shops.addEventListener('click', e => e.stopPropagation());
-    box.addEventListener('keydown', e => { if (e.target && e.target !== box) return; if (getComputedStyle(more).display !== 'none') return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+    // Tapping an open list closes it; links inside still open.
+    const closeOnTap = (list, close) => list.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!e.target?.closest?.('a')) close(e);
+    });
+    closeOnTap(sprites, flipSprites);
+    closeOnTap(villagers, flipVillagers);
+    closeOnTap(animals, flipAnimals);
+    closeOnTap(shops, flipShops);
+    closeOnTap(hearts, () => flip());
+    closeOnTap(bkitems, () => { basketOpen = false; show(last); });
 
     function place() {
         const parent = document.fullscreenElement || document.webkitFullscreenElement || document.body;
@@ -460,9 +467,7 @@
         villagers.hidden = vtoggle.hidden || !villagersOpen;
         ptoggle.hidden = !s || !s.sprites.length;
         sprites.hidden = ptoggle.hidden || !spritesOpen;
-        ftoggle.hidden = !s || !s.feed;
-        feed.hidden = ftoggle.hidden || !feedOpen;
-        box.classList.toggle('wide', !!s && (!!s.race || shopsOpen || animalsOpen && s.animals.length > 0 || !feed.hidden || !villagers.hidden || !sprites.hidden));
+        box.classList.toggle('wide', !!s && (!!s.race || shopsOpen || animalsOpen && s.animals.length > 0 || !villagers.hidden || !sprites.hidden || open));
         floor.hidden = ores.hidden = !s || s.floor === null;
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
@@ -478,6 +483,14 @@
             const html = Object.entries(s.basket.items).map(([name, n]) => `<span>${name}</span><span class="num">${n}</span>`).join('')
                 + `<span>Worth</span><span class="num">${s.basket.value.toLocaleString('en-US')}G</span>`;
             if (bkitems.innerHTML !== html) bkitems.innerHTML = html;
+        }
+        pond.hidden = !s || !s.pond;
+        if (s?.pond) {
+            const p = s.pond, name = pond.querySelector('.name');
+            const html = `S${p.small} M${p.medium} L${p.large} <span class="num">${p.count}/${POND_SLOTS}</span>`
+                + ` <span class="mark${p.fed ? ' on' : ''}">🍤</span>`;
+            if (name.innerHTML !== html) name.innerHTML = html;
+            pond.title = `Small ${p.small}, medium ${p.medium}, large ${p.large}. ` + (p.fed ? 'Fed today: fish grow tonight' : 'Not fed today');
         }
         race.hidden = !s || !s.race;
         if (s?.race) {
@@ -512,49 +525,44 @@
             wa.querySelector('.num').textContent = s.water + '/' + CAN_MAX;
             wa.classList.toggle('empty', s.water === 0);
         }
-        stoggle.textContent = (shopsOpen ? '▴ Hide shops' : '▾ Shops') + ' · ' + DAYS[s.weekday] + ' ' + clock(s.hour);
+        stoggle.textContent = (shopsOpen ? '▴ Shops' : '▾ Shops') + ' · ' + DAYS[s.weekday] + ' ' + clock(s.hour);
         if (shopsOpen) SHOPS.forEach((shop, i) => {
             const [, from, to, closed, season] = shop, row = shops.querySelector('.sh-' + i);
             row.classList.toggle('open', isOpen(shop, s));
             row.querySelector('.when').textContent = clock(from) + '–' + clock(to);
             row.title = (closed.length ? 'Closed ' + closed.map(d => DAYS[d]).join(', ') : 'Open every day') + (season === undefined ? '' : ', summer only');
         });
-        if (s.feed) {
-            const f = s.feed, short = f.need - f.boxes;
-            ftoggle.textContent = (feedOpen ? '▴ Hide hens' : '▾ Hens') + ' (' + f.hens.length + ')';
-            ftoggle.classList.toggle('short', short > 0);
-            if (feedOpen) {
-                const html = f.hens.map(h => henHtml(h, f)).join('');
-                if (feed.innerHTML !== html) feed.innerHTML = html;
-            }
-        }
-        atoggle.textContent = (animalsOpen ? '▴ Hide animals' : '▾ Animals') + ' (' + s.animals.length + ')';
+        atoggle.textContent = (animalsOpen ? '▴ Animals' : '▾ Animals') + ' (' + s.animals.length + ')';
         if (animalsOpen) {
-            const html = s.animals.map(a => `<div class="animal" title="${a.kind}"><span><span class="kind">${ANIMAL_ICON[a.kind] || '🐾'}</span>${a.name}</span>`
+            const mark = ([on, icon, tip]) => `<span class="mark${on ? ' on' : ''}" title="${tip}">${icon}</span>`;
+            const html = s.animals.map(a => `<div class="animal" title="${a.kind}"><span><span class="kind">${ANIMAL_ICON[a.kind] || '🐾'}</span>${a.name}`
+                + (a.marks ? ' ' + a.marks.map(mark).join('') : '') + `</span>`
                 + `<div class="bar"><div class="fill" style="width:${Math.round(a.love / LOVE_MAX * 100)}%"></div></div>`
                 + `<span class="num">${a.love}/${LOVE_MAX}</span></div>`).join('');
             if (animals.innerHTML !== html) animals.innerHTML = html;
         }
-        vtoggle.textContent = (villagersOpen ? '▴ Hide villagers' : '▾ Villagers') + ' (' + s.villagers.length + ')';
-        const friends = (list, colour) => list.map(v => `<div class="villager"><span>${v.name}</span>`
+        vtoggle.textContent = (villagersOpen ? '▴ Villagers' : '▾ Villagers') + ' (' + s.villagers.length + ')';
+        const friends = (list, colour, link) => list.map(v => `<div class="villager"><a href="${link(v.name)}" target="_blank" rel="noopener">${v.name}</a>`
             + `<div class="bar"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${colour?.[v.name] ? ';background:' + colour[v.name] : ''}"></div></div>`
             + `<span class="num">${v.value.toLocaleString('en-US')}/${FRIEND_MAX}</span></div>`).join('');
         if (villagersOpen) {
-            const html = friends(s.villagers);
+            const html = friends(s.villagers, null, WIKI);
             if (villagers.innerHTML !== html) villagers.innerHTML = html;
         }
-        ptoggle.textContent = (spritesOpen ? '▴ Hide sprites' : '▾ Sprites') + ' (' + s.sprites.length + ')';
+        ptoggle.textContent = (spritesOpen ? '▴ Sprites' : '▾ Sprites') + ' (' + s.sprites.length + ')';
         if (spritesOpen) {
-            const html = friends(s.sprites, SPRITE_COLOURS);
+            const html = friends(s.sprites, SPRITE_COLOURS, () => SPRITES_WIKI);
             if (sprites.innerHTML !== html) sprites.innerHTML = html;
         }
-        toggle.textContent = open ? '▴ Hide hearts' : '▾ Hearts';
+        toggle.textContent = open ? '▴ Hearts' : '▾ Hearts';
         if (!open) return;
         for (const [name] of GIRLS) {
             const v = s.hearts[name], h = heartOf(v), row = hearts.querySelector('.g-' + name);
             const heart = row.querySelector('.heart');
             heart.style.color = h[2];
             heart.title = h[1] + ' heart';
+            bar(row, v, HEART_MAX);
+            row.querySelector('.fill').style.background = h[3] || h[2];
             row.querySelector('.num').textContent = v.toLocaleString('en-US');
         }
     }
