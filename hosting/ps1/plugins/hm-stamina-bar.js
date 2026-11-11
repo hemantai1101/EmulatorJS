@@ -170,6 +170,8 @@
     const GRAZE_DONE = 5, WEATHER_TODAY = 0x7AD00, RAIN = 1, WINTER = 3;
     // Bit 0x20000 of a chicken's +0x34 flags marks the one the player holds (the put-down code at 0x800CF07C looks for it).
     const HELD_BIT = 0x20000;
+    // Bit 0x40 marks a contest winner; her egg is golden (item 0xE8) when love is 200 or more (0x800E2344).
+    const GOLD_BIT = 0x40, GOLD_LOVE = 200;
     // Fish pond: 99 slots of 4 bytes from 0x80075854 (u16 item, u16 days grown), counted by 0x8010C668.
     // Items 0xA3 small, 0xA2 medium, 0xA1 large (0x8010C5A0 sets the size by days: under 10, under 20, then large).
     // Bit 0 of 0x800759E0 is set when Fish Food goes in (0x8010C4B0); only then do the fish grow that night (0x8010C3F8).
@@ -242,6 +244,8 @@
         for (const at of HENS) {
             const bird = s.animals.find(a => a.at === at + 0x16);
             if (bird && (u32(at + 0x34) & HELD_BIT)) bird.marks = [[true, '🤲', 'You are holding her'], ...(bird.marks || [])];
+            if (bird && u16(at) === HEN && (u32(at + 0x34) & GOLD_BIT)) (bird.marks ||= []).push([bird.love >= GOLD_LOVE, '🥇',
+                bird.love >= GOLD_LOVE ? 'Lays golden eggs' : 'Golden eggs at ' + GOLD_LOVE + ' love']);
         }
         for (const a of s.animals) delete a.at;
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
