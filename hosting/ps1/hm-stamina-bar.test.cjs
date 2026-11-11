@@ -290,9 +290,20 @@ assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Peep'))), [[true, '🌿', 'G
 put16(0x70CF2, 3);
 run();
 assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Peep')[0])), [false, '🌿', 'No grass in winter']);
+H[B + 0x742EC + 0x36] = 2;
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Amy'))), [[true, '🤲', 'You are holding her'], [true, '🌾', 'Fed tonight']], 'the held hen is marked first');
+assert.equal(marksOf('Dot')[0][1], '🌾', 'other hens are not marked held');
+assert($('.animals').innerHTML.includes('Amy <span class="mark on" title="You are holding her">🤲</span>'));
+H[B + 0x742EC + 0x36] = 0;
 put16(0x742EC + 3 * 0xB4 + 0x30, 9);
 run();
 assert.equal(marksOf('Peep'), undefined, 'a hen away has no marks');
+H[B + 0x742EC + 3 * 0xB4 + 0x36] = 2;
+put16(0x742EC + 3 * 0xB4, 0x10A);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Peep'))), [[true, '🤲', 'You are holding her']], 'a held chick is marked too');
+H[B + 0x742EC + 3 * 0xB4 + 0x36] = 0;
 $('.atoggle').fire('click');
 for (const i of [0, 3, 5]) { put16(0x742EC + i * 0xB4, 0); put16(0x742EC + i * 0xB4 + 4, 0xFFFF); }
 H[B + 0x7130E + 2] = 0; put16(0x7AD00, 0); put16(0x70CF2, 0);
@@ -494,4 +505,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond, horse race tips, shop hours, animal love, coop feed, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond, horse race tips, shop hours, animal love, coop feed, held chicken, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
