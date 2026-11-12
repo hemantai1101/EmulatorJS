@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, fish pond, ripe crops, shop hours, animal love, villager and sprite friendship, sprite jobs, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, fish pond, ripe crops, shop hours and closed days, animal love, villager and sprite friendship, sprite jobs, can water, tomorrow's weather, hearts and auto fishing. Reads RAM only; never writes it. Auto fish presses pad buttons through the emulator.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -153,7 +153,7 @@
     // Season (0 spring) at 0x80070CF2, weekday at 0x80070CF6 (0 is Sunday: the day-name code at 0x8001AAB8 indexes "Sun" first), hour at 0x80070CF8.
     const SEASON = 0x70CF2, WEEKDAY = 0x70CF6, HOUR = 0x70CF8, DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     // Shop hours from fan guides, not the game's code: [name, opens, closes, closed weekdays, only in season].
-    // Festivals and storms can also close shops; the plugin does not know about those.
+    // Storms can also close shops; the plugin does not know about those.
     const SHOPS = [
         ['Supermarket', 9, 18, [0, 2]], ['Blacksmith', 10, 16, [4]], ['Carpenter', 11, 17, [0]],
         ['Poultry Farm', 12, 16, [0]], ['Yodel Ranch', 9, 15, [1]], ['Clinic', 9, 16, [3]],
@@ -166,7 +166,7 @@
         ['Chicken', Array.from({ length: 10 }, (_, i) => 0x74302 + i * 0xB4)],
         ['Barn', Array.from({ length: 20 }, (_, i) => 0x74A0A + i * 0xB8)]];
     const ANIMALS_KEY = 'ps1-plugin-hm-animals-open', LOVE_MAX = 255, DOG_FLAGS = 0x75A18, HORSE_FLAGS = 0x75B08;
-    const ANIMAL_ICON = { Dog: '🐶', Horse: '🐴', Chicken: '🐔', Chick: '🐣', Barn: '🐄' };
+    const ANIMAL_ICON = { Dog: '🐶', Horse: '🐴', Chicken: '🐔', Chick: '🐣', Barn: '🐄', Cow: '🐄', Calf: '🐮', Sheep: '🐑', Lamb: '🐑' };
     // Coop feed (game code 0x800E21E4): at the new day each unfed hen in the coop (place 4) empties the first full box of 10 at 0x8007130E.
     // A hen outside (place 1) is fed after 5 outside ticks (+0xAC, code 0x800E20F0); rain (today 0x8007AD00 = 1) costs love instead, winter does nothing.
     const COOP_BOXES = 0x7130E, HENS = Array.from({ length: 10 }, (_, i) => 0x742EC + i * 0xB4), HEN = 0x109, CHICK = 0x10A, IN_COOP = 4, OUTSIDE = 1;
@@ -175,6 +175,15 @@
     const HELD_BIT = 0x20000;
     // Bit 0x40 marks a contest winner; her egg is golden (item 0xE8) when love is 200 or more (0x800E2344).
     const GOLD_BIT = 0x40, GOLD_LOVE = 200;
+    // Barn animals: 0xB8-byte records from 0x800749F4; +0 kind (0x160-0x162 cow by age, 0x164-0x165 sheep), flag 0x10000 marks a sheep.
+    // New day (cows at 0x800DEB00, then sheep at 0x800E06E0): an unfed animal in the barn (place 5) empties the first full fodder box
+    // of 22 at 0x800712F8. Fed +1 love, unfed -10; flag 2 (talked, 0x800DF9F0) +3; 5 outside ticks +1. Flag 4 (brushed, 0x800DF6A8)
+    // is set but not read at the new day. Flag 8 milked today, 0x10 milk ready (0x800DF84C), 0x100 sick.
+    // +0xB2 counts pregnancy days (birth at 21); +0xB4 counts a sheep's fed days and shearing needs 7 (0x800E1404).
+    // Outside (place 1, 0x800DE9C8): 5 ticks on grass feeds; rain costs 5 love a tick; winter does nothing.
+    const BARN = Array.from({ length: 20 }, (_, i) => 0x749F4 + i * 0xB8), FODDER = 0x712F8, FODDER_BOXES = 22, IN_BARN = 5;
+    const SHEEP_BIT = 0x10000, ADULT_COW = 0x162, LAMB = 0x164, TALKED = 2, BRUSHED = 4, MILKED = 8, MILK_READY = 0x10, SICK = 0x100;
+    const BIRTH_DAYS = 21, WOOL_DAYS = 7;
     // Fish pond: 99 slots of 4 bytes from 0x80075854 (u16 item, u16 days grown), counted by 0x8010C668.
     // Items 0xA3 small, 0xA2 medium, 0xA1 large (0x8010C5A0 sets the size by days: under 10, under 20, then large).
     // Bit 0 of 0x800759E0 is set when Fish Food goes in (0x8010C4B0); only then do the fish grow that night (0x8010C3F8).
@@ -188,11 +197,29 @@
     const FIELD = 0x71DFC, FIELD_TILES = 1125, HOTHOUSE = 0x74124, HOTHOUSE_TILES = 49, HOTHOUSE_ON = 0x70D0C, GROWTH_PTR = 0x6C864, CROP_FLAG = 0x40;
     const letter = c => c < 26 ? String.fromCharCode(c + 65) : c >= 32 && c < 58 ? String.fromCharCode(c + 65) : '?';
     const clock = h => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
-    const isOpen = ([, from, to, closed, season], s) =>
-        s.hour >= from && s.hour < to && !closed.includes(s.weekday) && (season === undefined || season === s.season);
+    // Daytime festivals by season and day of season (1-30), from the fan wiki at wiki.ranchstory.farm, not the game's code.
+    // The plugin treats every shop as shut all day on these days.
+    const FESTIVALS = [
+        { 1: 'New Year', 8: 'Goddess Festival', 18: 'Horse Race', 22: 'Cooking Festival' },
+        { 1: 'Beach Opening', 7: 'Chicken Festival', 12: 'Tomato Festival', 20: 'Cow Festival' },
+        { 9: 'Harvest Festival', 21: 'Sheep Festival' },
+        { 10: 'Dog Race' }
+    ];
+    const festival = s => s.day === undefined ? undefined : FESTIVALS[s.season]?.[s.day + 1];
+    const shutToday = ([, , , closed, season], s) =>
+        closed.includes(s.weekday) || season !== undefined && season !== s.season || festival(s) !== undefined;
+    const isOpen = (shop, s) => s.hour >= shop[1] && s.hour < shop[2] && !shutToday(shop, s);
     // BIOS exception handler at 0x80, used to find where PS1 RAM sits in the emulator heap.
     const SIG = [0x00, 0x00, 0x1a, 0x3c, 0x80, 0x0c, 0x5a, 0x27, 0x08, 0x00, 0x40, 0x03];
 
+    // Auto fish. Player record at 0x80071A00 (0x800C4028): +0x3C fishing step, +0x6C flags, +0x84 tool.
+    // Fishing runs while flags & 0x800010 is 0x10 (0x800C4244). Step 1 is a bite (0x801201B8); the line stays out while
+    // Square (pad bit 0x80) is held, and letting go on a bite reels the fish in (0x801202C0). The catch goes to the hands
+    // (u16 item at +0xF0; 0x800CB540) and R2 puts it in the rucksack. The held item slot is +0x8A (R2 code 0x800C8E98).
+    // Square with an item in the hands eats it, so Square is only pressed after both slots stay empty.
+    // X with an item in the hands throws it (0x800C8D24 → 0x800CB850). Fishing junk (62, 233, 235, 236) goes back in.
+    const PLAYER_FLAGS = 0x71A6C, FISH_STEP = 0x71A3C, IN_HANDS = 0x71AF0, ITEM = 0x71A8A, FISHING = 0x10, BUSY = 0x800000, BITE = 1;
+    const RODS = [56, 57], JUNK = [62, 233, 235, 236], PAD_X = 0, PAD_SQUARE = 1, PAD_R2 = 13;
     const heap = () => window.EJS_emulator?.gameManager?.Module?.HEAPU8 || null;
     const hasSig = (H, i) => SIG.every((v, j) => H[i + j] === v);
     function findRam(H) {
@@ -237,7 +264,7 @@
         // Horse flags work the same way (0x8010B264): 0x4 brushed today, 0x2 came when called today.
         const horse = s.animals.find(a => a.kind === 'Horse');
         if (horse) horse.marks = [[(H[B + HORSE_FLAGS] & 4) !== 0, '🪮', 'Brushed today'], [(H[B + HORSE_FLAGS] & 2) !== 0, '📯', 'Called today']];
-        s.season = u16(SEASON); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
+        s.season = u16(SEASON); s.day = u16(DAY); s.weekday = u16(WEEKDAY); s.hour = u16(HOUR);
         // Hens take full coop boxes in slot order at the new day, so a full box counts as fed for the first unfed hens inside.
         let boxes = 0;
         for (let i = 0; i < 10; i++) if (H[B + COOP_BOXES + i]) boxes++;
@@ -259,6 +286,31 @@
             if (bird && (u32(at + 0x34) & HELD_BIT)) bird.marks = [[true, '🤲', 'You are holding her'], ...(bird.marks || [])];
             if (bird && u16(at) === HEN && (u32(at + 0x34) & GOLD_BIT)) (bird.marks ||= []).push([bird.love >= GOLD_LOVE, '🥇',
                 bird.love >= GOLD_LOVE ? 'Lays golden eggs' : 'Golden eggs at ' + GOLD_LOVE + ' love']);
+        }
+        // Cows take fodder before sheep, each in slot order, as the new-day loops do.
+        let fodder = 0;
+        for (let i = 0; i < FODDER_BOXES; i++) if (H[B + FODDER + i]) fodder++;
+        const barn = BARN.map(at => ({ at, a: s.animals.find(x => x.at === at + 0x16), flags: u32(at + 0x34) })).filter(x => x.a && u16(x.at));
+        for (const { at, a, flags } of [...barn.filter(x => !(x.flags & SHEEP_BIT)), ...barn.filter(x => x.flags & SHEEP_BIT)]) {
+            a.kind = flags & SHEEP_BIT ? (u16(at) === LAMB ? 'Lamb' : 'Sheep') : (u16(at) === ADULT_COW ? 'Cow' : 'Calf');
+            const fed = (flags & 1) === 1, where = u16(at + 0x30), graze = Math.min(u16(at + 0xAC), GRAZE_DONE), baby = u16(at + 0xB2);
+            a.marks = [];
+            if (where === IN_BARN) {
+                const covered = fed || fodder-- > 0;
+                a.marks.push([covered, '🌾', covered ? 'Fed tonight' : 'No fodder in the barn']);
+            } else if (where === OUTSIDE) {
+                a.marks.push([!winter && (fed || graze >= GRAZE_DONE), '🌿', winter ? 'No grass in winter' : 'Grazed ' + graze + '/' + GRAZE_DONE]);
+                if (rain) a.marks.push([true, '🌧️', 'Rain: loses love outside']);
+            }
+            a.marks.push([(flags & TALKED) !== 0, '💬', 'Talked today (+3 love tonight)'], [(flags & BRUSHED) !== 0, '🪮', 'Brushed today']);
+            if (a.kind === 'Cow' && !baby && flags & (MILKED | MILK_READY))
+                a.marks.push([(flags & MILKED) !== 0, '🥛', flags & MILKED ? 'Milked today' : 'Milk ready']);
+            if (a.kind === 'Sheep') {
+                const wool = Math.min(u16(at + 0xB4), WOOL_DAYS);
+                a.marks.push([wool >= WOOL_DAYS, '✂️', wool >= WOOL_DAYS ? 'Wool ready' : 'Wool ' + wool + '/' + WOOL_DAYS]);
+            }
+            if (baby) a.marks.push([true, '🍼', 'Baby in ' + Math.max(0, BIRTH_DAYS - baby) + ' days']);
+            if (flags & SICK) a.marks.push([true, '🤒', 'Sick']);
         }
         for (const a of s.animals) delete a.at;
         s.tomorrow = WEATHER[u16(WEATHER_TOMORROW)] || null;
@@ -340,10 +392,17 @@
         button.bk { width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
         .bk .label, .pond .label { font-size: 10px; }
         button.pond { width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-        .fishes { display: grid; grid-template-columns: 1fr auto auto; gap: 1px 8px; padding-left: 12px; white-space: nowrap; font-weight: 400; font-size: 10px; color: #cfd6df; }
+        .fishes { display: grid; grid-template-columns: 30px 1fr auto 40px; align-items: center; gap: 3px 6px; padding-left: 6px; white-space: nowrap; font-weight: 400; font-size: 10px; color: #cfd6df; }
+        .meter { position: relative; height: 7px; background: #2a313b; }
+        .meter .fill { position: absolute; inset: 0 auto 0 0; background: #a5f3fc; } .meter.m .fill { background: #38bdf8; } .meter.l .fill { background: #4ade80; }
+        .meter::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, #11161d 1px, transparent 1px) 0 0 / calc(100% / 30) 100% repeat-x; }
+        .meter::before { content: ''; position: absolute; inset: -2px 0; z-index: 1;
+            background: linear-gradient(#e5e7eb, #e5e7eb) 33.333% 0 / 1px 100% no-repeat, linear-gradient(#e5e7eb, #e5e7eb) 66.667% 0 / 1px 100% no-repeat; }
         .bk .fill { background: #d6a35c; } .bk.full .fill { background: #ef4444; }
         .wa .fill { background: #38bdf8; } .wa.empty .fill { background: #ef4444; }
         .tool { display: grid; grid-template-columns: 44px 1fr; gap: 6px; }
+        button.autofish { justify-self: start; margin-left: 50px; padding: 1px 6px; border: 1px solid #3b4654; border-radius: 6px; background: #1f2630; color: inherit; font: inherit; font-size: 10px; cursor: pointer; }
+        button.autofish.on { border-color: #4ade80; color: #4ade80; }
         .tool .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .icon { font-size: 14px; line-height: 1; }
         .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -356,11 +415,13 @@
         .shop .dot { width: 7px; height: 7px; border-radius: 50%; background: #4b5563; }
         .shop.open .dot { background: #4ade80; }
         .shop:not(.open) { color: #8b95a3; }
+        .shop.shut .when { color: #f87171; }
         .shop .when { font-weight: 400; font-variant-numeric: tabular-nums; }
         .animals { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .animal { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
         .animal .fill { background: #f472b6; }
         .mark { opacity: .5; filter: grayscale(1); } .mark.on { opacity: 1; filter: none; }
+        .jobdays { margin-left: 2px; font-size: .85em; opacity: .8; }
         .animal .kind { display: inline-block; width: 15px; font-weight: 400; }
         .animal > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .villagers { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
@@ -383,6 +444,7 @@
         <button class="more" type="button" aria-expanded="false">More</button>
         <div class="details">
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
+        <button class="autofish" type="button" title="Casts, reels in on a bite and puts the catch in the rucksack. Stops when you press anything, stamina is low or you are tired." hidden></button>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="tool sky" hidden><span>Tmrw</span><span class="name icon"></span></div>
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
@@ -390,7 +452,7 @@
         <button class="row bk" type="button" aria-expanded="false" title="Show or hide basket contents" hidden><span class="label">Basket ▸</span><div class="bar"><div class="fill"></div></div><span class="num"></span></button>
         <div class="ores bkitems" hidden></div>
         <button class="tool pond" type="button" aria-expanded="false" title="Show or hide fish nights" hidden><span class="label">Pond ▸</span><span class="name"></span></button>
-        <div class="fishes" title="Fed nights per fish. M or L: nights until medium or large. 🐟: nights until it may have babies." hidden></div>
+        <div class="fishes" title="Each step is one fed night. Lines mark medium (10) and large (20); the bar ends at 30, when a fish may have babies. M, L, 🐟: nights left until then." hidden></div>
         <div class="tool crops" hidden><span>Ripe</span><span class="name"></span></div>
         <div class="race" hidden></div>
         <div class="toggle stoggle" hidden></div>
@@ -408,7 +470,7 @@
         </div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond'), fishes = $('.fishes'), crops = $('.crops');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond'), autofish = $('.autofish'), fishes = $('.fishes'), crops = $('.crops');
     const more = $('.more');
     let expanded = false;
     more.addEventListener('click', e => {
@@ -441,6 +503,79 @@
         basketOpen = !basketOpen;
         show(last);
     });
+    // Auto fish runs its own fast loop: a bite lasts only 5-30 game ticks.
+    let fish = { on: false, phase: '', at: 0, caught: 0, tossed: 0, tries: 0, why: '', empty: 0 }, fishTimer = null;
+    const pad = (i, v) => { try { window.EJS_emulator?.gameManager?.simulateInput(0, i, v); } catch {} };
+    function fishStop(why) {
+        if (fishTimer) clearInterval(fishTimer);
+        fishTimer = null;
+        if (fish.on) { pad(PAD_SQUARE, 0); pad(PAD_R2, 0); pad(PAD_X, 0); }
+        fish = { ...fish, on: false, why };
+        show(last);
+    }
+    function fishStart() {
+        fish = { on: true, phase: 'ready', at: Date.now(), caught: 0, tossed: 0, tries: 0, why: '', empty: Date.now() };
+        fishTimer = setInterval(fishStep, 30);
+        show(last);
+    }
+    function fishStep() {
+        const H = heap(), now = Date.now(), t = now - fish.at;
+        if (!H || B === null || !hasSig(H, B + 0x80)) return fishStop('Game not found');
+        if (window.EJS_emulator?.paused || document.hidden) return fishStop('Game paused');
+        if ([...(window.navigator?.getGamepads?.() || [])].some(g => g?.buttons.some(b => b.pressed))) return fishStop('You pressed a button');
+        const u16 = o => H[B + o] | (H[B + o + 1] << 8), flags = (u16(PLAYER_FLAGS) | (u16(PLAYER_FLAGS + 2) << 16)) >>> 0;
+        const fishing = (flags & (FISHING | BUSY)) === FISHING, hands = u16(IN_HANDS) !== 0 || u16(ITEM) !== 0;
+        // How long both hand slots have been empty without a break.
+        if (hands) fish.empty = 0; else if (!fish.empty) fish.empty = now;
+        const emptyFor = fish.empty ? now - fish.empty : 0;
+        const go = phase => { fish.phase = phase; fish.at = now; };
+        if (!RODS.includes(u16(HELD))) return fishStop('No rod in hand');
+        switch (fish.phase) {
+            case 'ready':
+                if (t < 600) return;
+                if (hands) return fishStop('Hands are full');
+                if (emptyFor < 600) return;
+                if (u16(STAMINA) <= u16(STAMINA_MAX) * 0.3) return fishStop('Stamina low');
+                if (u16(FATIGUE) >= FATIGUE_TIRED) return fishStop('Too tired');
+                pad(PAD_SQUARE, 1);
+                return go('cast');
+            case 'cast':
+                if (fishing) return go('wait');
+                if (t > 4000) { pad(PAD_SQUARE, 0); return fishStop('No water here'); }
+                return;
+            case 'wait':
+                if (!fishing) { pad(PAD_SQUARE, 0); return go('ready'); }
+                if (u16(FISH_STEP) === BITE) { pad(PAD_SQUARE, 0); return go('reel'); }
+                return;
+            case 'reel':
+                if (!fishing) return go('landed');
+                if (t > 10000) return fishStop('Reel-in got stuck');
+                return;
+            case 'landed':
+                // The catch can reach the hands after the line is in; give it 4 s before calling it a miss.
+                if (!hands) return t > 4000 ? go('ready') : undefined;
+                if (t < 1500) return;
+                fish.button = JUNK.includes(u16(ITEM) || u16(IN_HANDS)) ? PAD_X : PAD_R2;
+                pad(fish.button, 1); fish.tries = 1;
+                return go('store');
+            case 'store':
+                if (t > 150) pad(fish.button, 0);
+                if (emptyFor >= 800) { fish.button === PAD_X ? fish.tossed++ : fish.caught++; return go('ready'); }
+                if (t < 1200 || !hands) return;
+                if (fish.tries >= 3) return fishStop(fish.button === PAD_X ? 'Could not throw it back' : 'Rucksack full');
+                pad(fish.button, 1); fish.tries++;
+                return go('store');
+        }
+    }
+    autofish.addEventListener('click', e => {
+        e.stopPropagation();
+        if (fish.on) fishStop('');
+        else fishStart();
+    });
+    // Any key or tap outside the panel hands control back.
+    const fishInterrupt = e => { if (fish.on && !e.composedPath?.().includes(host)) fishStop('You pressed a key'); };
+    window.addEventListener?.('keydown', fishInterrupt, true);
+    window.addEventListener?.('pointerdown', fishInterrupt, true);
     let pondOpen = false;
     try { pondOpen = window.localStorage.getItem(POND_KEY) === '1'; } catch {}
     function flipPond() {
@@ -511,14 +646,16 @@
     function bar(row, value, max) {
         row.querySelector('.fill').style.width = Math.min(100, Math.round(value / max * 100)) + '%';
     }
-    // One row per fed-night count, most first: size, nights, how many, nights to the next step.
+    // One row per fed-night count, most first: size and nights, a 30-step meter, how many, nights to the next step.
     function fishHtml(days) {
         const counts = new Map();
         for (const d of [...days].sort((a, b) => b - a)) counts.set(d, (counts.get(d) || 0) + 1);
         return [...counts].map(([d, n]) => {
             const size = d < POND_MEDIUM ? 'S' : d < POND_LARGE ? 'M' : 'L';
             const next = d < POND_MEDIUM ? `M in ${POND_MEDIUM - d}` : d < POND_LARGE ? `L in ${POND_LARGE - d}` : `🐟 in ${Math.max(0, POND_BREED - d)}`;
-            return `<span>${size} ${d} night${d === 1 ? '' : 's'}</span><span class="num">×${n}</span><span class="num">${next}</span>`;
+            const fill = Math.round(Math.min(d, POND_BREED) / POND_BREED * 1000) / 10;
+            return `<span>${size} ${d}</span><div class="meter ${size.toLowerCase()}"><div class="fill" style="width:${fill}%"></div></div>`
+                + `<span class="num">×${n}</span><span class="num">${next}</span>`;
         }).join('');
     }
     function show(s) {
@@ -531,7 +668,7 @@
         villagers.hidden = vtoggle.hidden || !villagersOpen;
         ptoggle.hidden = !s || !s.sprites.length;
         sprites.hidden = ptoggle.hidden || !spritesOpen;
-        box.classList.toggle('wide', !!s && (!!s.race || shopsOpen || animalsOpen && s.animals.length > 0 || !villagers.hidden || !sprites.hidden || open));
+        box.classList.toggle('wide', !!s && (!!s.race || pondOpen && !!s.pond?.count || shopsOpen || animalsOpen && s.animals.length > 0 || !villagers.hidden || !sprites.hidden || open));
         floor.hidden = ores.hidden = !s || s.floor === null;
         sky.hidden = !s || s.tomorrow === null;
         hearts.hidden = !s || !open;
@@ -548,6 +685,9 @@
                 + `<span>Worth</span><span class="num">${s.basket.value.toLocaleString('en-US')}G</span>`;
             if (bkitems.innerHTML !== html) bkitems.innerHTML = html;
         }
+        autofish.hidden = !s || !fish.on && !RODS.includes(s.held);
+        autofish.classList.toggle('on', fish.on);
+        autofish.textContent = fish.on ? `🎣 Stop · ${fish.caught} caught` + (fish.tossed ? ` · ${fish.tossed} junk` : '') : '🎣 Auto fish' + (fish.why ? ' · ' + fish.why : '');
         pond.hidden = !s || !s.pond;
         if (s?.pond) {
             const p = s.pond, name = pond.querySelector('.name');
@@ -602,12 +742,16 @@
             wa.querySelector('.num').textContent = s.water + '/' + CAN_MAX;
             wa.classList.toggle('empty', s.water === 0);
         }
-        stoggle.textContent = (shopsOpen ? '▴ Shops' : '▾ Shops') + ' · ' + DAYS[s.weekday] + ' ' + clock(s.hour);
+        const fest = festival(s);
+        stoggle.textContent = (shopsOpen ? '▴ Shops' : '▾ Shops') + ' · ' + DAYS[s.weekday] + ' ' + clock(s.hour) + (fest ? ' · 🎉 ' + fest : '');
+        stoggle.title = fest ? fest + ' today: shops treated as closed all day (festival dates from a fan wiki)' : '';
         if (shopsOpen) SHOPS.forEach((shop, i) => {
-            const [, from, to, closed, season] = shop, row = shops.querySelector('.sh-' + i);
+            const [, from, to, closed, season] = shop, row = shops.querySelector('.sh-' + i), shut = shutToday(shop, s);
             row.classList.toggle('open', isOpen(shop, s));
-            row.querySelector('.when').textContent = clock(from) + '–' + clock(to);
-            row.title = (closed.length ? 'Closed ' + closed.map(d => DAYS[d]).join(', ') : 'Open every day') + (season === undefined ? '' : ', summer only');
+            row.classList.toggle('shut', shut);
+            row.querySelector('.when').textContent = shut ? (fest ? '🎉 Closed' : 'Closed') : clock(from) + '–' + clock(to);
+            row.title = clock(from) + '–' + clock(to) + '. ' + (closed.length ? 'Closed ' + closed.map(d => DAYS[d]).join(', ') : 'Open every day')
+                + (season === undefined ? '' : ', summer only') + (fest ? '. ' + fest + ' today' : '');
         });
         atoggle.textContent = (animalsOpen ? '▴ Animals' : '▾ Animals') + ' (' + s.animals.length + ')';
         if (animalsOpen) {
@@ -622,7 +766,7 @@
         const jobTip = j => j.kind + (j.days ? ` · ${j.days} more day${j.days > 1 ? 's' : ''}` : ' · last day today');
         const friends = (list, colour, link) => list.map(v => `<div class="villager">`
             + (v.job ? '<span>' : '') + `<a href="${link(v.name)}" target="_blank" rel="noopener">${v.name}</a>`
-            + (v.job ? ` <span class="mark on" title="${jobTip(v.job)}">${v.job.icon}</span></span>` : '')
+            + (v.job ? ` <span class="mark on" title="${jobTip(v.job)}">${v.job.icon}<span class="jobdays">${v.job.days ? v.job.days + 'd' : 'today'}</span></span></span>` : '')
             + `<div class="bar"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${colour?.[v.name] ? ';background:' + colour[v.name] : ''}"></div></div>`
             + `<span class="num">${v.value.toLocaleString('en-US')}/${FRIEND_MAX}</span></div>`).join('');
         if (villagersOpen) {
@@ -665,7 +809,15 @@
     tick();
     const timer = setInterval(tick, 250);
     window.__hmStamina = {
-        stop() { clearInterval(timer); host.remove(); delete window.__hmStamina; },
+        stop() {
+            fishStop('');
+            clearInterval(timer);
+            window.removeEventListener?.('keydown', fishInterrupt, true);
+            window.removeEventListener?.('pointerdown', fishInterrupt, true);
+            host.remove();
+            delete window.__hmStamina;
+        },
+        fish: () => ({ ...fish }),
         read: () => { const H = heap(); return H && B !== null ? read(H, B) : null; },
         heart: v => heartOf(v)[1],
         toolName,

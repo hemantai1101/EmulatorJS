@@ -65,7 +65,7 @@ run();
 const s = window.__hmStamina.read();
 assert.equal(s.animals.length, 0, 'no named animals');
 assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined, villagers: undefined, sprites: undefined },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, heldCount: null, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, pond: null, crops: null, race: null, animals: undefined, villagers: undefined, sprites: undefined });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, heldCount: null, place: null, floor: null, season: 0, day: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, pond: null, crops: null, race: null, animals: undefined, villagers: undefined, sprites: undefined });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -201,7 +201,7 @@ assert.equal($('.hearts').hidden, false, 'open choice survives a restart');
 // Shops: closed until tapped; open shops get a green dot from the weekday and hour.
 const shopRow = i => $('.shops').querySelector('.sh-' + i);
 assert.equal($('.shops').hidden, true);
-put16(0x70CF6, 1); put16(0x70CF8, 10);
+put16(0x70CF6, 1); put16(0x70CF8, 10); put16(0x70CF4, 1);
 run();
 assert.equal($('.stoggle').textContent, '▾ Shops · Mon 10a');
 let heartsBefore = $('.hearts').hidden;
@@ -213,8 +213,23 @@ assert($('.box').classList.has('wide'));
 assert(shopRow(0).classList.has('open'), 'Supermarket open Monday 10 AM');
 assert(!shopRow(4).classList.has('open'), 'Yodel Ranch closed on Monday');
 assert.equal(shopRow(0).querySelector('.when').textContent, '9a–6p');
-assert.equal(shopRow(0).title, 'Closed Sun, Tue');
-assert.equal(shopRow(9).title, 'Closed Mon, summer only');
+assert.equal(shopRow(0).title, '9a–6p. Closed Sun, Tue');
+assert.equal(shopRow(9).title, '10a–5p. Closed Mon, summer only');
+assert.equal(shopRow(4).querySelector('.when').textContent, 'Closed', 'Yodel Ranch rest day says Closed');
+assert(shopRow(4).classList.has('shut'));
+assert.equal(shopRow(9).querySelector('.when').textContent, 'Closed', 'Kai shut outside summer');
+assert(!shopRow(0).classList.has('shut'));
+put16(0x70CF4, 7);
+run();
+assert.equal($('.stoggle').textContent, '▴ Shops · Mon 10a · 🎉 Goddess Festival', 'Spring 8 is a festival');
+assert(!shopRow(0).classList.has('open'), 'shops closed on a festival');
+assert.equal(shopRow(0).querySelector('.when').textContent, '🎉 Closed');
+assert.equal(shopRow(0).title, '9a–6p. Closed Sun, Tue. Goddess Festival today');
+assert.equal(window.__hmStamina.isOpen('Inn', { season: 3, day: 9, weekday: 3, hour: 12 }), false, 'Winter 10 Dog Race');
+assert.equal(window.__hmStamina.isOpen('Inn', { season: 3, day: 10, weekday: 3, hour: 12 }), true);
+put16(0x70CF4, 1);
+run();
+assert.equal(shopRow(0).querySelector('.when').textContent, '9a–6p');
 const open = (name, season, weekday, hour) => window.__hmStamina.isOpen(name, { season, weekday, hour });
 assert.equal(open('Supermarket', 0, 2, 10), false, 'closed Tuesday');
 assert.equal(open('Supermarket', 0, 3, 17), true);
@@ -227,7 +242,7 @@ assert.equal($('.shops').hidden, false, 'shops choice survives a restart');
 $('.shops').fire('click');
 assert.equal($('.shops').hidden, true, 'tapping the open shops closes them');
 assert.equal($('.box').classList.has('wide'), !$('.hearts').hidden, 'only open hearts keep the box wide');
-put16(0x70CF6, 0); put16(0x70CF8, 0);
+put16(0x70CF6, 0); put16(0x70CF8, 0); put16(0x70CF4, 0);
 
 // Animals: a slot shows when its name (18 bytes before the love byte) does not start with 0xFFFF.
 const name = (at, text) => { [...text].forEach((c, i) => put16(at - 18 + i * 2, c.charCodeAt(0) - 65)); for (let i = text.length; i < 9; i++) put16(at - 18 + i * 2, 0xFFFF); };
@@ -318,6 +333,39 @@ for (const i of [0, 3, 5]) { put16(0x742EC + i * 0xB4, 0); put16(0x742EC + i * 0
 H[B + 0x7130E + 2] = 0; put16(0x7AD00, 0); put16(0x70CF2, 0);
 run();
 
+// Cow and sheep marks: cows take fodder boxes before sheep; talk, brush, milk, wool, baby and sick come from the record.
+const barnAnimal = (i, nm, kind, where, flags, extra = {}) => {
+  const at = 0x749F4 + i * 0xB8;
+  put16(at, kind); name(at + 0x16, nm); put16(at + 0x30, where);
+  put16(at + 0x34, flags & 0xFFFF); put16(at + 0x36, flags >>> 16);
+  for (const [o, v] of Object.entries(extra)) put16(at + Number(o), v);
+};
+barnAnimal(0, 'Wooly', 0x165, 5, 0x10000 | 2, { 0xB4: 7 });
+barnAnimal(1, 'Bess', 0x162, 5, 0x10 | 4);
+barnAnimal(2, 'Daisy', 0x162, 5, 0x8 | 0x100, { 0xB2: 5 });
+barnAnimal(3, 'Lil', 0x160, 1, 0, { 0xAC: 2 });
+H[B + 0x712F8 + 4] = 1;
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Bess'))), [[true, '🌾', 'Fed tonight'], [false, '💬', 'Talked today (+3 love tonight)'],
+  [true, '🪮', 'Brushed today'], [false, '🥛', 'Milk ready']], 'the first cow gets the box');
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Daisy'))), [[false, '🌾', 'No fodder in the barn'], [false, '💬', 'Talked today (+3 love tonight)'],
+  [false, '🪮', 'Brushed today'], [true, '🍼', 'Baby in 16 days'], [true, '🤒', 'Sick']], 'a pregnant cow shows no milk');
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Wooly'))), [[false, '🌾', 'No fodder in the barn'], [true, '💬', 'Talked today (+3 love tonight)'],
+  [false, '🪮', 'Brushed today'], [true, '✂️', 'Wool ready']], 'sheep come after cows for fodder, even in slot 0');
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Lil'))), [[false, '🌿', 'Grazed 2/5'], [false, '💬', 'Talked today (+3 love tonight)'],
+  [false, '🪮', 'Brushed today']], 'a calf outside shows grazing and no milk');
+assert.deepEqual([...window.__hmStamina.read().animals.filter(a => ['Bess', 'Wooly', 'Lil'].includes(a.name)).map(a => a.kind)], ['Sheep', 'Cow', 'Calf']);
+put16(0x749F4 + 0xB4, 3);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Wooly').at(-1))), [false, '✂️', 'Wool 3/7']);
+$('.atoggle').fire('click');
+run();
+assert($('.animals').innerHTML.includes('<span class="kind">🐑</span>Wooly'), 'sheep get their own emoji');
+$('.atoggle').fire('click');
+for (const i of [0, 1, 2, 3]) { put16(0x749F4 + i * 0xB8, 0); put16(0x749F4 + i * 0xB8 + 4, 0xFFFF); }
+H[B + 0x712F8 + 4] = 0;
+run();
+
 // Villagers: friendship is the u16 2 bytes before each villager's affection, out of 255; the girls are not listed.
 const friend = n => girl(n) - 2;
 const sprite = (k, text, v) => { const at = 0x7A638 + k * 0xF8; for (let i = 0; i < 9; i++) put16(at + 4 + i * 2, i < text.length ? text.charCodeAt(i) - 65 : 0xFFFF); put16(at + 0x16, v); };
@@ -382,7 +430,8 @@ assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().sprites)), 
 assert.equal($('.ptoggle').textContent, '▾ Sprites (2) 🌾💧', 'jobs show on the closed toggle');
 assert.equal($('.ptoggle').title, 'Chef: Harvest · 3 more days\nAqua: Water · last day today');
 $('.ptoggle').fire('click');
-assert.match($('.sprites').innerHTML, /^<div class="villager"><span><a [^>]+>Chef<\/a> <span class="mark on" title="Harvest · 3 more days">🌾<\/span><\/span><div class="bar">/);
+assert.match($('.sprites').innerHTML, /^<div class="villager"><span><a [^>]+>Chef<\/a> <span class="mark on" title="Harvest · 3 more days">🌾<span class="jobdays">3d<\/span><\/span><\/span><div class="bar">/);
+assert.match($('.sprites').innerHTML, /💧<span class="jobdays">today<\/span>/, 'last work day shows today');
 $('.ptoggle').fire('click');
 put16(0x7A638 + 0xB4, 0);
 put16(0x7A638 + 6 * 0xF8 + 0xB8, 0x44); put16(0x7A638 + 6 * 0xF8 + 0xB4, 2);
@@ -512,9 +561,9 @@ assert.equal($('.fishes').hidden, false, 'tap shows fish nights');
 assert.equal($('.pond')['aria-expanded'], 'true');
 assert.equal($('.pond').querySelector('.label').textContent, 'Pond ▾');
 assert.equal($('.fishes').innerHTML,
-  '<span>L 25 nights</span><span class="num">×1</span><span class="num">🐟 in 5</span>'
-  + '<span>M 12 nights</span><span class="num">×1</span><span class="num">L in 8</span>'
-  + '<span>S 3 nights</span><span class="num">×2</span><span class="num">M in 7</span>', 'grouped by nights, most first');
+  '<span>L 25</span><div class="meter l"><div class="fill" style="width:83.3%"></div></div><span class="num">×1</span><span class="num">🐟 in 5</span>'
+  + '<span>M 12</span><div class="meter m"><div class="fill" style="width:40%"></div></div><span class="num">×1</span><span class="num">L in 8</span>'
+  + '<span>S 3</span><div class="meter s"><div class="fill" style="width:10%"></div></div><span class="num">×2</span><span class="num">M in 7</span>', 'grouped by nights, most first, with a 30-night meter');
 assert.equal(store['ps1-plugin-hm-pond-open'], '1', 'open pond list is remembered');
 $('.fishes').fire('click');
 assert.equal($('.fishes').hidden, true, 'tapping the list closes it');
@@ -536,6 +585,105 @@ assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { s
 put16(0x759E0, 0);
 run();
 assert.equal(window.__hmStamina.read().pond, null);
+
+// Auto fish: Square casts and holds the line, letting go on a bite reels in, R2 puts the catch in the rucksack.
+{
+  const presses = [], timers = [];
+  let T = 1e6;
+  window.EJS_emulator.gameManager.simulateInput = (p, i, v) => presses.push(i + ':' + v);
+  ctx.Date = { now: () => T };
+  ctx.setInterval = f => { timers.push(f); return timers.length; };
+  put16(0x71A84, 6); put16(0x71A12, 100); put16(0x71A14, 100); put16(0x71A16, 0); put16(0x71A6C, 0x4); put16(0x71A6E, 0x400); put16(0x71A3C, 0); put16(0x71AF0, 0);
+  run();
+  assert.equal($('.autofish').hidden, true, 'no button without a rod');
+  put16(0x71A84, 56);
+  timers[0]();
+  assert.equal($('.autofish').hidden, false, 'button shows with the Fishing Rod');
+  assert.equal($('.autofish').textContent, '🎣 Auto fish');
+  $('.autofish').fire('click');
+  const step = ms => { T += ms; timers.at(-1)(); };
+  step(700);
+  assert.deepEqual(presses, ['1:1'], 'casts with Square held');
+  put16(0x71A6C, 0x10); step(30);
+  assert.equal(window.__hmStamina.fish().phase, 'wait');
+  step(30);
+  assert.deepEqual(presses, ['1:1'], 'keeps holding while waiting');
+  put16(0x71A3C, 1); step(30);
+  assert.deepEqual(presses.at(-1), '1:0', 'lets go on a bite');
+  put16(0x71A6C, 0x8004); put16(0x71AF0, 0xA3); step(30);
+  assert.equal(window.__hmStamina.fish().phase, 'landed');
+  step(1000);
+  assert.equal(presses.at(-1), '1:0', 'waits for the catch to show');
+  step(600);
+  assert.equal(presses.at(-1), '13:1', 'R2 puts the catch away');
+  step(200);
+  assert.equal(presses.at(-1), '13:0');
+  put16(0x71A6C, 0); put16(0x71AF0, 0); put16(0x71A3C, 0); step(30);
+  assert.equal(window.__hmStamina.fish().caught, 0, 'waits for the hands to stay empty');
+  step(800);
+  timers[0]();
+  assert.equal(window.__hmStamina.fish().caught, 1);
+  assert.equal($('.autofish').textContent, '🎣 Stop · 1 caught');
+  assert($('.autofish').classList.has('on'));
+  // Junk goes back in the water with X instead of the rucksack.
+  step(700); put16(0x71A6C, 0x10); step(30); put16(0x71A3C, 1); step(30);
+  put16(0x71A6C, 0x4); put16(0x71A3C, 0); put16(0x71A8A, 233); step(30); step(1600);
+  assert.equal(presses.at(-1), '0:1', 'X throws junk back');
+  assert(!presses.slice(-3).includes('13:1'));
+  step(200);
+  assert.equal(presses.at(-1), '0:0');
+  put16(0x71A8A, 0); step(30); step(800);
+  timers[0]();
+  assert.equal(window.__hmStamina.fish().tossed, 1);
+  assert.equal(window.__hmStamina.fish().caught, 1);
+  assert.equal($('.autofish').textContent, '🎣 Stop · 1 caught · 1 junk');
+  put16(0x71A12, 30); step(700);
+  assert.equal(window.__hmStamina.fish().on, false, 'stops at low stamina');
+  assert.equal($('.autofish').textContent, '🎣 Auto fish · Stamina low');
+
+  put16(0x71A12, 100); $('.autofish').fire('click'); step(700);
+  step(4100);
+  assert.equal($('.autofish').textContent, '🎣 Auto fish · No water here', 'stops when no line goes out');
+  assert.deepEqual(presses.slice(-3), ['1:0', '13:0', '0:0'], 'buttons are let go');
+
+  $('.autofish').fire('click'); step(700); put16(0x71A6C, 0x10); step(30); put16(0x71A3C, 1); step(30);
+  put16(0x71A6C, 0x4); put16(0x71AF0, 0xA3); step(30); step(1600);
+  for (let i = 0; i < 3; i++) step(1300);
+  assert.equal($('.autofish').textContent, '🎣 Auto fish · Rucksack full', 'stops when the catch cannot be put away');
+
+  put16(0x71A3C, 0); $('.autofish').fire('click'); step(700);
+  assert.equal($('.autofish').textContent, '🎣 Auto fish · Hands are full', 'never starts with something in hand');
+  put16(0x71A6C, 0); put16(0x71AF0, 0);
+
+  // A late catch, then the fish moving to the item slot, still count as held: Square there would eat it.
+  $('.autofish').fire('click'); step(700); put16(0x71A6C, 0x10); step(30); put16(0x71A3C, 1); step(30);
+  put16(0x71A6C, 0x4); put16(0x71A3C, 0); step(30);
+  const before = presses.length;
+  step(2000); put16(0x71AF0, 0xA3); step(30);
+  assert.equal(presses.at(-1), '13:1', 'R2 for a catch that shows late');
+  put16(0x71AF0, 0); put16(0x71A8A, 0xA3);
+  for (let i = 0; i < 5; i++) step(1300);
+  assert(!presses.slice(before).includes('1:1'), 'never presses Square while a fish is held');
+  assert.equal(window.__hmStamina.fish().caught, 0);
+  assert.equal($('.autofish').textContent, '🎣 Auto fish · Rucksack full');
+  put16(0x71A8A, 0); put16(0x71A6C, 0);
+
+  $('.autofish').fire('click'); step(700); put16(0x71A6C, 0x10); step(30);
+  put16(0x71A84, 6); step(30);
+  assert.equal($('.autofish').textContent, '🎣 Auto fish · No rod in hand');
+  assert.deepEqual(presses.slice(-2), ['13:0', '0:0'], 'all buttons let go on stop');
+  assert(presses.includes('1:0'));
+  put16(0x71A6C, 0); put16(0x71A84, 0);
+
+  $('.autofish').fire('click');
+  assert.equal(window.__hmStamina.fish().on, true);
+  $('.autofish').fire('click');
+  assert.equal(window.__hmStamina.fish().on, false, 'a second tap stops');
+  ctx.Date = Date;
+  ctx.setInterval = () => 1;
+  delete window.EJS_emulator.gameManager.simulateInput;
+  run();
+}
 
 // Crops: 8-byte field tiles from 0x71DFC (u16 item, u16 soil, u8 stage); ripe when the stage equals u16 +2 of the item's growth row.
 assert.equal($('.crops').hidden, true, 'no crops hides the line');
@@ -572,4 +720,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond and fish nights, horse race tips, shop hours, animal love, coop feed, held chicken, golden egg hen, villager and sprite friendship, sprite jobs, can water, ripe crops, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond and fish nights, horse race tips, shop hours, animal love, coop feed, held chicken, golden egg hen, villager and sprite friendship, sprite jobs, can water, ripe crops, tomorrow weather, hearts and auto fishing with junk thrown back, opens hearts on tap, and handles missing or odd RAM.');

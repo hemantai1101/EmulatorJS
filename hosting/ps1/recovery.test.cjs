@@ -105,7 +105,10 @@ function emulator() {
     for (const handler of document.handlers.keydown) handler({ code, target, preventDefault() { prevented = true; } });
     return prevented;
   };
-  assert.equal(pressKey('Space'), false, 'Space does nothing while the game runs');
+  assert.equal(pressKey('Space'), true, 'Space pauses a running game');
+  assert.equal(game.paused, true);
+  assert.equal(toggle.dataset.paused, 'true');
+  assert.equal(pressKey('Space'), true, 'Space resumes it again');
   assert.equal(game.paused, false);
   game.pause();
   assert.equal(pressKey('KeyA'), false, 'other keys do not resume');

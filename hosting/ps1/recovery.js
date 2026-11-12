@@ -415,7 +415,7 @@
           resuming = false;
         }
       }
-      resume.addEventListener('click', () => {
+      function togglePause() {
         if (!active || !ready || failedRecovery) return;
         if (emulator.paused) {
           resumeEngine();
@@ -423,17 +423,18 @@
           releaseButtons();
           emulator.pause();
         }
-      });
+      }
+      resume.addEventListener('click', togglePause);
       centerPlay?.addEventListener('click', () => {
         if (active && ready && !failedRecovery && emulator.paused) resumeEngine();
       });
       document.addEventListener('keydown', event => {
         if (event.code !== 'Space' || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
-        if (!active || !ready || failedRecovery || !panel.hidden || !emulator.paused) return;
+        if (!active || !ready || failedRecovery || !panel.hidden) return;
         if (event.target?.closest?.('input, select, textarea, button, [contenteditable]')) return;
         if (emulator.isPopupOpen?.()) return;
         event.preventDefault();
-        resumeEngine();
+        togglePause();
       });
       reload.addEventListener('click', () => location.reload());
       restore.addEventListener('click', () => {
