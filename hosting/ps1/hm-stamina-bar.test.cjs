@@ -65,7 +65,7 @@ run();
 const s = window.__hmStamina.read();
 assert.equal(s.animals.length, 0, 'no named animals');
 assert.deepEqual({ ...s, hearts: { ...s.hearts }, animals: undefined, villagers: undefined, sprites: undefined },
-  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, heldCount: null, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, pond: null, race: null, animals: undefined, villagers: undefined, sprites: undefined });
+  { stamina: 100, max: 100, fatigue: 18, hearts: { Karen: 2000, Ann: 2200, Elli: 2700, Mary: 0, Popuri: 2200 }, held: 0, heldCount: null, place: null, floor: null, season: 0, weekday: 0, hour: 0, tomorrow: 'Sunny', water: null, basket: null, pond: null, crops: null, race: null, animals: undefined, villagers: undefined, sprites: undefined });
 assert.equal($('.tool').querySelector('.name').textContent, 'Nothing');
 assert.equal($('.floor').hidden, true, 'no floor outside the mine');
 
@@ -372,6 +372,27 @@ $('.ptoggle').fire('click');
 assert.equal($('.sprites').hidden, true);
 assert.equal($('.box').classList.has('wide'), !$('.hearts').hidden, 'only open hearts keep the box wide');
 
+// Sprite jobs: +0xB8 bit 1 harvest, 2 water, 4 animals; +0xB4 is work days left + 1.
+put16(0x7A638 + 0xB8, 0x41); put16(0x7A638 + 0xB4, 4);
+put16(0x7A638 + 6 * 0xF8 + 0xB8, 0x42); put16(0x7A638 + 6 * 0xF8 + 0xB4, 1);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().sprites)), [
+  { name: 'Chef', value: 50, job: { kind: 'Harvest', icon: '🌾', days: 3 } },
+  { name: 'Aqua', value: 70, job: { kind: 'Water', icon: '💧', days: 0 } }]);
+assert.equal($('.ptoggle').textContent, '▾ Sprites (2) 🌾💧', 'jobs show on the closed toggle');
+assert.equal($('.ptoggle').title, 'Chef: Harvest · 3 more days\nAqua: Water · last day today');
+$('.ptoggle').fire('click');
+assert.match($('.sprites').innerHTML, /^<div class="villager"><span><a [^>]+>Chef<\/a> <span class="mark on" title="Harvest · 3 more days">🌾<\/span><\/span><div class="bar">/);
+$('.ptoggle').fire('click');
+put16(0x7A638 + 0xB4, 0);
+put16(0x7A638 + 6 * 0xF8 + 0xB8, 0x44); put16(0x7A638 + 6 * 0xF8 + 0xB4, 2);
+run();
+assert.equal(window.__hmStamina.read().sprites[0].job, undefined, 'no days left means no job');
+assert.equal($('.ptoggle').title, 'Aqua: Animals · 1 more day');
+put16(0x7A638 + 0xB8, 0); put16(0x7A638 + 6 * 0xF8 + 0xB8, 0); put16(0x7A638 + 6 * 0xF8 + 0xB4, 0);
+run();
+assert.equal($('.ptoggle').textContent, '▾ Sprites (2)');
+
 // Heart colours follow the game's steps: 5000, 20000, 30000, 40000, 50000, 60000.
 const heart = window.__hmStamina.heart;
 assert.deepEqual([0, 4999, 5000, 19999, 20000, 29999, 30000, 39999, 40000, 49999, 50000, 59999, 60000, 65535].map(heart),
@@ -479,10 +500,25 @@ assert.equal($('.race').hidden, true);
 
 // Fish pond: 99 slots of 4 bytes from 0x75854 (u16 item 0xA3 small, 0xA2 medium, 0xA1 large); bit 0 of 0x759E0 is fed today.
 assert.equal($('.pond').hidden, true, 'empty unfed pond is hidden');
-put16(0x75854, 0xA3); put16(0x75858, 0xA3); put16(0x75860, 0xA2); put16(0x75854 + 98 * 4, 0xA1);
+put16(0x75854, 0xA3); put16(0x75856, 3); put16(0x75858, 0xA3); put16(0x7585A, 3); put16(0x75860, 0xA2); put16(0x75862, 12);
+put16(0x75854 + 98 * 4, 0xA1); put16(0x75856 + 98 * 4, 25);
 run();
-assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 2, medium: 1, large: 1, count: 4, fed: false });
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 2, medium: 1, large: 1, count: 4, fed: false, days: [3, 3, 12, 25] });
 assert.equal($('.pond').hidden, false);
+assert.equal($('.fishes').hidden, true, 'fish nights start hidden');
+assert.equal($('.pond').querySelector('.label').textContent, 'Pond ▸');
+$('.pond').fire('click');
+assert.equal($('.fishes').hidden, false, 'tap shows fish nights');
+assert.equal($('.pond')['aria-expanded'], 'true');
+assert.equal($('.pond').querySelector('.label').textContent, 'Pond ▾');
+assert.equal($('.fishes').innerHTML,
+  '<span>L 25 nights</span><span class="num">×1</span><span class="num">🐟 in 5</span>'
+  + '<span>M 12 nights</span><span class="num">×1</span><span class="num">L in 8</span>'
+  + '<span>S 3 nights</span><span class="num">×2</span><span class="num">M in 7</span>', 'grouped by nights, most first');
+assert.equal(store['ps1-plugin-hm-pond-open'], '1', 'open pond list is remembered');
+$('.fishes').fire('click');
+assert.equal($('.fishes').hidden, true, 'tapping the list closes it');
+assert.equal(store['ps1-plugin-hm-pond-open'], '0');
 assert.equal($('.pond').querySelector('.name').innerHTML, 'S2 M1 L1 <span class="num">4/99</span> <span class="mark">🍤</span>');
 assert.match($('.pond').title, /Not fed today/);
 put16(0x759E0, 1);
@@ -496,10 +532,32 @@ assert.equal(window.__hmStamina.read().pond, null, 'a slot that is not a fish hi
 assert.equal($('.pond').hidden, true);
 for (let i = 0; i < 99; i++) put16(0x75854 + i * 4, 0);
 run();
-assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 0, medium: 0, large: 0, count: 0, fed: true }, 'fed but empty still shows');
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 0, medium: 0, large: 0, count: 0, fed: true, days: [] }, 'fed but empty still shows');
 put16(0x759E0, 0);
 run();
 assert.equal(window.__hmStamina.read().pond, null);
+
+// Crops: 8-byte field tiles from 0x71DFC (u16 item, u16 soil, u8 stage); ripe when the stage equals u16 +2 of the item's growth row.
+assert.equal($('.crops').hidden, true, 'no crops hides the line');
+put32(0x6C858, 0x80040000); put32(0x6C864, 0x80041000);
+H[B + 0x40000 + 0x29 * 40] = 0x40; H[B + 0x40000 + 0x29 * 40 + 3] = 7; put16(0x41000 + 7 * 16 + 2, 3);
+H[B + 0x40000 + 0x31 * 40] = 0x40;
+put16(0x71DFC, 0x29); H[B + 0x71DFC + 4] = 1; put16(0x71E04, 0x29); H[B + 0x71E04 + 4] = 1; put16(0x71E0C, 0x31);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().crops)), { field: 2, fieldRipe: 0, hothouse: 0, hothouseRipe: 0 });
+assert.equal($('.crops').querySelector('.name').innerHTML, '<span class="num">0/2</span> <span class="mark">🧚</span>');
+assert.match($('.crops').title, /only when a crop is ripe/);
+H[B + 0x71E04 + 4] = 3; put16(0x74124, 0x29); H[B + 0x74124 + 4] = 3;
+run();
+assert.equal(window.__hmStamina.read().crops.hothouse, 0, 'Hothouse is skipped until it is built');
+put16(0x70D0C, 1);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().crops)), { field: 2, fieldRipe: 1, hothouse: 1, hothouseRipe: 1 });
+assert.equal($('.crops').querySelector('.name').innerHTML, '<span class="num">2/3</span> <span class="mark on">🧚</span>');
+assert.match($('.crops').title, /Field 1 of 2 ripe, Hothouse 1 of 1\. Sprites can take a harvest job/);
+put16(0x71DFC, 0); put16(0x71E04, 0); put16(0x71E0C, 0); put16(0x74124, 0); put16(0x70D0C, 0);
+run();
+assert.equal($('.crops').hidden, true);
 
 // Values out of range (another game) are not shown.
 put16(0x71A14, 0);
@@ -514,4 +572,4 @@ window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
 assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond, horse race tips, shop hours, animal love, coop feed, held chicken, golden egg hen, villager and sprite friendship, can water, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond and fish nights, horse race tips, shop hours, animal love, coop feed, held chicken, golden egg hen, villager and sprite friendship, sprite jobs, can water, ripe crops, tomorrow weather and hearts, opens hearts on tap, and handles missing or odd RAM.');

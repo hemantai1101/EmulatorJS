@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, fish pond, shop hours, animal love, villager and sprite friendship, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, fish pond, ripe crops, shop hours, animal love, villager and sprite friendship, sprite jobs, can water, tomorrow's weather and hearts. Reads RAM only; never writes it.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -23,6 +23,9 @@
     // Harvest Sprites: 7 records of 0xF8 bytes from 0x8007A638 (cleared and looped over by code at 0x8010C6A0 and 0x8010C95C).
     // Each holds its name at +4 (u16 letters, 0xFFFF ends) and friendship at +0x16, kept within 0-255 by code at 0x8010CC78.
     const SPRITES = Array.from({ length: 7 }, (_, k) => 0x7A638 + k * 0xF8);
+    // Hired job: +0xB8 bit 1 harvest, 2 water, 4 animals (set at 0x8010E81C-0x8010E8EC); +0xB4 is 2, 4 or 8 when hired for 1, 3 or 7 days
+    // (0x8010E988). Each new day takes 1 off and the sprite works while it is above 0 (0x8010CCB0), so +0xB4 - 1 work days are left.
+    const JOBS = [[1, 'Harvest', '🌾'], [2, 'Water', '💧'], [4, 'Animals', '🐄']], JOB_DAYS_MAX = 8;
     // Each sprite's outfit colour, from fan guides.
     const SPRITES_KEY = 'ps1-plugin-hm-sprites-open';
     const SPRITE_COLOURS = { Chef: '#ef4444', Nappy: '#fb923c', Hoggy: '#facc15', Timid: '#22c55e', Aqua: '#38bdf8', Staid: '#6366f1', Bold: '#a855f7' };
@@ -175,7 +178,14 @@
     // Fish pond: 99 slots of 4 bytes from 0x80075854 (u16 item, u16 days grown), counted by 0x8010C668.
     // Items 0xA3 small, 0xA2 medium, 0xA1 large (0x8010C5A0 sets the size by days: under 10, under 20, then large).
     // Bit 0 of 0x800759E0 is set when Fish Food goes in (0x8010C4B0); only then do the fish grow that night (0x8010C3F8).
+    // Each fed night adds 1 day; at 30 a fish drops back to 20 and may add small fish.
+    const POND_KEY = 'ps1-plugin-hm-pond-open', POND_MEDIUM = 10, POND_LARGE = 20, POND_BREED = 30;
     const POND = 0x75854, POND_SLOTS = 99, POND_FED = 0x759E0, FISH = { 0xA3: 'small', 0xA2: 'medium', 0xA1: 'large' };
+    // Crops: 8-byte tiles (u16 item, u16 soil, u8 stage) on the field (1125 from 0x80071DFC) and in the Hothouse (49 from 0x80074124,
+    // used when 0x80070D0C is set). A crop is an item with flag 0x40, except 0x31-0x36 and 0x178-0x179 (0x80110790 and 0x801108F8).
+    // It is ripe when its stage equals u16 +2 of the growth row (16 bytes from the pointer at 0x8006C864) named by item byte +3.
+    // The sprites' harvest job needs at least one ripe crop (0x80110658).
+    const FIELD = 0x71DFC, FIELD_TILES = 1125, HOTHOUSE = 0x74124, HOTHOUSE_TILES = 49, HOTHOUSE_ON = 0x70D0C, GROWTH_PTR = 0x6C864, CROP_FLAG = 0x40;
     const letter = c => c < 26 ? String.fromCharCode(c + 65) : c >= 32 && c < 58 ? String.fromCharCode(c + 65) : '?';
     const clock = h => (h % 12 || 12) + (h < 12 ? 'a' : 'p');
     const isOpen = ([, from, to, closed, season], s) =>
@@ -201,7 +211,10 @@
         for (const at of SPRITES) {
             let name = '', i = 0;
             for (; i < 9 && u16(at + 4 + i * 2) !== 0xFFFF; i++) name += letter(u16(at + 4 + i * 2));
-            if (name && i < 9 && u16(at + 0x16) <= FRIEND_MAX) s.sprites.push({ name, value: u16(at + 0x16) });
+            if (!name || i >= 9 || u16(at + 0x16) > FRIEND_MAX) continue;
+            const sprite = { name, value: u16(at + 0x16) }, job = JOBS.find(([bit]) => u16(at + 0xB8) & bit), days = u16(at + 0xB4);
+            if (job && days >= 1 && days <= JOB_DAYS_MAX) sprite.job = { kind: job[1], icon: job[2], days: days - 1 };
+            s.sprites.push(sprite);
         }
         s.held = u16(HELD);
         const items = u32(ITEM_TABLE_PTR) - 0x80000000, heldCount = u16(HELD + 4);
@@ -269,13 +282,31 @@
             if (horses.every(h => h.id === 0xFFFF || h.name && h.speed <= 255 && h.whipPower <= 255 && h.style <= 127 && h.push <= 127))
                 s.race = { number: Math.min(u16(RACE), 2) + 1, ride: u16(RACE) === 3, horses };
         }
-        s.pond = { small: 0, medium: 0, large: 0, count: 0, fed: (u16(POND_FED) & 1) === 1 };
+        s.pond = { small: 0, medium: 0, large: 0, count: 0, fed: (u16(POND_FED) & 1) === 1, days: [] };
         for (let i = 0; i < POND_SLOTS && s.pond; i++) {
             const id = u16(POND + i * 4);
             if (id && !FISH[id]) s.pond = null;
-            else if (id) { s.pond[FISH[id]]++; s.pond.count++; }
+            else if (id) { s.pond[FISH[id]]++; s.pond.count++; s.pond.days.push(u16(POND + i * 4 + 2)); }
         }
         if (s.pond && !s.pond.count && !s.pond.fed) s.pond = null;
+        s.crops = null;
+        const growth = u32(GROWTH_PTR) - 0x80000000, inRam = o => o >= 0 && o < 0x200000;
+        if (inRam(items) && inRam(growth)) {
+            const c = { field: 0, fieldRipe: 0, hothouse: 0, hothouseRipe: 0 };
+            const scan = (at, n, key) => {
+                for (let i = 0; i < n; i++) {
+                    const t = at + i * 8, id = u16(t), rec = items + id * ITEM_SIZE;
+                    if (!inRam(rec + ITEM_SIZE) || !(H[B + rec] & CROP_FLAG) || id >= 0x31 && id <= 0x36 || id === 0x178 || id === 0x179) continue;
+                    const row = growth + ((H[B + rec + 3] << 24) >> 24) * 16;
+                    if (!inRam(row + 16)) continue;
+                    c[key]++;
+                    if (H[B + t + 4] === u16(row + 2)) c[key + 'Ripe']++;
+                }
+            };
+            scan(FIELD, FIELD_TILES, 'field');
+            if (u16(HOTHOUSE_ON)) scan(HOTHOUSE, HOTHOUSE_TILES, 'hothouse');
+            if (c.field + c.hothouse) s.crops = c;
+        }
         s.water = null;
         for (const slot of [HELD, ...Array.from({ length: TOOL_SLOT_COUNT }, (_, k) => TOOL_SLOTS + k * 6)]) {
             if (CANS.includes(u16(slot)) && u16(slot + 4) <= CAN_MAX) { s.water = u16(slot + 4); break; }
@@ -307,7 +338,9 @@
         .st .fill { background: #4ade80; } .st.low .fill { background: #f59e0b; } .st.empty .fill { background: #ef4444; }
         .fa .fill { background: #a78bfa; } .fa.tired .fill { background: #f59e0b; } .fa.high .fill { background: #ef4444; }
         button.bk { width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-        .bk .label { font-size: 10px; }
+        .bk .label, .pond .label { font-size: 10px; }
+        button.pond { width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+        .fishes { display: grid; grid-template-columns: 1fr auto auto; gap: 1px 8px; padding-left: 12px; white-space: nowrap; font-weight: 400; font-size: 10px; color: #cfd6df; }
         .bk .fill { background: #d6a35c; } .bk.full .fill { background: #ef4444; }
         .wa .fill { background: #38bdf8; } .wa.empty .fill { background: #ef4444; }
         .tool { display: grid; grid-template-columns: 44px 1fr; gap: 6px; }
@@ -356,7 +389,9 @@
         <div class="ores" hidden></div>
         <button class="row bk" type="button" aria-expanded="false" title="Show or hide basket contents" hidden><span class="label">Basket ▸</span><div class="bar"><div class="fill"></div></div><span class="num"></span></button>
         <div class="ores bkitems" hidden></div>
-        <div class="tool pond" hidden><span>Pond</span><span class="name"></span></div>
+        <button class="tool pond" type="button" aria-expanded="false" title="Show or hide fish nights" hidden><span class="label">Pond ▸</span><span class="name"></span></button>
+        <div class="fishes" title="Fed nights per fish. M or L: nights until medium or large. 🐟: nights until it may have babies." hidden></div>
+        <div class="tool crops" hidden><span>Ripe</span><span class="name"></span></div>
         <div class="race" hidden></div>
         <div class="toggle stoggle" hidden></div>
         <div class="shops" hidden>${SHOPS.map(([name], i) =>
@@ -373,7 +408,7 @@
         </div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond'), fishes = $('.fishes'), crops = $('.crops');
     const more = $('.more');
     let expanded = false;
     more.addEventListener('click', e => {
@@ -406,6 +441,14 @@
         basketOpen = !basketOpen;
         show(last);
     });
+    let pondOpen = false;
+    try { pondOpen = window.localStorage.getItem(POND_KEY) === '1'; } catch {}
+    function flipPond() {
+        pondOpen = !pondOpen;
+        try { window.localStorage.setItem(POND_KEY, pondOpen ? '1' : '0'); } catch {}
+        show(last);
+    }
+    pond.addEventListener('click', e => { e.stopPropagation(); flipPond(); });
     function flip() {
         open = !open;
         try { window.localStorage.setItem(OPEN_KEY, open ? '1' : '0'); } catch {}
@@ -459,6 +502,7 @@
     closeOnTap(shops, flipShops);
     closeOnTap(hearts, () => flip());
     closeOnTap(bkitems, () => { basketOpen = false; show(last); });
+    closeOnTap(fishes, flipPond);
 
     function place() {
         const parent = document.fullscreenElement || document.webkitFullscreenElement || document.body;
@@ -466,6 +510,16 @@
     }
     function bar(row, value, max) {
         row.querySelector('.fill').style.width = Math.min(100, Math.round(value / max * 100)) + '%';
+    }
+    // One row per fed-night count, most first: size, nights, how many, nights to the next step.
+    function fishHtml(days) {
+        const counts = new Map();
+        for (const d of [...days].sort((a, b) => b - a)) counts.set(d, (counts.get(d) || 0) + 1);
+        return [...counts].map(([d, n]) => {
+            const size = d < POND_MEDIUM ? 'S' : d < POND_LARGE ? 'M' : 'L';
+            const next = d < POND_MEDIUM ? `M in ${POND_MEDIUM - d}` : d < POND_LARGE ? `L in ${POND_LARGE - d}` : `🐟 in ${Math.max(0, POND_BREED - d)}`;
+            return `<span>${size} ${d} night${d === 1 ? '' : 's'}</span><span class="num">×${n}</span><span class="num">${next}</span>`;
+        }).join('');
     }
     function show(s) {
         last = s;
@@ -501,6 +555,19 @@
                 + ` <span class="mark${p.fed ? ' on' : ''}">🍤</span>`;
             if (name.innerHTML !== html) name.innerHTML = html;
             pond.title = `Small ${p.small}, medium ${p.medium}, large ${p.large}. ` + (p.fed ? 'Fed today: fish grow tonight' : 'Not fed today');
+            const html2 = fishHtml(p.days);
+            if (fishes.innerHTML !== html2) fishes.innerHTML = html2;
+        }
+        fishes.hidden = pond.hidden || !pondOpen || !s.pond.count;
+        pond.setAttribute('aria-expanded', String(!fishes.hidden));
+        pond.querySelector('.label').textContent = pondOpen ? 'Pond ▾' : 'Pond ▸';
+        crops.hidden = !s || !s.crops;
+        if (s?.crops) {
+            const c = s.crops, ripe = c.fieldRipe + c.hothouseRipe, name = crops.querySelector('.name');
+            const html = `<span class="num">${ripe}/${c.field + c.hothouse}</span> <span class="mark${ripe ? ' on' : ''}">🧚</span>`;
+            if (name.innerHTML !== html) name.innerHTML = html;
+            crops.title = `Field ${c.fieldRipe} of ${c.field} ripe` + (c.hothouse ? `, Hothouse ${c.hothouseRipe} of ${c.hothouse}` : '') + '. '
+                + (ripe ? 'Sprites can take a harvest job' : 'Sprites take a harvest job only when a crop is ripe');
         }
         race.hidden = !s || !s.race;
         if (s?.race) {
@@ -552,14 +619,19 @@
             if (animals.innerHTML !== html) animals.innerHTML = html;
         }
         vtoggle.textContent = (villagersOpen ? '▴ Villagers' : '▾ Villagers') + ' (' + s.villagers.length + ')';
-        const friends = (list, colour, link) => list.map(v => `<div class="villager"><a href="${link(v.name)}" target="_blank" rel="noopener">${v.name}</a>`
+        const jobTip = j => j.kind + (j.days ? ` · ${j.days} more day${j.days > 1 ? 's' : ''}` : ' · last day today');
+        const friends = (list, colour, link) => list.map(v => `<div class="villager">`
+            + (v.job ? '<span>' : '') + `<a href="${link(v.name)}" target="_blank" rel="noopener">${v.name}</a>`
+            + (v.job ? ` <span class="mark on" title="${jobTip(v.job)}">${v.job.icon}</span></span>` : '')
             + `<div class="bar"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${colour?.[v.name] ? ';background:' + colour[v.name] : ''}"></div></div>`
             + `<span class="num">${v.value.toLocaleString('en-US')}/${FRIEND_MAX}</span></div>`).join('');
         if (villagersOpen) {
             const html = friends(s.villagers, null, WIKI);
             if (villagers.innerHTML !== html) villagers.innerHTML = html;
         }
-        ptoggle.textContent = (spritesOpen ? '▴ Sprites' : '▾ Sprites') + ' (' + s.sprites.length + ')';
+        const jobs = s.sprites.filter(v => v.job);
+        ptoggle.textContent = (spritesOpen ? '▴ Sprites' : '▾ Sprites') + ' (' + s.sprites.length + ')' + (jobs.length ? ' ' + jobs.map(v => v.job.icon).join('') : '');
+        ptoggle.title = jobs.length ? jobs.map(v => v.name + ': ' + jobTip(v.job)).join('\n') : '';
         if (spritesOpen) {
             const html = friends(s.sprites, SPRITE_COLOURS, () => SPRITES_WIKI);
             if (sprites.innerHTML !== html) sprites.innerHTML = html;
