@@ -453,7 +453,9 @@
         .mark { opacity: .5; filter: grayscale(1); } .mark.on { opacity: 1; filter: none; }
         .jobdays { margin-left: 2px; font-size: .85em; opacity: .8; }
         .villagers.sprites { grid-template-columns: max-content minmax(0, 1fr) repeat(3, 22px); column-gap: 5px; row-gap: 4px; }
-        .sprow { display: contents; } .sprow > span:first-child { white-space: nowrap; }
+        .sprow { display: contents; }
+        .spbar { position: relative; height: 12px; border-radius: 6px; } .spbar .fill { border-radius: 6px; }
+        .spbar span { position: absolute; inset: 0 5px 0 auto; font: 700 9px/12px system-ui, sans-serif; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; font-variant-numeric: tabular-nums; } .sprow > span:first-child { white-space: nowrap; }
         .sprow.head > span { color: #9ca3af; font-weight: 400; text-align: right; padding-bottom: 2px; border-bottom: 1px solid #2f3742; }
         .sk { position: relative; text-align: right; font-weight: 400; color: #9ca3af; font-variant-numeric: tabular-nums; }
         .sk.zero { color: #4b5563; } .sk.on { color: #eef2f7; font-weight: 700; }
@@ -849,7 +851,7 @@
             : '<span></span>';
         const spriteRows = list => `<div class="sprow head"><span></span><span></span>${SKILLS.map(([key, , icon]) => `<span title="${key[0].toUpperCase() + key.slice(1)} skill">${icon}</span>`).join('')}</div>`
             + list.map(v => `<div class="sprow"><span><a href="${SPRITES_WIKI}" target="_blank" rel="noopener">${v.name}</a>${jobMark(v)}</span>`
-                + `<div class="bar" title="Friendship ${v.value}/${FRIEND_MAX}"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${SPRITE_COLOURS[v.name] ? ';background:' + SPRITE_COLOURS[v.name] : ''}"></div></div>`
+                + `<div class="bar spbar" title="Friendship ${v.value}/${FRIEND_MAX}"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${SPRITE_COLOURS[v.name] ? ';background:' + SPRITE_COLOURS[v.name] : ''}"></div><span>${v.value}</span></div>`
                 + SKILLS.map(([key]) => skillCell(v, key)).join('') + '</div>').join('');
         if (villagersOpen) {
             const html = friends(s.villagers);
