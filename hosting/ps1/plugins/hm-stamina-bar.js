@@ -448,7 +448,7 @@
         .shop.shut .when { color: #f87171; }
         .shop .when { font-weight: 400; font-variant-numeric: tabular-nums; }
         .animals { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
-        .animal { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
+        .animal { display: grid; grid-template-columns: minmax(0, 1fr) 102px; align-items: center; gap: 6px; }
         .animal .fill { background: #f472b6; }
         .mark { opacity: .5; filter: grayscale(1); } .mark.on { opacity: 1; filter: none; }
         .jobdays { margin-left: 2px; font-size: .85em; opacity: .8; }
@@ -473,7 +473,7 @@
         .horse.best { color: #4ade80; }
         .horse .odds { font-weight: 400; }
         .hearts { display: grid; gap: 3px; border-top: 1px solid #2f3742; padding-top: 5px; }
-        .girl { display: grid; grid-template-columns: 44px 14px 1fr 46px; align-items: center; gap: 6px; }
+        .girl { display: grid; grid-template-columns: 44px 14px 1fr; align-items: center; gap: 6px; }
         .girl a, .villager a, .sprow a, .shop a { justify-self: start; color: inherit; text-decoration: none; } .girl a:hover, .villager a:hover, .sprow a:hover, .shop a:hover { text-decoration: underline; }
         .heart { font-size: 13px; line-height: 1; text-shadow: 0 0 1px #fff, 0 0 1px #fff; }
     </style>
@@ -507,7 +507,7 @@
         <button class="autofish anyharvest" type="button" hidden></button>
         <div class="toggle htoggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
-            `<div class="girl g-${name}"><a href="${WIKI(name)}" target="_blank" rel="noopener">${name}</a><span class="heart">♥</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>`).join('')}</div>
+            `<div class="girl g-${name}"><a href="${WIKI(name)}" target="_blank" rel="noopener">${name}</a><span class="heart">♥</span><div class="bar obar"><div class="fill"></div><span class="num"></span></div></div>`).join('')}</div>
         </div>
     </div>`;
     const $ = q => shadow.querySelector(q);
@@ -828,8 +828,7 @@
             const mark = ([on, icon, tip]) => `<span class="mark${on ? ' on' : ''}" title="${tip}">${icon}</span>`;
             const html = s.animals.map(a => `<div class="animal" title="${a.kind}"><span><span class="kind">${ANIMAL_ICON[a.kind] || '🐾'}</span>${a.name}`
                 + (a.marks ? ' ' + a.marks.map(mark).join('') : '') + `</span>`
-                + `<div class="bar"><div class="fill" style="width:${Math.round(a.love / LOVE_MAX * 100)}%"></div></div>`
-                + `<span class="num">${a.love}/${LOVE_MAX}</span></div>`).join('');
+                + `<div class="bar obar" title="Love ${a.love}/${LOVE_MAX}"><div class="fill" style="width:${Math.round(a.love / LOVE_MAX * 100)}%"></div><span>${a.love}</span></div></div>`).join('');
             if (animals.innerHTML !== html) animals.innerHTML = html;
         }
         vtoggle.textContent = (villagersOpen ? '▴ Villagers' : '▾ Villagers') + ' (' + s.villagers.length + ')';
@@ -873,6 +872,7 @@
             bar(row, v, HEART_MAX);
             row.querySelector('.fill').style.background = h[3] || h[2];
             row.querySelector('.num').textContent = v.toLocaleString('en-US');
+            row.querySelector('.obar').title = 'Affection ' + v.toLocaleString('en-US') + '/' + HEART_MAX.toLocaleString('en-US');
         }
     }
 
