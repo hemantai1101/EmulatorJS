@@ -404,14 +404,10 @@
                font: 600 11px/1.2 system-ui, sans-serif; display: grid; gap: 5px; pointer-events: auto; cursor: pointer;
                user-select: none; -webkit-user-select: none; }
         .details { display: grid; gap: 5px; }
-        .more { display: none; }
         @media (pointer: coarse), (max-width: 900px) {
-            .box { cursor: default; }
             .box:not(.expanded) { width: 150px; padding: 4px 8px; gap: 3px; }
             .box:not(.expanded) .details { display: none; }
             .box.expanded { max-height: calc(100dvh - 32px - env(safe-area-inset-top)); overflow-y: auto; touch-action: pan-y; }
-            .more { display: block; justify-self: end; min-height: 0; padding: 1px 3px; position: sticky; top: 0; z-index: 1; border: 0;
-                    background: #10151b; color: #aab3bf; font: 400 10px/16px system-ui, sans-serif; text-decoration: underline; cursor: pointer; }
         }
         .row { display: grid; grid-template-columns: 44px 1fr 48px; align-items: center; gap: 6px; }
         .bar { height: 8px; background: #2a313b; border-radius: 4px; overflow: hidden; }
@@ -482,7 +478,6 @@
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
-        <button class="more" type="button" aria-expanded="false">More</button>
         <div class="details">
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
         <button class="autofish" type="button" title="Casts, reels in on a bite and puts the catch in the rucksack. Stops when you press anything, stamina is low or you are tired." hidden></button>
@@ -512,14 +507,13 @@
     </div>`;
     const $ = q => shadow.querySelector(q);
     const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond'), autofish = $('.autofish'), fishes = $('.fishes'), crops = $('.crops'), anyHarvest = $('.anyharvest');
-    const more = $('.more');
+    // On phones, tapping the panel opens or closes the details
     let expanded = false;
-    more.addEventListener('click', e => {
-        e.stopPropagation();
+    box.setAttribute('aria-expanded', 'false');
+    box.addEventListener('click', () => {
         expanded = !expanded;
         box.classList.toggle('expanded', expanded);
-        more.textContent = expanded ? 'Close' : 'More';
-        more.setAttribute('aria-expanded', String(expanded));
+        box.setAttribute('aria-expanded', String(expanded));
     });
     race.addEventListener('click', e => e.stopPropagation());
     const raceCache = new Map();

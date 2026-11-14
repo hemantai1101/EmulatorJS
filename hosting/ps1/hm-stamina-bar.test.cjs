@@ -51,14 +51,12 @@ assert.equal($('.wait').hidden, false);
 assert.equal($('.st').hidden, true);
 assert.equal(window.__hmStamina.read(), null);
 
-$('.more').fire('click');
-assert($('.box').classList.has('expanded'));
-assert.equal($('.more').textContent, 'Close');
-assert.equal($('.more')['aria-expanded'], 'true');
-$('.more').fire('click');
-assert(!$('.box').classList.has('expanded'));
-assert.equal($('.more').textContent, 'More');
-assert.equal($('.more')['aria-expanded'], 'false');
+$('.box').fire('click');
+assert($('.box').classList.has('expanded'), 'a tap on the panel opens it');
+assert.equal($('.box')['aria-expanded'], 'true');
+$('.box').fire('click');
+assert(!$('.box').classList.has('expanded'), 'a second tap closes it');
+assert.equal($('.box')['aria-expanded'], 'false');
 
 // Values from a live game: stamina 100 of 100, fatigue 18, hearts as read on 9 November 2026.
 sig.forEach((v, j) => { H[B + 0x80 + j] = v; });
