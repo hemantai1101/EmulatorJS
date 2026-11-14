@@ -481,11 +481,11 @@
         <div class="wait">Waiting for Harvest Moon</div>
         <div class="row st" hidden><span>Stamina</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="row fa" hidden><span>Fatigue</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
+        <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <button class="more" type="button" aria-expanded="false">More</button>
         <div class="details">
         <div class="tool" hidden><span>Holding</span><span class="name"></span></div>
         <button class="autofish" type="button" title="Casts, reels in on a bite and puts the catch in the rucksack. Stops when you press anything, stamina is low or you are tired." hidden></button>
-        <div class="row wa" hidden><span>Water</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>
         <div class="tool sky" hidden><span>Tmrw</span><span class="name icon"></span></div>
         <div class="tool floor" hidden><span>Mine</span><span class="name"></span></div>
         <div class="ores" hidden></div>
