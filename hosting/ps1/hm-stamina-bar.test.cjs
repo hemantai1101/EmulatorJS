@@ -44,6 +44,9 @@ const run = () => vm.runInNewContext(src, ctx);
 // No RAM found yet: wait text shows.
 run();
 assert.equal(host.parentNode, body, 'box attaches to the page');
+let kept = false;
+host.fire('mousedown', { preventDefault() { kept = true; } });
+assert(kept, 'clicking the panel leaves focus on the game');
 assert.equal($('.wait').hidden, false);
 assert.equal($('.st').hidden, true);
 assert.equal(window.__hmStamina.read(), null);
@@ -341,20 +344,28 @@ const barnAnimal = (i, nm, kind, where, flags, extra = {}) => {
   for (const [o, v] of Object.entries(extra)) put16(at + Number(o), v);
 };
 barnAnimal(0, 'Wooly', 0x165, 5, 0x10000 | 2, { 0xB4: 7 });
-barnAnimal(1, 'Bess', 0x162, 5, 0x10 | 4);
+barnAnimal(1, 'Bess', 0x162, 5, 0x10 | 4, { 0x16: 50 });
 barnAnimal(2, 'Daisy', 0x162, 5, 0x8 | 0x100, { 0xB2: 5 });
 barnAnimal(3, 'Lil', 0x160, 1, 0, { 0xAC: 2 });
 H[B + 0x712F8 + 4] = 1;
 run();
 assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Bess'))), [[true, '🌾', 'Fed tonight'], [false, '💬', 'Talked today (+3 love tonight)'],
-  [true, '🪮', 'Brushed today'], [false, '🥛', 'Milk ready']], 'the first cow gets the box');
+  [true, '🪮', 'Brushed today'], [true, '🥛', 'Milk ready']], 'the first cow gets the box');
 assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Daisy'))), [[false, '🌾', 'No fodder in the barn'], [false, '💬', 'Talked today (+3 love tonight)'],
-  [false, '🪮', 'Brushed today'], [true, '🍼', 'Baby in 16 days'], [true, '🤒', 'Sick']], 'a pregnant cow shows no milk');
+  [false, '🪮', 'Brushed today'], [false, '🥛', 'No milk while pregnant'], [true, '🍼', 'Baby in 16 days'], [true, '🤒', 'Sick']], 'a pregnant cow has no milk');
 assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Wooly'))), [[false, '🌾', 'No fodder in the barn'], [true, '💬', 'Talked today (+3 love tonight)'],
   [false, '🪮', 'Brushed today'], [true, '✂️', 'Wool ready']], 'sheep come after cows for fodder, even in slot 0');
 assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Lil'))), [[false, '🌿', 'Grazed 2/5'], [false, '💬', 'Talked today (+3 love tonight)'],
   [false, '🪮', 'Brushed today']], 'a calf outside shows grazing and no milk');
 assert.deepEqual([...window.__hmStamina.read().animals.filter(a => ['Bess', 'Wooly', 'Lil'].includes(a.name)).map(a => a.kind)], ['Sheep', 'Cow', 'Calf']);
+const milkOf = () => JSON.parse(JSON.stringify(marksOf('Bess'))).find(m => m[1] === '🥛');
+put16(0x749F4 + 0xB8 + 0x34, 0x10 | 8); run();
+assert.deepEqual(milkOf(), [false, '🥛', 'Milked today']);
+put16(0x749F4 + 0xB8 + 0x34, 8); run();
+assert.deepEqual(milkOf(), [false, '🥛', 'No milk today (not fed last night)']);
+put16(0x749F4 + 0xB8 + 0x34, 0x10); put16(0x749F4 + 0xB8 + 0x16, 1); run();
+assert.deepEqual(milkOf(), [false, '🥛', 'No milk: love too low']);
+put16(0x749F4 + 0xB8 + 0x34, 0x10 | 4); put16(0x749F4 + 0xB8 + 0x16, 50);
 put16(0x749F4 + 0xB4, 3);
 run();
 assert.deepEqual(JSON.parse(JSON.stringify(marksOf('Wooly').at(-1))), [false, '✂️', 'Wool 3/7']);
@@ -373,19 +384,19 @@ sprite(0, 'Chef', 50); sprite(6, 'Aqua', 70); sprite(3, 'Hoggy', 999);
 put16(friend(1), 69); put16(friend(6), 83); put16(friend(8), 169); put16(friend(35), 255); put16(friend(24), 300);
 run();
 const vs = JSON.parse(JSON.stringify(window.__hmStamina.read().villagers));
-assert.equal(vs.length, 26, 'an odd value over 255 is skipped');
+assert.equal(vs.length, 27, 'an odd value over 255 is skipped');
 assert.deepEqual(vs.slice(0, 6), [{ name: 'Jeff', value: 69 }, { name: 'Sasha', value: 0 }, { name: 'Saibara', value: 0 }, { name: 'Gray', value: 0 }, { name: 'Doug', value: 83 }, { name: 'Doctor', value: 169 }]);
 assert.deepEqual(vs.at(-1), { name: 'Won', value: 255 });
 assert(!vs.some(v => ['Karen', 'Ann', 'Elli', 'Mary', 'Popuri', 'Gotz'].includes(v.name)));
 assert.equal($('.vtoggle').hidden, false);
-assert.equal($('.vtoggle').textContent, '▾ Villagers (26)');
+assert.equal($('.vtoggle').textContent, '▾ Villagers (27)');
 assert.equal($('.villagers').hidden, true);
 heartsBefore = $('.hearts').hidden;
 $('.vtoggle').fire('click');
 assert.equal($('.hearts').hidden, heartsBefore, 'the villagers toggle does not flip hearts');
 assert.equal($('.villagers').hidden, false);
 assert.equal(store['ps1-plugin-hm-villagers-open'], '1');
-assert.equal($('.vtoggle').textContent, '▴ Villagers (26)');
+assert.equal($('.vtoggle').textContent, '▴ Villagers (27)');
 assert($('.box').classList.has('wide'));
 assert($('.villagers').innerHTML.startsWith('<div class="villager"><a href="https://harvestmoon.fandom.com/wiki/Jeff_(BTN)" target="_blank" rel="noopener">Jeff</a><div class="bar"><div class="fill" style="width:27%"></div></div><span class="num">69/255</span></div>'));
 assert($('.villagers').innerHTML.includes('<a href="https://harvestmoon.fandom.com/wiki/Won_(BTN)" target="_blank" rel="noopener">Won</a><div class="bar"><div class="fill" style="width:100%"></div></div><span class="num">255/255</span>'));
@@ -399,7 +410,7 @@ assert(!$('.villagers').innerHTML.includes('Chef'), 'sprites are not in the vill
 put16(friend(24), 0);
 
 // Sprites: 7 records of 0xF8 from 0x7A638, name at +4, friendship at +0x16; slots without a name end or over 255 are skipped.
-assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().sprites)), [{ name: 'Chef', value: 50 }, { name: 'Aqua', value: 70 }]);
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().sprites)), [{ name: 'Chef', value: 50, skills: { harvest: 0, water: 0, animals: 0 } }, { name: 'Aqua', value: 70, skills: { harvest: 0, water: 0, animals: 0 } }]);
 assert.equal($('.ptoggle').hidden, false);
 assert.equal($('.ptoggle').textContent, '▾ Sprites (2)');
 assert.equal($('.sprites').hidden, true);
@@ -412,8 +423,7 @@ assert.equal($('.sprites').hidden, false);
 assert.equal(store['ps1-plugin-hm-sprites-open'], '1');
 assert.equal($('.ptoggle').textContent, '▴ Sprites (2)');
 assert($('.box').classList.has('wide'));
-assert.equal($('.sprites').innerHTML, '<div class="villager"><a href="https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)" target="_blank" rel="noopener">Chef</a><div class="bar"><div class="fill" style="width:20%;background:#ef4444"></div></div><span class="num">50/255</span></div>'
-  + '<div class="villager"><a href="https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)" target="_blank" rel="noopener">Aqua</a><div class="bar"><div class="fill" style="width:27%;background:#38bdf8"></div></div><span class="num">70/255</span></div>', 'each sprite has its own colour and links to the Harvest Sprites page');
+assert.equal($('.sprites').innerHTML, '<div class="sprow head"><span></span><span></span><span title="Harvest skill">🌾</span><span title="Water skill">💧</span><span title="Animals skill">🐄</span></div><div class="sprow"><span><a href="https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)" target="_blank" rel="noopener">Chef</a></span><div class="bar" title="Friendship 50/255"><div class="fill" style="width:20%;background:#ef4444"></div></div><span class="sk sk-harvest zero" title="Harvest skill 0/255, +1 per harvest work day. Picks 0-2 ripe crops each hour from 6:00 to 20:00, about 15 a day">0<span class="m"><i style="width:0%"></i></span></span><span class="sk sk-water zero" title="Water skill 0/255, +1 per water work day. Waters 0-4 dry crops each hour from 6:00 to 20:00, about 30 a day">0<span class="m"><i style="width:0%"></i></span></span><span class="sk sk-animals zero" title="Animal skill 0/255, +1 per animal work day. Each hour from 6:00 to 20:00, cares for more animals per step at 50 and 100">0<span class="m"><i style="width:0%"></i></span></span></div><div class="sprow"><span><a href="https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)" target="_blank" rel="noopener">Aqua</a></span><div class="bar" title="Friendship 70/255"><div class="fill" style="width:27%;background:#38bdf8"></div></div><span class="sk sk-harvest zero" title="Harvest skill 0/255, +1 per harvest work day. Picks 0-2 ripe crops each hour from 6:00 to 20:00, about 15 a day">0<span class="m"><i style="width:0%"></i></span></span><span class="sk sk-water zero" title="Water skill 0/255, +1 per water work day. Waters 0-4 dry crops each hour from 6:00 to 20:00, about 30 a day">0<span class="m"><i style="width:0%"></i></span></span><span class="sk sk-animals zero" title="Animal skill 0/255, +1 per animal work day. Each hour from 6:00 to 20:00, cares for more animals per step at 50 and 100">0<span class="m"><i style="width:0%"></i></span></span></div>', 'one header row, then each sprite with its colour, friendship in the bar tooltip and three skills');
 run();
 assert.equal($('.sprites').hidden, false, 'sprites choice survives a restart');
 $('.ptoggle').fire('click');
@@ -425,13 +435,14 @@ put16(0x7A638 + 0xB8, 0x41); put16(0x7A638 + 0xB4, 4);
 put16(0x7A638 + 6 * 0xF8 + 0xB8, 0x42); put16(0x7A638 + 6 * 0xF8 + 0xB4, 1);
 run();
 assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().sprites)), [
-  { name: 'Chef', value: 50, job: { kind: 'Harvest', icon: '🌾', days: 3 } },
-  { name: 'Aqua', value: 70, job: { kind: 'Water', icon: '💧', days: 0 } }]);
+  { name: 'Chef', value: 50, job: { kind: 'Harvest', icon: '🌾', days: 3 }, skills: { harvest: 0, water: 0, animals: 0 } },
+  { name: 'Aqua', value: 70, job: { kind: 'Water', icon: '💧', days: 0 }, skills: { harvest: 0, water: 0, animals: 0 } }]);
 assert.equal($('.ptoggle').textContent, '▾ Sprites (2) 🌾💧', 'jobs show on the closed toggle');
 assert.equal($('.ptoggle').title, 'Chef: Harvest · 3 more days\nAqua: Water · last day today');
 $('.ptoggle').fire('click');
-assert.match($('.sprites').innerHTML, /^<div class="villager"><span><a [^>]+>Chef<\/a> <span class="mark on" title="Harvest · 3 more days">🌾<span class="jobdays">3d<\/span><\/span><\/span><div class="bar">/);
+assert.match($('.sprites').innerHTML, /<div class="sprow"><span><a [^>]+>Chef<\/a> <span class="mark on" title="Harvest · 3 more days">🌾<span class="jobdays">3d<\/span><\/span><\/span><div class="bar" title="Friendship 50\/255">.*?<span class="sk sk-harvest on zero"/);
 assert.match($('.sprites').innerHTML, /💧<span class="jobdays">today<\/span>/, 'last work day shows today');
+assert.match($('.sprites').innerHTML, /<span class="sk sk-water on zero"/, 'the skill for the current job is marked');
 $('.ptoggle').fire('click');
 put16(0x7A638 + 0xB4, 0);
 put16(0x7A638 + 6 * 0xF8 + 0xB8, 0x44); put16(0x7A638 + 6 * 0xF8 + 0xB4, 2);
@@ -441,6 +452,20 @@ assert.equal($('.ptoggle').title, 'Aqua: Animals · 1 more day');
 put16(0x7A638 + 0xB8, 0); put16(0x7A638 + 6 * 0xF8 + 0xB8, 0); put16(0x7A638 + 6 * 0xF8 + 0xB4, 0);
 run();
 assert.equal($('.ptoggle').textContent, '▾ Sprites (2)');
+
+// Skills: +0xAE harvest, +0xB0 water, +0xB2 animals, 0-255; hourly runs from 6:00 to 20:00 make 15 a day.
+put16(0x7A638 + 0xAE, 120); put16(0x7A638 + 0xB0, 23); put16(0x7A638 + 0xB2, 5); put16(0x7A638 + 6 * 0xF8 + 0xB0, 300);
+run();
+assert.deepEqual(JSON.parse(JSON.stringify(Array.from(window.__hmStamina.read().sprites, v => v.skills))),
+  [{ harvest: 120, water: 23, animals: 5 }, { harvest: 0, animals: 0 }], 'a skill over 255 is not shown');
+$('.ptoggle').fire('click');
+assert.match($('.sprites').innerHTML, /<span class="sk sk-harvest" title="Harvest skill 120\/255, \+1 per harvest work day\. Picks 0-2 \+ 2 ripe crops each hour from 6:00 to 20:00, about 45 a day">120<span class="m"><i style="width:47%"><\/i><\/span><\/span>/);
+assert.match($('.sprites').innerHTML, /<span class="sk sk-water" title="Water skill 23\/255, \+1 per water work day\. Waters 0-4 \+ 2 dry crops each hour from 6:00 to 20:00, about 60 a day">23<span class="m"><i style="width:9%"><\/i><\/span><\/span>/);
+assert.match($('.sprites').innerHTML, /<span class="sk sk-animals" [^>]+>5<span class="m"><i style="width:2%"><\/i><\/span><\/span>/);
+assert.match($('.sprites').innerHTML, /Friendship 70\/255">.*?<\/div><\/div><span class="sk sk-harvest zero" [^>]+>0<span class="m">.*?<\/span><\/span><span><\/span><span class="sk sk-animals zero"/, 'the bad skill leaves an empty cell');
+$('.ptoggle').fire('click');
+put16(0x7A638 + 0xAE, 0); put16(0x7A638 + 0xB0, 0); put16(0x7A638 + 0xB2, 0); put16(0x7A638 + 6 * 0xF8 + 0xB0, 0);
+run();
 
 // Heart colours follow the game's steps: 5000, 20000, 30000, 40000, 50000, 60000.
 const heart = window.__hmStamina.heart;
@@ -552,7 +577,7 @@ assert.equal($('.pond').hidden, true, 'empty unfed pond is hidden');
 put16(0x75854, 0xA3); put16(0x75856, 3); put16(0x75858, 0xA3); put16(0x7585A, 3); put16(0x75860, 0xA2); put16(0x75862, 12);
 put16(0x75854 + 98 * 4, 0xA1); put16(0x75856 + 98 * 4, 25);
 run();
-assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 2, medium: 1, large: 1, count: 4, fed: false, days: [3, 3, 12, 25] });
+assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().pond)), { small: 2, medium: 1, large: 1, count: 4, fed: false, days: [3, 3, 12, 25], next: 25 });
 assert.equal($('.pond').hidden, false);
 assert.equal($('.fishes').hidden, true, 'fish nights start hidden');
 assert.equal($('.pond').querySelector('.label').textContent, 'Pond ▸');
@@ -561,10 +586,17 @@ assert.equal($('.fishes').hidden, false, 'tap shows fish nights');
 assert.equal($('.pond')['aria-expanded'], 'true');
 assert.equal($('.pond').querySelector('.label').textContent, 'Pond ▾');
 assert.equal($('.fishes').innerHTML,
-  '<span>L 25</span><div class="meter l"><div class="fill" style="width:83.3%"></div></div><span class="num">×1</span><span class="num">🐟 in 5</span>'
+  '<span class="next">L 25</span><div class="meter l"><div class="fill" style="width:83.3%"></div></div><span class="num"><span class="pick" title="You take this one next">🎣</span>×1</span><span class="num">🐟 in 5</span>'
   + '<span>M 12</span><div class="meter m"><div class="fill" style="width:40%"></div></div><span class="num">×1</span><span class="num">L in 8</span>'
   + '<span>S 3</span><div class="meter s"><div class="fill" style="width:10%"></div></div><span class="num">×2</span><span class="num">M in 7</span>', 'grouped by nights, most first, with a 30-night meter');
 assert.equal(store['ps1-plugin-hm-pond-open'], '1', 'open pond list is remembered');
+put16(0x75854 + 98 * 4, 0); put16(0x75864, 0xA2); put16(0x75866, 14);
+run();
+assert.equal(window.__hmStamina.read().pond.next, 12, 'the first medium slot is taken, not the one with most nights');
+assert.match($('.fishes').innerHTML, /<span class="next">M 12<\/span>/);
+assert.doesNotMatch($('.fishes').innerHTML, /class="next">M 14/);
+put16(0x75864, 0); put16(0x75854 + 98 * 4, 0xA1);
+run();
 $('.fishes').fire('click');
 assert.equal($('.fishes').hidden, true, 'tapping the list closes it');
 assert.equal(store['ps1-plugin-hm-pond-open'], '0');
@@ -637,7 +669,7 @@ assert.equal(window.__hmStamina.read().pond, null);
   assert.equal(window.__hmStamina.fish().tossed, 1);
   assert.equal(window.__hmStamina.fish().caught, 1);
   assert.equal($('.autofish').textContent, '🎣 Stop · 1 caught · 1 junk');
-  put16(0x71A12, 30); step(700);
+  put16(0x71A12, 10); step(700);
   assert.equal(window.__hmStamina.fish().on, false, 'stops at low stamina');
   assert.equal($('.autofish').textContent, '🎣 Auto fish · Stamina low');
 
@@ -692,6 +724,9 @@ H[B + 0x40000 + 0x29 * 40] = 0x40; H[B + 0x40000 + 0x29 * 40 + 3] = 7; put16(0x4
 H[B + 0x40000 + 0x31 * 40] = 0x40;
 put16(0x71DFC, 0x29); H[B + 0x71DFC + 4] = 1; put16(0x71E04, 0x29); H[B + 0x71E04 + 4] = 1; put16(0x71E0C, 0x31);
 run();
+assert.equal($('.crops').hidden, true, 'ripe line stays inside the closed Sprites list');
+$('.ptoggle').fire('click');
+assert.equal($('.crops').hidden, false, 'ripe line shows in the open Sprites list');
 assert.deepEqual(JSON.parse(JSON.stringify(window.__hmStamina.read().crops)), { field: 2, fieldRipe: 0, hothouse: 0, hothouseRipe: 0 });
 assert.equal($('.crops').querySelector('.name').innerHTML, '<span class="num">0/2</span> <span class="mark">🧚</span>');
 assert.match($('.crops').title, /only when a crop is ripe/);
@@ -706,6 +741,45 @@ assert.match($('.crops').title, /Field 1 of 2 ripe, Hothouse 1 of 1\. Sprites ca
 put16(0x71DFC, 0); put16(0x71E04, 0); put16(0x71E0C, 0); put16(0x74124, 0); put16(0x70D0C, 0);
 run();
 assert.equal($('.crops').hidden, true);
+$('.ptoggle').fire('click');
+
+// Harvest hire patch: a nop at 0x8010E818, written only over the matching hire code.
+const HIRE = [0x10400002, 0x24020004, 0xA6020028, 0x960200B8, 0x00000000, 0x34420041];
+const word = o => (H[B + o] | H[B + o + 1] << 8 | H[B + o + 2] << 16 | H[B + o + 3] << 24) >>> 0;
+const putHire = () => HIRE.forEach((v, i) => put32(0x10E810 + i * 4, v));
+run();
+assert.equal(window.__hmStamina.hireCode(), null, 'no hire code loaded');
+assert.equal($('.anyharvest').hidden, true, 'button hides with the Sprites list closed');
+$('.ptoggle').fire('click');
+assert.equal($('.anyharvest').hidden, false);
+assert.equal($('.anyharvest').textContent, '🌾 Hire with no ripe crop: Off');
+$('.anyharvest').fire('click');
+assert.equal(store['ps1-plugin-hm-any-harvest'], '1');
+assert.equal(word(0x10E818), 0, 'nothing written while the hire code is not there');
+putHire();
+run();
+assert.equal(window.__hmStamina.hireCode(), 'on');
+assert.equal(word(0x10E818), 0, 'step-4 store is a nop');
+assert.equal($('.anyharvest').textContent, '🌾 Hire with no ripe crop: On');
+assert.match($('.anyharvest').title, /Hire code is loaded/);
+$('.anyharvest').fire('click');
+assert.equal(word(0x10E818), 0xA6020028, 'turning it off puts the store back');
+assert.equal(window.__hmStamina.hireCode(), 'off');
+$('.anyharvest').fire('click');
+put32(0x10E824, 0x12345678);
+put32(0x10E818, 0xA6020028);
+run();
+assert.equal(word(0x10E818), 0xA6020028, 'other code is left alone');
+assert.equal(window.__hmStamina.hireCode(), null);
+putHire();
+run();
+assert.equal(word(0x10E818), 0);
+window.__hmStamina.stop();
+assert.equal(word(0x10E818), 0xA6020028, 'stop puts the store back');
+store['ps1-plugin-hm-any-harvest'] = '0';
+HIRE.forEach((v, i) => put32(0x10E810 + i * 4, 0));
+run();
+$('.ptoggle').fire('click');
 
 // Values out of range (another game) are not shown.
 put16(0x71A14, 0);
@@ -719,5 +793,5 @@ const before = H.slice();
 window.__hmStamina.stop();
 assert.equal(window.__hmStamina, undefined);
 assert(host.removed);
-assert.deepEqual(H, before, 'the plugin never writes RAM');
-console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond and fish nights, horse race tips, shop hours, animal love, coop feed, held chicken, golden egg hen, villager and sprite friendship, sprite jobs, can water, ripe crops, tomorrow weather, hearts and auto fishing with junk thrown back, opens hearts on tap, and handles missing or odd RAM.');
+assert.deepEqual(H, before, 'the plugin writes no RAM with the harvest hire patch off');
+console.log('PASS: Harvest Moon plugin reads stamina, fatigue, held tool, mine floor and item odds, basket, fish pond and fish nights, horse race tips, shop hours, animal love, coop feed, held chicken, golden egg hen, villager and sprite friendship, sprite jobs and skills, can water, ripe crops, the harvest hire patch, tomorrow weather, hearts and auto fishing with junk thrown back, opens hearts on tap, and handles missing or odd RAM.');

@@ -1,4 +1,4 @@
-// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, fish pond, ripe crops, shop hours and closed days, animal love, villager and sprite friendship, sprite jobs, can water, tomorrow's weather, hearts and auto fishing. Reads RAM only; never writes it. Auto fish presses pad buttons through the emulator.
+// Harvest Moon: Back to Nature (US, SLUS-01115) stamina, fatigue, held tool, mine floor and item odds, basket, horse race tips, fish pond, ripe crops, shop hours and closed days, animal love, villager and sprite friendship, sprite jobs and skills, can water, tomorrow's weather, hearts, auto fishing and a sprite harvest hire with no ripe crop. Reads RAM; the only write is the opt-in harvest hire patch. Auto fish presses pad buttons through the emulator.
 (function () {
     'use strict';
     if (window.__hmStamina) window.__hmStamina.stop();
@@ -13,10 +13,11 @@
     // Other villagers' friendship is the u16 just before (0x80076222 + villager * 0x1D4); the game's add function at 0x8011FEE0 caps it at 255.
     // Names from a public cheat list (vcgamers.com); each address fits this layout and the list's girl entries match the game's table.
     // Villager 8 is the Doctor: a gift to him raised it from 160 to 169 while the talk target 0x80071A22 was 8.
+    // Saves made mid-talk had the talk target 0x80071A22 at 24 for Gotz and 26 for Zack.
     const friendship = n => affection(n) - 2, FRIEND_MAX = 255;
     const VILLAGERS = [[1, 'Jeff'], [2, 'Sasha'], [4, 'Saibara'], [5, 'Gray'], [6, 'Doug'], [8, 'Doctor'], [10, 'Carter'], [11, 'Cliff'],
         [12, 'Basil'], [13, 'Anna'], [15, 'Barley'], [16, 'May'], [17, 'Thomas'], [18, 'Lillia'], [19, 'Rick'], [21, 'Duke'],
-        [22, 'Manna'], [23, 'Ellen'], [24, 'Gotz'], [25, 'Kai'], [28, 'Harris'], [29, 'Kano'], [30, 'Gourmet'], [31, 'Louis'],
+        [22, 'Manna'], [23, 'Ellen'], [24, 'Gotz'], [25, 'Kai'], [26, 'Zack'], [28, 'Harris'], [29, 'Kano'], [30, 'Gourmet'], [31, 'Louis'],
         [32, 'Greg'], [34, 'Stu'], [35, 'Won']];
     const VILLAGERS_KEY = 'ps1-plugin-hm-villagers-open', WIKI = name => 'https://harvestmoon.fandom.com/wiki/' + name + '_(BTN)';
     const SPRITES_WIKI = 'https://harvestmoon.fandom.com/wiki/Harvest_Sprites_(BTN)';
@@ -26,8 +27,17 @@
     // Hired job: +0xB8 bit 1 harvest, 2 water, 4 animals (set at 0x8010E81C-0x8010E8EC); +0xB4 is 2, 4 or 8 when hired for 1, 3 or 7 days
     // (0x8010E988). Each new day takes 1 off and the sprite works while it is above 0 (0x8010CCB0), so +0xB4 - 1 work days are left.
     const JOBS = [[1, 'Harvest', '🌾'], [2, 'Water', '💧'], [4, 'Animals', '🐄']], JOB_DAYS_MAX = 8;
+    // Job skills: +0xAE harvest, +0xB0 water, +0xB2 animals; each gains 1 per work day on that job, up to 255 (0x8010CBD8-0x8010CC50).
+    // The work runs each hour from 6:00 to 20:00 (event table at 0x80122E80, 0x8010CAD4). Each run picks rand(3) + harvest / 50 ripe
+    // crops (0x8010D350) or waters rand(5) + water / 10 dry crops (0x8010D46C); animal care adds animal / 50 or / 100 per step (0x8010D648).
+    const SKILLS = [['harvest', 0xAE, '🌾'], ['water', 0xB0, '💧'], ['animals', 0xB2, '🐄']], WORK_RUNS = 15;
     // Each sprite's outfit colour, from fan guides.
     const SPRITES_KEY = 'ps1-plugin-hm-sprites-open';
+    // Harvest hire (part 11 at 0x800B7E20): with no ripe crop, 0x8010E818 sets the menu step to 4 ("Nothing to ask for help
+    // with..."). Making it a nop lets the hire go on to the days menu. The sprite's daily work scans for ripe crops on its own.
+    // The patch is written only when the words around it match, so other code loaded there is left alone.
+    const ANY_HARVEST_KEY = 'ps1-plugin-hm-any-harvest', HIRE_AT = 0x10E810, NOP = 0;
+    const HIRE_CODE = [0x10400002, 0x24020004, 0xA6020028, 0x960200B8, 0x00000000, 0x34420041], HIRE_SLOT = 2;
     const SPRITE_COLOURS = { Chef: '#ef4444', Nappy: '#fb923c', Hoggy: '#facc15', Timid: '#22c55e', Aqua: '#38bdf8', Staid: '#6366f1', Bold: '#a855f7' };
     // Heart level steps from the game's code at 0x80022F1C. Colour names follow fan guides.
     const HEARTS = [
@@ -159,6 +169,9 @@
         ['Poultry Farm', 12, 16, [0]], ['Yodel Ranch', 9, 15, [1]], ['Clinic', 9, 16, [3]],
         ['Inn', 8, 21, []], ['Won', 13, 16, []], ['Winery', 9, 12, [6]], ['Kai', 10, 17, [1], 1]
     ];
+    // Fandom page for each shop, where its name differs from the shop name.
+    const SHOP_PAGES = { Carpenter: "Woodcutter's_House", Inn: 'The_Inn', Winery: 'Aja_Winery' };
+    const SHOP_WIKI = name => WIKI(SHOP_PAGES[name] || name.replace(/ /g, '_'));
     // Animal love is a byte; the name field is 9 u16 letters 18 bytes before it, padded with 0xFFFF (an empty slot starts with 0xFFFF).
     // Addresses from a public CodeBreaker list: chickens from 0x80074302 every 0xB4, barn animals from 0x80074A0A every 0xB8,
     // dog 0x800759FA, horse 0x80075AEA. Love tops out at 255.
@@ -178,12 +191,20 @@
     // Barn animals: 0xB8-byte records from 0x800749F4; +0 kind (0x160-0x162 cow by age, 0x164-0x165 sheep), flag 0x10000 marks a sheep.
     // New day (cows at 0x800DEB00, then sheep at 0x800E06E0): an unfed animal in the barn (place 5) empties the first full fodder box
     // of 22 at 0x800712F8. Fed +1 love, unfed -10; flag 2 (talked, 0x800DF9F0) +3; 5 outside ticks +1. Flag 4 (brushed, 0x800DF6A8)
-    // is set but not read at the new day. Flag 8 milked today, 0x10 milk ready (0x800DF84C), 0x100 sick.
+    // is set but not read at the new day. Flag 8 milked today, 0x10 milk ready, 0x100 sick.
     // +0xB2 counts pregnancy days (birth at 21); +0xB4 counts a sheep's fed days and shearing needs 7 (0x800E1404).
     // Outside (place 1, 0x800DE9C8): 5 ticks on grass feeds; rain costs 5 love a tick; winter does nothing.
     const BARN = Array.from({ length: 20 }, (_, i) => 0x749F4 + i * 0xB8), FODDER = 0x712F8, FODDER_BOXES = 22, IN_BARN = 5;
     const SHEEP_BIT = 0x10000, ADULT_COW = 0x162, LAMB = 0x164, TALKED = 2, BRUSHED = 4, MILKED = 8, MILK_READY = 0x10, SICK = 0x100;
     const BIRTH_DAYS = 21, WOOL_DAYS = 7;
+    // Milking (0x800DF84C) gives milk to an adult cow that is not pregnant, has 0x10 and not 8, and has love 2 or more.
+    const MILK_LOVE = 2;
+    const milkMark = (flags, baby, love) =>
+        baby ? [false, '🥛', 'No milk while pregnant']
+            : !(flags & MILK_READY) ? [false, '🥛', 'No milk today (not fed last night)']
+            : flags & MILKED ? [false, '🥛', 'Milked today']
+            : love < MILK_LOVE ? [false, '🥛', 'No milk: love too low']
+            : [true, '🥛', 'Milk ready'];
     // Fish pond: 99 slots of 4 bytes from 0x80075854 (u16 item, u16 days grown), counted by 0x8010C668.
     // Items 0xA3 small, 0xA2 medium, 0xA1 large (0x8010C5A0 sets the size by days: under 10, under 20, then large).
     // Bit 0 of 0x800759E0 is set when Fish Food goes in (0x8010C4B0); only then do the fish grow that night (0x8010C3F8).
@@ -219,7 +240,7 @@
     // Square with an item in the hands eats it, so Square is only pressed after both slots stay empty.
     // X with an item in the hands throws it (0x800C8D24 → 0x800CB850). Fishing junk (62, 233, 235, 236) goes back in.
     const PLAYER_FLAGS = 0x71A6C, FISH_STEP = 0x71A3C, IN_HANDS = 0x71AF0, ITEM = 0x71A8A, FISHING = 0x10, BUSY = 0x800000, BITE = 1;
-    const RODS = [56, 57], JUNK = [62, 233, 235, 236], PAD_X = 0, PAD_SQUARE = 1, PAD_R2 = 13;
+    const FISH_MIN_STAMINA = 10, RODS = [56, 57], JUNK = [62, 233, 235, 236], PAD_X = 0, PAD_SQUARE = 1, PAD_R2 = 13;
     const heap = () => window.EJS_emulator?.gameManager?.Module?.HEAPU8 || null;
     const hasSig = (H, i) => SIG.every((v, j) => H[i + j] === v);
     function findRam(H) {
@@ -241,6 +262,7 @@
             if (!name || i >= 9 || u16(at + 0x16) > FRIEND_MAX) continue;
             const sprite = { name, value: u16(at + 0x16) }, job = JOBS.find(([bit]) => u16(at + 0xB8) & bit), days = u16(at + 0xB4);
             if (job && days >= 1 && days <= JOB_DAYS_MAX) sprite.job = { kind: job[1], icon: job[2], days: days - 1 };
+            sprite.skills = Object.fromEntries(SKILLS.filter(([, off]) => u16(at + off) <= FRIEND_MAX).map(([key, off]) => [key, u16(at + off)]));
             s.sprites.push(sprite);
         }
         s.held = u16(HELD);
@@ -303,8 +325,7 @@
                 if (rain) a.marks.push([true, '🌧️', 'Rain: loses love outside']);
             }
             a.marks.push([(flags & TALKED) !== 0, '💬', 'Talked today (+3 love tonight)'], [(flags & BRUSHED) !== 0, '🪮', 'Brushed today']);
-            if (a.kind === 'Cow' && !baby && flags & (MILKED | MILK_READY))
-                a.marks.push([(flags & MILKED) !== 0, '🥛', flags & MILKED ? 'Milked today' : 'Milk ready']);
+            if (a.kind === 'Cow') a.marks.push(milkMark(flags, baby, u16(at + 0x16)));
             if (a.kind === 'Sheep') {
                 const wool = Math.min(u16(at + 0xB4), WOOL_DAYS);
                 a.marks.push([wool >= WOOL_DAYS, '✂️', wool >= WOOL_DAYS ? 'Wool ready' : 'Wool ' + wool + '/' + WOOL_DAYS]);
@@ -341,6 +362,12 @@
             else if (id) { s.pond[FISH[id]]++; s.pond.count++; s.pond.days.push(u16(POND + i * 4 + 2)); }
         }
         if (s.pond && !s.pond.count && !s.pond.fed) s.pond = null;
+        // Taking a fish out gives the first slot holding the biggest size (0x8010C4D4); nights are not compared.
+        if (s.pond?.count) {
+            let pick = -1;
+            for (let i = 0; i < POND_SLOTS; i++) if (u16(POND + i * 4) && (pick < 0 || u16(POND + i * 4) < u16(POND + pick * 4))) pick = i;
+            s.pond.next = u16(POND + pick * 4 + 2);
+        }
         s.crops = null;
         const growth = u32(GROWTH_PTR) - 0x80000000, inRam = o => o >= 0 && o < 0x200000;
         if (inRam(items) && inRam(growth)) {
@@ -369,6 +396,8 @@
     const host = document.createElement('div');
     host.style.cssText = 'position:fixed;left:max(8px,env(safe-area-inset-left));top:max(8px,env(safe-area-inset-top));z-index:99999;pointer-events:none';
     const shadow = host.attachShadow({ mode: 'open' });
+    // Keep focus on the game when the panel is clicked; clicks and links still work.
+    host.addEventListener('mousedown', e => e.preventDefault());
     shadow.innerHTML = `<style>
         [hidden] { display: none !important; }
         .box { width: 150px; padding: 6px 8px; background: rgba(12,15,20,.78); color: #eef2f7; border-radius: 8px;
@@ -393,6 +422,7 @@
         .bk .label, .pond .label { font-size: 10px; }
         button.pond { width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
         .fishes { display: grid; grid-template-columns: 30px 1fr auto 40px; align-items: center; gap: 3px 6px; padding-left: 6px; white-space: nowrap; font-weight: 400; font-size: 10px; color: #cfd6df; }
+        .fishes .next { color: #fde047; font-weight: 700; } .fishes .pick { margin-right: 3px; }
         .meter { position: relative; height: 7px; background: #2a313b; }
         .meter .fill { position: absolute; inset: 0 auto 0 0; background: #a5f3fc; } .meter.m .fill { background: #38bdf8; } .meter.l .fill { background: #4ade80; }
         .meter::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, #11161d 1px, transparent 1px) 0 0 / calc(100% / 30) 100% repeat-x; }
@@ -422,10 +452,18 @@
         .animal .fill { background: #f472b6; }
         .mark { opacity: .5; filter: grayscale(1); } .mark.on { opacity: 1; filter: none; }
         .jobdays { margin-left: 2px; font-size: .85em; opacity: .8; }
+        .villagers.sprites { grid-template-columns: max-content minmax(0, 1fr) repeat(3, 22px); column-gap: 5px; row-gap: 4px; }
+        .sprow { display: contents; } .sprow > span:first-child { white-space: nowrap; }
+        .sprow.head > span { color: #9ca3af; font-weight: 400; text-align: right; padding-bottom: 2px; border-bottom: 1px solid #2f3742; }
+        .sk { position: relative; text-align: right; font-weight: 400; color: #9ca3af; font-variant-numeric: tabular-nums; }
+        .sk.zero { color: #4b5563; } .sk.on { color: #eef2f7; font-weight: 700; }
+        .sk .m { position: absolute; left: 3px; right: 0; bottom: -2px; height: 2px; background: #2a313b; border-radius: 1px; overflow: hidden; }
+        .sk .m i { display: block; height: 100%; } .sk-harvest .m i { background: #a3e635; } .sk-water .m i { background: #38bdf8; } .sk-animals .m i { background: #f472b6; }
         .animal .kind { display: inline-block; width: 15px; font-weight: 400; }
         .animal > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .villagers { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
-        .villager { display: grid; grid-template-columns: 1fr 50px 46px; align-items: center; gap: 6px; }
+        .villagers { display: grid; grid-template-columns: max-content minmax(0, 1fr) 46px; align-items: center; column-gap: 6px; row-gap: 2px;
+            border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
+        .villager { display: contents; }
         .villager .fill { background: #fbbf24; }
         .race { display: grid; gap: 2px; border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .race .title { font-size: 11px; }
@@ -434,7 +472,7 @@
         .horse .odds { font-weight: 400; }
         .hearts { display: grid; gap: 3px; border-top: 1px solid #2f3742; padding-top: 5px; }
         .girl { display: grid; grid-template-columns: 44px 14px 1fr 46px; align-items: center; gap: 6px; }
-        .girl a, .villager a { justify-self: start; color: inherit; text-decoration: none; } .girl a:hover, .villager a:hover { text-decoration: underline; }
+        .girl a, .villager a, .sprow a, .shop a { justify-self: start; color: inherit; text-decoration: none; } .girl a:hover, .villager a:hover, .sprow a:hover, .shop a:hover { text-decoration: underline; }
         .heart { font-size: 13px; line-height: 1; text-shadow: 0 0 1px #fff, 0 0 1px #fff; }
     </style>
     <div class="box">
@@ -453,24 +491,25 @@
         <div class="ores bkitems" hidden></div>
         <button class="tool pond" type="button" aria-expanded="false" title="Show or hide fish nights" hidden><span class="label">Pond ▸</span><span class="name"></span></button>
         <div class="fishes" title="Each step is one fed night. Lines mark medium (10) and large (20); the bar ends at 30, when a fish may have babies. M, L, 🐟: nights left until then." hidden></div>
-        <div class="tool crops" hidden><span>Ripe</span><span class="name"></span></div>
         <div class="race" hidden></div>
         <div class="toggle stoggle" hidden></div>
         <div class="shops" hidden>${SHOPS.map(([name], i) =>
-            `<div class="shop sh-${i}"><span class="dot"></span><span>${name}</span><span class="when"></span></div>`).join('')}</div>
+            `<div class="shop sh-${i}"><span class="dot"></span><a href="${SHOP_WIKI(name)}" target="_blank" rel="noopener">${name}</a><span class="when"></span></div>`).join('')}</div>
         <div class="toggle atoggle" hidden></div>
         <div class="animals" hidden></div>
         <div class="toggle vtoggle" hidden></div>
         <div class="villagers" hidden></div>
         <div class="toggle ptoggle" hidden></div>
         <div class="villagers sprites" hidden></div>
+        <div class="tool crops" hidden><span>Ripe</span><span class="name"></span></div>
+        <button class="autofish anyharvest" type="button" hidden></button>
         <div class="toggle htoggle" hidden></div>
         <div class="hearts" hidden>${GIRLS.map(([name]) =>
             `<div class="girl g-${name}"><a href="${WIKI(name)}" target="_blank" rel="noopener">${name}</a><span class="heart">♥</span><div class="bar"><div class="fill"></div></div><span class="num"></span></div>`).join('')}</div>
         </div>
     </div>`;
     const $ = q => shadow.querySelector(q);
-    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond'), autofish = $('.autofish'), fishes = $('.fishes'), crops = $('.crops');
+    const box = $('.box'), wait = $('.wait'), st = $('.st'), fa = $('.fa'), tool = $('.tool'), floor = $('.floor'), ores = $('.ores'), sky = $('.sky'), wa = $('.wa'), toggle = $('.htoggle'), stoggle = $('.stoggle'), shops = $('.shops'), atoggle = $('.atoggle'), animals = $('.animals'), vtoggle = $('.vtoggle'), villagers = $('.villagers'), ptoggle = $('.ptoggle'), sprites = $('.sprites'), hearts = $('.hearts'), race = $('.race'), bk = $('.bk'), bkitems = $('.bkitems'), pond = $('.pond'), autofish = $('.autofish'), fishes = $('.fishes'), crops = $('.crops'), anyHarvest = $('.anyharvest');
     const more = $('.more');
     let expanded = false;
     more.addEventListener('click', e => {
@@ -535,7 +574,7 @@
                 if (t < 600) return;
                 if (hands) return fishStop('Hands are full');
                 if (emptyFor < 600) return;
-                if (u16(STAMINA) <= u16(STAMINA_MAX) * 0.3) return fishStop('Stamina low');
+                if (u16(STAMINA) <= FISH_MIN_STAMINA) return fishStop('Stamina low');
                 if (u16(FATIGUE) >= FATIGUE_TIRED) return fishStop('Too tired');
                 pad(PAD_SQUARE, 1);
                 return go('cast');
@@ -621,6 +660,28 @@
         try { window.localStorage.setItem(SPRITES_KEY, spritesOpen ? '1' : '0'); } catch {}
         show(last);
     }
+    let anyHarvestOn = false, hireCode = null;
+    try { anyHarvestOn = window.localStorage.getItem(ANY_HARVEST_KEY) === '1'; } catch {}
+    // Returns 'off', 'on' or null (hire code not loaded), and writes the patch to match the setting.
+    function patchHire(H, B, on) {
+        const at = i => B + HIRE_AT + i * 4;
+        const word = i => (H[at(i)] | H[at(i) + 1] << 8 | H[at(i) + 2] << 16 | H[at(i) + 3] << 24) >>> 0;
+        const put = (i, v) => { for (let k = 0; k < 4; k++) H[at(i) + k] = v >>> k * 8 & 0xFF; };
+        if (!HIRE_CODE.every((v, i) => i === HIRE_SLOT || word(i) === v)) return null;
+        const now = word(HIRE_SLOT);
+        if (now !== HIRE_CODE[HIRE_SLOT] && now !== NOP) return null;
+        if (on && now !== NOP) put(HIRE_SLOT, NOP);
+        if (!on && now === NOP) put(HIRE_SLOT, HIRE_CODE[HIRE_SLOT]);
+        return on ? 'on' : 'off';
+    }
+    anyHarvest.addEventListener('click', e => {
+        e.stopPropagation();
+        anyHarvestOn = !anyHarvestOn;
+        try { window.localStorage.setItem(ANY_HARVEST_KEY, anyHarvestOn ? '1' : '0'); } catch {}
+        const H = heap();
+        if (H && B !== null) hireCode = patchHire(H, B, anyHarvestOn);
+        show(last);
+    });
     vtoggle.addEventListener('click', flipVillagers);
     ptoggle.addEventListener('click', flipSprites);
     atoggle.addEventListener('click', flipAnimals);
@@ -647,15 +708,16 @@
         row.querySelector('.fill').style.width = Math.min(100, Math.round(value / max * 100)) + '%';
     }
     // One row per fed-night count, most first: size and nights, a 30-step meter, how many, nights to the next step.
-    function fishHtml(days) {
+    function fishHtml(days, pick) {
         const counts = new Map();
         for (const d of [...days].sort((a, b) => b - a)) counts.set(d, (counts.get(d) || 0) + 1);
         return [...counts].map(([d, n]) => {
             const size = d < POND_MEDIUM ? 'S' : d < POND_LARGE ? 'M' : 'L';
             const next = d < POND_MEDIUM ? `M in ${POND_MEDIUM - d}` : d < POND_LARGE ? `L in ${POND_LARGE - d}` : `🐟 in ${Math.max(0, POND_BREED - d)}`;
             const fill = Math.round(Math.min(d, POND_BREED) / POND_BREED * 1000) / 10;
-            return `<span>${size} ${d}</span><div class="meter ${size.toLowerCase()}"><div class="fill" style="width:${fill}%"></div></div>`
-                + `<span class="num">×${n}</span><span class="num">${next}</span>`;
+            const mark = d === pick ? `<span class="pick" title="You take ${n > 1 ? 'one of these' : 'this one'} next">🎣</span>` : '';
+            return `<span${mark ? ' class="next"' : ''}>${size} ${d}</span><div class="meter ${size.toLowerCase()}"><div class="fill" style="width:${fill}%"></div></div>`
+                + `<span class="num">${mark}×${n}</span><span class="num">${next}</span>`;
         }).join('');
     }
     function show(s) {
@@ -695,20 +757,26 @@
                 + ` <span class="mark${p.fed ? ' on' : ''}">🍤</span>`;
             if (name.innerHTML !== html) name.innerHTML = html;
             pond.title = `Small ${p.small}, medium ${p.medium}, large ${p.large}. ` + (p.fed ? 'Fed today: fish grow tonight' : 'Not fed today');
-            const html2 = fishHtml(p.days);
+            const html2 = fishHtml(p.days, p.next);
             if (fishes.innerHTML !== html2) fishes.innerHTML = html2;
         }
         fishes.hidden = pond.hidden || !pondOpen || !s.pond.count;
         pond.setAttribute('aria-expanded', String(!fishes.hidden));
         pond.querySelector('.label').textContent = pondOpen ? 'Pond ▾' : 'Pond ▸';
-        crops.hidden = !s || !s.crops;
+        crops.hidden = !s || !s.crops || sprites.hidden;
         if (s?.crops) {
             const c = s.crops, ripe = c.fieldRipe + c.hothouseRipe, name = crops.querySelector('.name');
             const html = `<span class="num">${ripe}/${c.field + c.hothouse}</span> <span class="mark${ripe ? ' on' : ''}">🧚</span>`;
             if (name.innerHTML !== html) name.innerHTML = html;
             crops.title = `Field ${c.fieldRipe} of ${c.field} ripe` + (c.hothouse ? `, Hothouse ${c.hothouseRipe} of ${c.hothouse}` : '') + '. '
-                + (ripe ? 'Sprites can take a harvest job' : 'Sprites take a harvest job only when a crop is ripe');
+                + (ripe || anyHarvestOn ? 'Sprites can take a harvest job' : 'Sprites take a harvest job only when a crop is ripe');
         }
+        anyHarvest.hidden = !s || sprites.hidden;
+        anyHarvest.classList.toggle('on', anyHarvestOn);
+        anyHarvest.textContent = '🌾 Hire with no ripe crop: ' + (anyHarvestOn ? 'On' : 'Off');
+        anyHarvest.title = (anyHarvestOn ? 'Sprites take a harvest job even when no crop is ripe. They still pick only ripe crops. '
+            : 'Tap to let sprites take a harvest job when no crop is ripe. ')
+            + (hireCode ? 'Hire code is loaded.' : 'Hire code is not loaded right now; it is patched when it loads.');
         race.hidden = !s || !s.race;
         if (s?.race) {
             const html = raceHtml(s.race);
@@ -764,20 +832,34 @@
         }
         vtoggle.textContent = (villagersOpen ? '▴ Villagers' : '▾ Villagers') + ' (' + s.villagers.length + ')';
         const jobTip = j => j.kind + (j.days ? ` · ${j.days} more day${j.days > 1 ? 's' : ''}` : ' · last day today');
-        const friends = (list, colour, link) => list.map(v => `<div class="villager">`
-            + (v.job ? '<span>' : '') + `<a href="${link(v.name)}" target="_blank" rel="noopener">${v.name}</a>`
-            + (v.job ? ` <span class="mark on" title="${jobTip(v.job)}">${v.job.icon}<span class="jobdays">${v.job.days ? v.job.days + 'd' : 'today'}</span></span></span>` : '')
-            + `<div class="bar"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${colour?.[v.name] ? ';background:' + colour[v.name] : ''}"></div></div>`
+        const skillTip = {
+            harvest: n => `Harvest skill ${n}/${FRIEND_MAX}, +1 per harvest work day. Picks 0-2${n >= 50 ? ' + ' + Math.floor(n / 50) : ''} ripe crops`
+                + ` each hour from 6:00 to 20:00, about ${WORK_RUNS * (1 + Math.floor(n / 50))} a day`,
+            water: n => `Water skill ${n}/${FRIEND_MAX}, +1 per water work day. Waters 0-4${n >= 10 ? ' + ' + Math.floor(n / 10) : ''} dry crops`
+                + ` each hour from 6:00 to 20:00, about ${WORK_RUNS * (2 + Math.floor(n / 10))} a day`,
+            animals: n => `Animal skill ${n}/${FRIEND_MAX}, +1 per animal work day. Each hour from 6:00 to 20:00, cares for more animals per step at 50 and 100`
+        };
+        const friends = list => list.map(v => `<div class="villager"><a href="${WIKI(v.name)}" target="_blank" rel="noopener">${v.name}</a>`
+            + `<div class="bar"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%"></div></div>`
             + `<span class="num">${v.value.toLocaleString('en-US')}/${FRIEND_MAX}</span></div>`).join('');
+        const jobMark = v => v.job ? ` <span class="mark on" title="${jobTip(v.job)}">${v.job.icon}<span class="jobdays">${v.job.days ? v.job.days + 'd' : 'today'}</span></span>` : '';
+        const skillCell = (v, key) => key in v.skills
+            ? `<span class="sk sk-${key}${v.job?.kind.toLowerCase() === key ? ' on' : ''}${v.skills[key] ? '' : ' zero'}" title="${skillTip[key](v.skills[key])}">`
+                + `${v.skills[key]}<span class="m"><i style="width:${Math.round(v.skills[key] / FRIEND_MAX * 100)}%"></i></span></span>`
+            : '<span></span>';
+        const spriteRows = list => `<div class="sprow head"><span></span><span></span>${SKILLS.map(([key, , icon]) => `<span title="${key[0].toUpperCase() + key.slice(1)} skill">${icon}</span>`).join('')}</div>`
+            + list.map(v => `<div class="sprow"><span><a href="${SPRITES_WIKI}" target="_blank" rel="noopener">${v.name}</a>${jobMark(v)}</span>`
+                + `<div class="bar" title="Friendship ${v.value}/${FRIEND_MAX}"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${SPRITE_COLOURS[v.name] ? ';background:' + SPRITE_COLOURS[v.name] : ''}"></div></div>`
+                + SKILLS.map(([key]) => skillCell(v, key)).join('') + '</div>').join('');
         if (villagersOpen) {
-            const html = friends(s.villagers, null, WIKI);
+            const html = friends(s.villagers);
             if (villagers.innerHTML !== html) villagers.innerHTML = html;
         }
         const jobs = s.sprites.filter(v => v.job);
         ptoggle.textContent = (spritesOpen ? '▴ Sprites' : '▾ Sprites') + ' (' + s.sprites.length + ')' + (jobs.length ? ' ' + jobs.map(v => v.job.icon).join('') : '');
         ptoggle.title = jobs.length ? jobs.map(v => v.name + ': ' + jobTip(v.job)).join('\n') : '';
         if (spritesOpen) {
-            const html = friends(s.sprites, SPRITE_COLOURS, () => SPRITES_WIKI);
+            const html = spriteRows(s.sprites);
             if (sprites.innerHTML !== html) sprites.innerHTML = html;
         }
         toggle.textContent = open ? '▴ Hearts' : '▾ Hearts';
@@ -804,13 +886,17 @@
             lastScan = Date.now();
             B = findRam(H);
         }
-        show(B === null ? null : read(H, B));
+        const s = B === null ? null : read(H, B);
+        hireCode = s ? patchHire(H, B, anyHarvestOn) : null;
+        show(s);
     }
     tick();
     const timer = setInterval(tick, 250);
     window.__hmStamina = {
         stop() {
             fishStop('');
+            const H = heap();
+            if (H && B !== null && hasSig(H, B + 0x80)) patchHire(H, B, false);
             clearInterval(timer);
             window.removeEventListener?.('keydown', fishInterrupt, true);
             window.removeEventListener?.('pointerdown', fishInterrupt, true);
@@ -818,6 +904,7 @@
             delete window.__hmStamina;
         },
         fish: () => ({ ...fish }),
+        hireCode: () => hireCode,
         read: () => { const H = heap(); return H && B !== null ? read(H, B) : null; },
         heart: v => heartOf(v)[1],
         toolName,

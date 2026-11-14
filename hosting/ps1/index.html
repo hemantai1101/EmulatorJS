@@ -147,8 +147,19 @@
   #game .b_direction_buttons .ejs_dpad_main { opacity: var(--touch-opacity); cursor: pointer; }
   #game .b_direction_buttons .ejs_dpad_horizontal { height: 34%; }
   #game .b_direction_buttons .ejs_dpad_vertical { width: 34%; }
-  #game .ejs_dpad_bar { background: #dce1df; }
-  #game .ejs_dpad_main:is(.ejs_dpad_up_pressed, .ejs_dpad_down_pressed, .ejs_dpad_left_pressed, .ejs_dpad_right_pressed) { opacity: .8; }
+  #game .b_direction_buttons .ejs_dpad_main {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M33 1H67V33H99V67H67V99H33V67H1V33H33Z' fill='%2317191b44' stroke='%23f3f2ed' stroke-width='2' stroke-linejoin='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  }
+  #game .ejs_dpad_bar { background: transparent; }
+  #game .ejs_dpad_horizontal::before { border-right-color: #f3f2ed; }
+  #game .ejs_dpad_horizontal::after { border-left-color: #f3f2ed; }
+  #game .ejs_dpad_vertical::before { border-bottom-color: #f3f2ed; }
+  #game .ejs_dpad_vertical::after { border-top-color: #f3f2ed; }
+  #game .ejs_dpad_left_pressed .ejs_dpad_horizontal::before { border-right-color: #c0ee88; }
+  #game .ejs_dpad_right_pressed .ejs_dpad_horizontal::after { border-left-color: #c0ee88; }
+  #game .ejs_dpad_up_pressed .ejs_dpad_vertical::before { border-bottom-color: #c0ee88; }
+  #game .ejs_dpad_down_pressed .ejs_dpad_vertical::after { border-top-color: #c0ee88; }
+  #game .ejs_dpad_main:is(.ejs_dpad_up_pressed, .ejs_dpad_down_pressed, .ejs_dpad_left_pressed, .ejs_dpad_right_pressed) { opacity: .9; }
   #game .b_direction_stick { touch-action: none; opacity: var(--touch-opacity); }
   #game .b_direction_stick .back { outline: 2px solid #f3f2ed; }
   #game .ejs_virtualGamepad_button {
@@ -253,12 +264,14 @@
   }
   @container (min-aspect-ratio: 3 / 2) {
     #game .ejs_virtualGamepad_parent {
-      --pad-size: min(calc(var(--touch-size) * var(--touch-scale)), calc(50cqw - 16px), calc(100cqh - 148px));
-      --face-size: min(calc(var(--touch-size) * var(--touch-scale) * 1.15), calc(50cqw - 16px), calc(100cqh - 148px));
-      --side-center: max(calc(var(--face-size) / 2 + 12px), calc((100cqw - (100cqh - 64px) * 4 / 3) / 4));
+      --side-space: calc((100cqw - (100cqh - 64px) * 4 / 3) / 2);
+      --pad-size: min(calc(var(--touch-size) * var(--touch-scale)), calc(50cqw - 16px), calc(100cqh - 148px), max(120px, calc(var(--side-space) - var(--touch-safe-left) - 12px)));
+      --face-size: min(calc(var(--touch-size) * var(--touch-scale) * 1.15), calc(50cqw - 16px), calc(100cqh - 148px), max(120px, calc(var(--side-space) - var(--touch-safe-right) - 12px)));
+      --side-center: max(calc(var(--face-size) / 2 + 12px), calc(var(--side-space) / 2));
       --side-shift: calc((1 - var(--touch-spacing)) * min(64px, 8cqw));
-      --left-center: max(calc(var(--face-size) / 2 + var(--touch-safe-left)), calc(var(--side-center) + var(--side-shift)));
-      --right-center: max(calc(var(--face-size) / 2 + var(--touch-safe-right)), calc(var(--side-center) + var(--side-shift)));
+      /* Keep each pad inside the space beside the picture. */
+      --left-center: clamp(calc(var(--pad-size) / 2 + var(--touch-safe-left) + 4px), max(calc(var(--face-size) / 2 + var(--touch-safe-left)), calc(var(--side-center) + var(--side-shift))), calc(var(--side-space) - var(--pad-size) / 2 - 6px));
+      --right-center: clamp(calc(var(--face-size) / 2 + var(--touch-safe-right) + 4px), max(calc(var(--face-size) / 2 + var(--touch-safe-right)), calc(var(--side-center) + var(--side-shift))), calc(var(--side-space) - var(--face-size) / 2 - 6px));
       --left-shoulder-shift: min(max(0px, calc(var(--left-center) + 116px - 50cqw)), max(0px, calc(var(--left-center) - var(--touch-safe-left) - 48px)));
       --right-shoulder-shift: min(max(0px, calc(var(--right-center) + 116px - 50cqw)), max(0px, calc(var(--right-center) - var(--touch-safe-right) - 48px)));
     }
@@ -271,8 +284,8 @@
       right: calc(var(--right-center) - var(--face-size) / 2);
     }
     #game .ejs_virtualGamepad_bottom { left: 0; width: 100%; height: 44px; transform: none; bottom: calc(100cqh - 116px - var(--touch-bottom)); }
-    #game .ejs_virtualGamepad_bottom .b_select { left: calc(50% - 60px) !important; }
-    #game .ejs_virtualGamepad_bottom .b_start { right: calc(50% - 60px) !important; }
+    #game .ejs_virtualGamepad_bottom .b_select { left: calc(var(--left-center) - 22px) !important; }
+    #game .ejs_virtualGamepad_bottom .b_start { right: calc(var(--right-center) - 22px) !important; }
   }
   @container (min-aspect-ratio: 3 / 2) and (max-height: 500px) {
     #game .ejs_virtualGamepad_parent {
@@ -299,6 +312,19 @@
     #game .ejs_virtualGamepad_bottom { left: 0; width: 100%; transform: none; bottom: calc(100cqh - 116px - var(--touch-bottom)); }
     #game .ejs_virtualGamepad_bottom .b_select { left: calc(50% - 60px) !important; }
     #game .ejs_virtualGamepad_bottom .b_start { right: calc(50% - 60px) !important; }
+  }
+  /* Wide screens: the picture uses the full height and the tools sit in the side space. */
+  @container (min-aspect-ratio: 43 / 20) {
+    #game:has(.ejs_virtualGamepad_open) .ejs_canvas_parent,
+    .fill-screen #game .ejs_canvas_parent,
+    #game:fullscreen .ejs_canvas_parent,
+    #game:-webkit-full-screen .ejs_canvas_parent { top: 0; height: 100%; }
+    #game .ejs_virtualGamepad_parent { --side-space: calc((100cqw - 100cqh * 4 / 3) / 2); }
+    #player-quick-tools { flex-wrap: wrap; justify-content: flex-end; width: 148px; }
+    #game .ejs_virtualGamepad_bottom { bottom: calc(100cqh - 164px - var(--touch-bottom)); }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    @container (min-aspect-ratio: 43 / 20) { #player-quick-tools { width: 124px; } }
   }
   .fill-screen #game { --touch-safe-left: 0px; --touch-safe-right: 0px; --touch-safe-bottom: 0px; }
   #game:fullscreen { --touch-safe-left: env(safe-area-inset-left); --touch-safe-right: env(safe-area-inset-right); --touch-safe-bottom: env(safe-area-inset-bottom); }
@@ -626,7 +652,7 @@
 <script src="recent-game.js"></script>
 <script src="recovery.js?v=20261112-space-pause"></script>
 <script src="touch-controls.js?v=20261028-analog-status"></script>
-<script src="plugins.js?v=20261112-hm-fish-junk"></script>
+<script src="plugins.js?v=20261114-hm-long-bars"></script>
 <script src="menu.js?v=20261110-menu"></script>
 <script src="saves.js?v=20261109-single-saves"></script>
 <script src="state-cards.js?v=20261030"></script>
