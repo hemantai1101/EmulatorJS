@@ -454,8 +454,8 @@
         .jobdays { margin-left: 2px; font-size: .85em; opacity: .8; }
         .villagers.sprites { grid-template-columns: max-content minmax(0, 1fr) repeat(3, 22px); column-gap: 5px; row-gap: 4px; }
         .sprow { display: contents; }
-        .spbar { position: relative; height: 12px; border-radius: 6px; } .spbar .fill { border-radius: 6px; }
-        .spbar span { position: absolute; inset: 0 5px 0 auto; font: 700 9px/12px system-ui, sans-serif; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; font-variant-numeric: tabular-nums; } .sprow > span:first-child { white-space: nowrap; }
+        .obar { position: relative; height: 12px; border-radius: 6px; } .obar .fill { border-radius: 6px; }
+        .obar span { position: absolute; inset: 0 5px 0 auto; font: 700 9px/12px system-ui, sans-serif; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; font-variant-numeric: tabular-nums; } .sprow > span:first-child { white-space: nowrap; }
         .sprow.head > span { color: #9ca3af; font-weight: 400; text-align: right; padding-bottom: 2px; border-bottom: 1px solid #2f3742; }
         .sk { position: relative; text-align: right; font-weight: 400; color: #9ca3af; font-variant-numeric: tabular-nums; }
         .sk.zero { color: #4b5563; } .sk.on { color: #eef2f7; font-weight: 700; }
@@ -463,7 +463,7 @@
         .sk .m i { display: block; height: 100%; } .sk-harvest .m i { background: #a3e635; } .sk-water .m i { background: #38bdf8; } .sk-animals .m i { background: #f472b6; }
         .animal .kind { display: inline-block; width: 15px; font-weight: 400; }
         .animal > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .villagers { display: grid; grid-template-columns: max-content minmax(0, 1fr) 46px; align-items: center; column-gap: 6px; row-gap: 2px;
+        .villagers { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; column-gap: 6px; row-gap: 2px;
             border-top: 1px solid #2f3742; padding-top: 5px; font-size: 10px; }
         .villager { display: contents; }
         .villager .fill { background: #fbbf24; }
@@ -842,8 +842,7 @@
             animals: n => `Animal skill ${n}/${FRIEND_MAX}, +1 per animal work day. Each hour from 6:00 to 20:00, cares for more animals per step at 50 and 100`
         };
         const friends = list => list.map(v => `<div class="villager"><a href="${WIKI(v.name)}" target="_blank" rel="noopener">${v.name}</a>`
-            + `<div class="bar"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%"></div></div>`
-            + `<span class="num">${v.value.toLocaleString('en-US')}/${FRIEND_MAX}</span></div>`).join('');
+            + `<div class="bar obar" title="Friendship ${v.value}/${FRIEND_MAX}"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%"></div><span>${v.value}</span></div></div>`).join('');
         const jobMark = v => v.job ? ` <span class="mark on" title="${jobTip(v.job)}">${v.job.icon}<span class="jobdays">${v.job.days ? v.job.days + 'd' : 'today'}</span></span>` : '';
         const skillCell = (v, key) => key in v.skills
             ? `<span class="sk sk-${key}${v.job?.kind.toLowerCase() === key ? ' on' : ''}${v.skills[key] ? '' : ' zero'}" title="${skillTip[key](v.skills[key])}">`
@@ -851,7 +850,7 @@
             : '<span></span>';
         const spriteRows = list => `<div class="sprow head"><span></span><span></span>${SKILLS.map(([key, , icon]) => `<span title="${key[0].toUpperCase() + key.slice(1)} skill">${icon}</span>`).join('')}</div>`
             + list.map(v => `<div class="sprow"><span><a href="${SPRITES_WIKI}" target="_blank" rel="noopener">${v.name}</a>${jobMark(v)}</span>`
-                + `<div class="bar spbar" title="Friendship ${v.value}/${FRIEND_MAX}"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${SPRITE_COLOURS[v.name] ? ';background:' + SPRITE_COLOURS[v.name] : ''}"></div><span>${v.value}</span></div>`
+                + `<div class="bar obar" title="Friendship ${v.value}/${FRIEND_MAX}"><div class="fill" style="width:${Math.round(v.value / FRIEND_MAX * 100)}%${SPRITE_COLOURS[v.name] ? ';background:' + SPRITE_COLOURS[v.name] : ''}"></div><span>${v.value}</span></div>`
                 + SKILLS.map(([key]) => skillCell(v, key)).join('') + '</div>').join('');
         if (villagersOpen) {
             const html = friends(s.villagers);

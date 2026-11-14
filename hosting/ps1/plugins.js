@@ -14,7 +14,7 @@
       id: 'hm-stamina-bar',
       name: 'Harvest Moon stamina and hearts',
       src: 'plugins/hm-stamina-bar.js',
-      v: '20261114-sprite-bar-number',
+      v: '20261114-bar-numbers',
       note: 'Shows stamina, fatigue, the held tool, the mine floor and item odds, basket contents, the fish pond, tomorrow\'s weather, horse race tips, shop hours, animal love and watering can water for Harvest Moon: Back to Nature (US). On mobile, tap More for details, then Close to shrink the panel. Tap Hearts for the girls\' hearts.',
       stop: () => root.__hmStamina?.stop()
     }
